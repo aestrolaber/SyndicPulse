@@ -94,26 +94,31 @@ export const DEMO_USERS = [
 
 // ── Residents (Norwest · bld-1) ───────────────────────────────────────────────
 export const RESIDENTS_BLD1 = [
-    { id: 'r01', unit: 'Apt 1A', name: 'Ahmed Benjelloun',  phone: '+212661234567', status: 'paid',    floor: 1,  since: '2019', quota: 2.08 },
-    { id: 'r02', unit: 'Apt 1B', name: 'Khadija Moussaoui', phone: '+212662345678', status: 'paid',    floor: 1,  since: '2021', quota: 2.08 },
-    { id: 'r03', unit: 'Apt 1C', name: 'Omar Chraibi',      phone: '+212663456789', status: 'paid',    floor: 1,  since: '2020', quota: 2.08 },
-    { id: 'r04', unit: 'Apt 1D', name: 'Nadia El Fassi',    phone: '+212664567890', status: 'overdue', floor: 1,  since: '2022', quota: 2.08 },
-    { id: 'r05', unit: 'Apt 2A', name: 'Youssef Alami',     phone: '+212665678901', status: 'paid',    floor: 2,  since: '2018', quota: 2.08 },
-    { id: 'r06', unit: 'Apt 2B', name: 'Sanae Bouazza',     phone: '+212666789012', status: 'paid',    floor: 2,  since: '2023', quota: 2.08 },
-    { id: 'r07', unit: 'Apt 4B', name: 'Hassan Idrissi',    phone: '+212667890123', status: 'paid',    floor: 4,  since: '2020', quota: 2.08 },
-    { id: 'r08', unit: 'Apt 6B', name: 'Mehdi Chraibi',     phone: '+212668901234', status: 'pending', floor: 6,  since: '2021', quota: 2.08 },
-    { id: 'r09', unit: 'Apt 7C', name: 'Rachid Bouazza',    phone: '+212669012345', status: 'pending', floor: 7,  since: '2022', quota: 2.08 },
-    { id: 'r10', unit: 'Apt 9A', name: 'Lamia Bensouda',    phone: '+212661123456', status: 'paid',    floor: 9,  since: '2019', quota: 2.08 },
-    { id: 'r11', unit: 'Apt 11C', name: 'Lamia Tazi',       phone: '+212662234567', status: 'overdue', floor: 11, since: '2023', quota: 2.08 },
-    { id: 'r12', unit: 'Apt 12A', name: 'Fatima Zouheir',   phone: '+212663345678', status: 'paid',    floor: 12, since: '2020', quota: 2.08 },
+    { id: 'r01', unit: 'Apt 1A',  name: 'Ahmed Benjelloun',  phone: '+212661234567', paidThrough: '2026-02', floor: 1,  since: '2019', quota: 2.08 },
+    { id: 'r02', unit: 'Apt 1B',  name: 'Khadija Moussaoui', phone: '+212662345678', paidThrough: '2026-02', floor: 1,  since: '2021', quota: 2.08 },
+    { id: 'r03', unit: 'Apt 1C',  name: 'Omar Chraibi',      phone: '+212663456789', paidThrough: '2026-02', floor: 1,  since: '2020', quota: 2.08 },
+    { id: 'r04', unit: 'Apt 1D',  name: 'Nadia El Fassi',    phone: '+212664567890', paidThrough: '2025-11', floor: 1,  since: '2022', quota: 2.08 },
+    { id: 'r05', unit: 'Apt 2A',  name: 'Youssef Alami',     phone: '+212665678901', paidThrough: '2026-04', floor: 2,  since: '2018', quota: 2.08 },
+    { id: 'r06', unit: 'Apt 2B',  name: 'Sanae Bouazza',     phone: '+212666789012', paidThrough: '2026-02', floor: 2,  since: '2023', quota: 2.08 },
+    { id: 'r07', unit: 'Apt 4B',  name: 'Hassan Idrissi',    phone: '+212667890123', paidThrough: '2026-02', floor: 4,  since: '2020', quota: 2.08 },
+    { id: 'r08', unit: 'Apt 6B',  name: 'Mehdi Chraibi',     phone: '+212668901234', paidThrough: '2026-01', floor: 6,  since: '2021', quota: 2.08 },
+    { id: 'r09', unit: 'Apt 7C',  name: 'Rachid Bouazza',    phone: '+212669012345', paidThrough: '2026-01', floor: 7,  since: '2022', quota: 2.08 },
+    { id: 'r10', unit: 'Apt 9A',  name: 'Lamia Bensouda',    phone: '+212661123456', paidThrough: '2026-02', floor: 9,  since: '2019', quota: 2.08 },
+    { id: 'r11', unit: 'Apt 11C', name: 'Lamia Tazi',        phone: '+212662234567', paidThrough: '2025-11', floor: 11, since: '2023', quota: 2.08 },
+    { id: 'r12', unit: 'Apt 12A', name: 'Fatima Zouheir',    phone: '+212663345678', paidThrough: '2026-02', floor: 12, since: '2020', quota: 2.08 },
 ]
 
 // ── Maintenance tickets (Norwest · bld-1) ─────────────────────────────────────
 export const TICKETS_BLD1 = [
-    { id: 't1', title: 'Entretien jardins (espaces verts)', status: 'in_progress', time: 'Démarré il y a 1h',   agent: 'Norwest Green Team', priority: 'normal'  },
-    { id: 't2', title: 'Nettoyage piscine',                 status: 'scheduled',   time: "Aujourd'hui, 14:00", agent: 'H2O Tanger',         priority: 'normal'  },
-    { id: 't3', title: 'Réparation éclairage hall',         status: 'done',        time: '09:00',              agent: 'Electric Morocco',   priority: 'urgent'  },
-    { id: 't4', title: 'Maintenance ascenseur Bloc B',      status: 'done',        time: 'Hier',               agent: 'Otis Maroc',         priority: 'urgent'  },
+    { id: 't1', title: 'Entretien jardins (espaces verts)', status: 'in_progress', date: '2026-03-01', time: "Aujourd'hui, 08:00",  agent: 'Norwest Green Team', priority: 'normal', category: 'espaces_verts' },
+    { id: 't2', title: 'Nettoyage piscine',                 status: 'in_progress', date: '2026-03-01', time: "Aujourd'hui, 14:00",  agent: 'H2O Tanger',         priority: 'normal', category: 'nettoyage'     },
+    { id: 't3', title: 'Vérification extincteurs Bloc A–C', status: 'scheduled',   date: '2026-03-05', time: 'Jeu. 05 Mars, 10:00', agent: 'SafeGuard Maroc',    priority: 'urgent', category: 'securite'      },
+    { id: 't4', title: 'Remplacement pompes eau Bloc D',    status: 'scheduled',   date: '2026-03-07', time: 'Sam. 07 Mars, 09:00', agent: 'HydroTech Tanger',   priority: 'normal', category: 'plomberie'     },
+    { id: 't5', title: 'Maintenance ascenseur Bloc B',      status: 'scheduled',   date: '2026-03-10', time: 'Mar. 10 Mars, 08:00', agent: 'Otis Maroc',         priority: 'urgent', category: 'ascenseur'     },
+    { id: 't6', title: 'Peinture cage escalier Bloc A',     status: 'scheduled',   date: '2026-03-14', time: 'Sam. 14 Mars, 07:30', agent: 'ColorMat SARL',      priority: 'normal', category: 'peinture'      },
+    { id: 't7', title: 'Réparation éclairage hall entrée',  status: 'done',        date: '2026-02-28', time: 'Ven. 28 Fév., 09:00', agent: 'Electric Morocco',   priority: 'urgent', category: 'electricite'   },
+    { id: 't8', title: 'Nettoyage façade principale',       status: 'done',        date: '2026-02-20', time: '20 Fév.',              agent: 'CleanPro Tanger',    priority: 'normal', category: 'nettoyage'     },
+    { id: 't9', title: 'Contrôle tableau électrique',       status: 'done',        date: '2026-02-15', time: '15 Fév.',              agent: 'Electric Morocco',   priority: 'urgent', category: 'electricite'   },
 ]
 
 // ── Expenses (Norwest · bld-1) ────────────────────────────────────────────────
@@ -181,30 +186,33 @@ export const COLLECTION_HISTORY_BLD1 = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const RESIDENTS_BLD2 = [
-    { id: 'a01', unit: 'Apt A-02', name: 'Rachid Berrada',      phone: '+212661100001', status: 'paid',    floor: 1,  since: '2018', quota: 0.83 },
-    { id: 'a02', unit: 'Apt A-05', name: 'Houda Cherkaoui',     phone: '+212661100002', status: 'paid',    floor: 1,  since: '2020', quota: 0.83 },
-    { id: 'a03', unit: 'Apt B-01', name: 'Karim Lahlou',        phone: '+212661100003', status: 'paid',    floor: 2,  since: '2019', quota: 0.83 },
-    { id: 'a04', unit: 'Apt B-04', name: 'Zineb Kettani',       phone: '+212661100004', status: 'overdue', floor: 2,  since: '2021', quota: 0.83 },
-    { id: 'a05', unit: 'Apt C-02', name: 'Brahim Sabiri',       phone: '+212661100005', status: 'paid',    floor: 3,  since: '2017', quota: 0.83 },
-    { id: 'a06', unit: 'Apt C-07', name: 'Amina El Alami',      phone: '+212661100006', status: 'pending', floor: 3,  since: '2022', quota: 0.83 },
-    { id: 'a07', unit: 'Apt D-03', name: 'Yassine Benkirane',   phone: '+212661100007', status: 'paid',    floor: 4,  since: '2020', quota: 0.83 },
-    { id: 'a08', unit: 'Apt D-09', name: 'Salma Fikri',         phone: '+212661100008', status: 'paid',    floor: 4,  since: '2021', quota: 0.83 },
-    { id: 'a09', unit: 'Apt E-01', name: 'Amine Ennaji',        phone: '+212661100009', status: 'overdue', floor: 5,  since: '2023', quota: 0.83 },
-    { id: 'a10', unit: 'Apt E-06', name: 'Dounia Kabbaj',       phone: '+212661100010', status: 'paid',    floor: 5,  since: '2019', quota: 0.83 },
-    { id: 'a11', unit: 'Apt F-02', name: 'Mehdi Tahiri',        phone: '+212661100011', status: 'pending', floor: 6,  since: '2022', quota: 0.83 },
-    { id: 'a12', unit: 'Apt F-08', name: 'Nora Bensouda',       phone: '+212661100012', status: 'paid',    floor: 6,  since: '2020', quota: 0.83 },
-    { id: 'a13', unit: 'Apt G-04', name: 'Khalid Tazi',         phone: '+212661100013', status: 'paid',    floor: 7,  since: '2018', quota: 0.83 },
-    { id: 'a14', unit: 'Apt G-10', name: 'Leila El Fassi',      phone: '+212661100014', status: 'overdue', floor: 7,  since: '2023', quota: 0.83 },
-    { id: 'a15', unit: 'Apt H-03', name: 'Saad Alaoui',         phone: '+212661100015', status: 'paid',    floor: 8,  since: '2019', quota: 0.83 },
-    { id: 'a16', unit: 'Apt H-07', name: 'Meryem Chraibi',      phone: '+212661100016', status: 'paid',    floor: 8,  since: '2021', quota: 0.83 },
+    { id: 'a01', unit: 'Apt A-02', name: 'Rachid Berrada',      phone: '+212661100001', paidThrough: '2026-02', floor: 1,  since: '2018', quota: 0.83 },
+    { id: 'a02', unit: 'Apt A-05', name: 'Houda Cherkaoui',     phone: '+212661100002', paidThrough: '2026-02', floor: 1,  since: '2020', quota: 0.83 },
+    { id: 'a03', unit: 'Apt B-01', name: 'Karim Lahlou',        phone: '+212661100003', paidThrough: '2026-02', floor: 2,  since: '2019', quota: 0.83 },
+    { id: 'a04', unit: 'Apt B-04', name: 'Zineb Kettani',       phone: '+212661100004', paidThrough: '2025-11', floor: 2,  since: '2021', quota: 0.83 },
+    { id: 'a05', unit: 'Apt C-02', name: 'Brahim Sabiri',       phone: '+212661100005', paidThrough: '2026-05', floor: 3,  since: '2017', quota: 0.83 },
+    { id: 'a06', unit: 'Apt C-07', name: 'Amina El Alami',      phone: '+212661100006', paidThrough: '2026-01', floor: 3,  since: '2022', quota: 0.83 },
+    { id: 'a07', unit: 'Apt D-03', name: 'Yassine Benkirane',   phone: '+212661100007', paidThrough: '2026-02', floor: 4,  since: '2020', quota: 0.83 },
+    { id: 'a08', unit: 'Apt D-09', name: 'Salma Fikri',         phone: '+212661100008', paidThrough: '2026-02', floor: 4,  since: '2021', quota: 0.83 },
+    { id: 'a09', unit: 'Apt E-01', name: 'Amine Ennaji',        phone: '+212661100009', paidThrough: '2025-10', floor: 5,  since: '2023', quota: 0.83 },
+    { id: 'a10', unit: 'Apt E-06', name: 'Dounia Kabbaj',       phone: '+212661100010', paidThrough: '2026-02', floor: 5,  since: '2019', quota: 0.83 },
+    { id: 'a11', unit: 'Apt F-02', name: 'Mehdi Tahiri',        phone: '+212661100011', paidThrough: '2026-01', floor: 6,  since: '2022', quota: 0.83 },
+    { id: 'a12', unit: 'Apt F-08', name: 'Nora Bensouda',       phone: '+212661100012', paidThrough: '2026-02', floor: 6,  since: '2020', quota: 0.83 },
+    { id: 'a13', unit: 'Apt G-04', name: 'Khalid Tazi',         phone: '+212661100013', paidThrough: '2026-02', floor: 7,  since: '2018', quota: 0.83 },
+    { id: 'a14', unit: 'Apt G-10', name: 'Leila El Fassi',      phone: '+212661100014', paidThrough: '2025-11', floor: 7,  since: '2023', quota: 0.83 },
+    { id: 'a15', unit: 'Apt H-03', name: 'Saad Alaoui',         phone: '+212661100015', paidThrough: '2026-02', floor: 8,  since: '2019', quota: 0.83 },
+    { id: 'a16', unit: 'Apt H-07', name: 'Meryem Chraibi',      phone: '+212661100016', paidThrough: '2026-02', floor: 8,  since: '2021', quota: 0.83 },
 ]
 
 export const TICKETS_BLD2 = [
-    { id: 'at1', title: 'Panne ascenseur Tour A',              status: 'in_progress', time: 'Démarré il y a 3h',  agent: 'Otis Maroc',          priority: 'urgent' },
-    { id: 'at2', title: 'Maintenance piscine — contrôle pH',   status: 'scheduled',   time: "Demain, 09:00",      agent: 'AquaPro Casa',        priority: 'normal' },
-    { id: 'at3', title: 'Remplacement éclairage parking B2',   status: 'scheduled',   time: "Ven. 27 Fév.",       agent: 'LumièrElec SARL',     priority: 'normal' },
-    { id: 'at4', title: 'Réparation portail entrée principale', status: 'done',        time: 'Hier',               agent: 'Dépann Express',      priority: 'urgent' },
-    { id: 'at5', title: 'Nettoyage façade blocs C & D',        status: 'done',        time: '12 Fév.',            agent: 'CleanPro Casablanca', priority: 'normal' },
+    { id: 'at1', title: 'Panne ascenseur Tour A',              status: 'in_progress', date: '2026-03-01', time: "Aujourd'hui, 07:30",  agent: 'Otis Maroc',          priority: 'urgent', category: 'ascenseur'    },
+    { id: 'at2', title: 'Maintenance piscine — contrôle pH',   status: 'in_progress', date: '2026-03-01', time: "Aujourd'hui, 11:00",  agent: 'AquaPro Casa',        priority: 'normal', category: 'nettoyage'    },
+    { id: 'at3', title: 'Remplacement éclairage parking B2',   status: 'scheduled',   date: '2026-03-04', time: 'Mar. 04 Mars, 08:00', agent: 'LumièrElec SARL',     priority: 'normal', category: 'electricite'  },
+    { id: 'at4', title: 'Vérification système incendie',        status: 'scheduled',   date: '2026-03-06', time: 'Jeu. 06 Mars, 09:00', agent: 'SafeGuard Maroc',     priority: 'urgent', category: 'securite'     },
+    { id: 'at5', title: 'Entretien espaces verts communs',      status: 'scheduled',   date: '2026-03-08', time: 'Dim. 08 Mars, 07:00', agent: 'GreenCasa SARL',      priority: 'normal', category: 'espaces_verts'},
+    { id: 'at6', title: 'Réparation portail entrée principale', status: 'done',        date: '2026-02-28', time: 'Hier',                agent: 'Dépann Express',      priority: 'urgent', category: 'securite'     },
+    { id: 'at7', title: 'Nettoyage façade blocs C & D',        status: 'done',        date: '2026-02-12', time: '12 Fév.',              agent: 'CleanPro Casablanca', priority: 'normal', category: 'nettoyage'    },
+    { id: 'at8', title: 'Remplacement câblage interphone',      status: 'done',        date: '2026-02-08', time: '08 Fév.',              agent: 'TeleTech Casa',       priority: 'normal', category: 'electricite'  },
 ]
 
 export const EXPENSES_BLD2 = [
@@ -278,25 +286,27 @@ export const COLLECTION_HISTORY_BLD2 = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const RESIDENTS_BLD3 = [
-    { id: 'j01', unit: 'Villa V-01', name: 'Abdellah Benali',     phone: '+212662200001', status: 'paid',    floor: 0, since: '2017', quota: 1.56 },
-    { id: 'j02', unit: 'Villa V-02', name: 'Fatima Zhra Idrissi', phone: '+212662200002', status: 'paid',    floor: 0, since: '2018', quota: 1.56 },
-    { id: 'j03', unit: 'Apt T-01',  name: 'Mohammed Lahlou',     phone: '+212662200003', status: 'paid',    floor: 1, since: '2020', quota: 1.56 },
-    { id: 'j04', unit: 'Apt T-02',  name: 'Hind Fikri',          phone: '+212662200004', status: 'pending', floor: 1, since: '2021', quota: 1.56 },
-    { id: 'j05', unit: 'Apt T-05',  name: 'Hamid El Mansouri',   phone: '+212662200005', status: 'paid',    floor: 1, since: '2019', quota: 1.56 },
-    { id: 'j06', unit: 'Apt T-08',  name: 'Souad Cherkaoui',     phone: '+212662200006', status: 'paid',    floor: 1, since: '2022', quota: 1.56 },
-    { id: 'j07', unit: 'Apt R-02',  name: 'Tarik Benkirane',     phone: '+212662200007', status: 'overdue', floor: 2, since: '2023', quota: 1.56 },
-    { id: 'j08', unit: 'Apt R-04',  name: 'Siham Kabbaj',        phone: '+212662200008', status: 'paid',    floor: 2, since: '2020', quota: 1.56 },
-    { id: 'j09', unit: 'Apt R-07',  name: 'Nabil Berrada',       phone: '+212662200009', status: 'paid',    floor: 2, since: '2019', quota: 1.56 },
-    { id: 'j10', unit: 'Apt S-01',  name: 'Loubna Alaoui',       phone: '+212662200010', status: 'paid',    floor: 3, since: '2021', quota: 1.56 },
-    { id: 'j11', unit: 'Apt S-03',  name: 'Youssef Sabiri',      phone: '+212662200011', status: 'pending', floor: 3, since: '2022', quota: 1.56 },
-    { id: 'j12', unit: 'Apt S-06',  name: 'Rim Tazi',            phone: '+212662200012', status: 'paid',    floor: 3, since: '2018', quota: 1.56 },
+    { id: 'j01', unit: 'Villa V-01', name: 'Abdellah Benali',     phone: '+212662200001', paidThrough: '2026-02', floor: 0, since: '2017', quota: 1.56 },
+    { id: 'j02', unit: 'Villa V-02', name: 'Fatima Zhra Idrissi', phone: '+212662200002', paidThrough: '2026-02', floor: 0, since: '2018', quota: 1.56 },
+    { id: 'j03', unit: 'Apt T-01',  name: 'Mohammed Lahlou',     phone: '+212662200003', paidThrough: '2026-02', floor: 1, since: '2020', quota: 1.56 },
+    { id: 'j04', unit: 'Apt T-02',  name: 'Hind Fikri',          phone: '+212662200004', paidThrough: '2026-01', floor: 1, since: '2021', quota: 1.56 },
+    { id: 'j05', unit: 'Apt T-05',  name: 'Hamid El Mansouri',   phone: '+212662200005', paidThrough: '2026-02', floor: 1, since: '2019', quota: 1.56 },
+    { id: 'j06', unit: 'Apt T-08',  name: 'Souad Cherkaoui',     phone: '+212662200006', paidThrough: '2026-02', floor: 1, since: '2022', quota: 1.56 },
+    { id: 'j07', unit: 'Apt R-02',  name: 'Tarik Benkirane',     phone: '+212662200007', paidThrough: '2025-11', floor: 2, since: '2023', quota: 1.56 },
+    { id: 'j08', unit: 'Apt R-04',  name: 'Siham Kabbaj',        phone: '+212662200008', paidThrough: '2026-02', floor: 2, since: '2020', quota: 1.56 },
+    { id: 'j09', unit: 'Apt R-07',  name: 'Nabil Berrada',       phone: '+212662200009', paidThrough: '2026-02', floor: 2, since: '2019', quota: 1.56 },
+    { id: 'j10', unit: 'Apt S-01',  name: 'Loubna Alaoui',       phone: '+212662200010', paidThrough: '2026-02', floor: 3, since: '2021', quota: 1.56 },
+    { id: 'j11', unit: 'Apt S-03',  name: 'Youssef Sabiri',      phone: '+212662200011', paidThrough: '2026-01', floor: 3, since: '2022', quota: 1.56 },
+    { id: 'j12', unit: 'Apt S-06',  name: 'Rim Tazi',            phone: '+212662200012', paidThrough: '2026-02', floor: 3, since: '2018', quota: 1.56 },
 ]
 
 export const TICKETS_BLD3 = [
-    { id: 'jt1', title: 'Taille haies & entretien espaces verts', status: 'in_progress', time: "Aujourd'hui, 08:30", agent: 'GreenRabat SARL',    priority: 'normal' },
-    { id: 'jt2', title: 'Réparation caméra sécurité entrée',      status: 'scheduled',   time: "Jeu. 26 Fév.",      agent: 'SafeGuard Maroc',   priority: 'urgent' },
-    { id: 'jt3', title: 'Remplacement pompe fontaine centrale',    status: 'done',        time: 'Hier, 11:00',       agent: 'AquaTech Rabat',    priority: 'normal' },
-    { id: 'jt4', title: 'Peinture portail Villa V-01 → V-04',     status: 'done',        time: '14 Fév.',           agent: 'ColorMat SARL',     priority: 'normal' },
+    { id: 'jt1', title: 'Taille haies & entretien espaces verts', status: 'in_progress', date: '2026-03-01', time: "Aujourd'hui, 08:30",  agent: 'GreenRabat SARL',  priority: 'normal', category: 'espaces_verts' },
+    { id: 'jt2', title: 'Réparation caméra sécurité entrée',      status: 'scheduled',   date: '2026-03-03', time: 'Lun. 03 Mars, 14:00', agent: 'SafeGuard Maroc',  priority: 'urgent', category: 'securite'      },
+    { id: 'jt3', title: 'Entretien réseau irrigation jardins',     status: 'scheduled',   date: '2026-03-09', time: 'Lun. 09 Mars, 08:00', agent: 'AquaTech Rabat',   priority: 'normal', category: 'plomberie'     },
+    { id: 'jt4', title: 'Contrôle éclairage allées extérieures',  status: 'scheduled',   date: '2026-03-12', time: 'Jeu. 12 Mars, 09:00', agent: 'Electric Rabat',   priority: 'normal', category: 'electricite'   },
+    { id: 'jt5', title: 'Remplacement pompe fontaine centrale',    status: 'done',        date: '2026-02-28', time: 'Hier, 11:00',         agent: 'AquaTech Rabat',   priority: 'normal', category: 'plomberie'     },
+    { id: 'jt6', title: 'Peinture portail Villa V-01 → V-04',     status: 'done',        date: '2026-02-14', time: '14 Fév.',              agent: 'ColorMat SARL',    priority: 'normal', category: 'peinture'      },
 ]
 
 export const EXPENSES_BLD3 = [
