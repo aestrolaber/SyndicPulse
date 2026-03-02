@@ -11,7 +11,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import * as XLSX from 'xlsx'
 import {
     LayoutDashboard, BarChart3, Users, MessageSquare,
-    Settings, Bell, Mic, ChevronDown, ChevronRight,
+    Settings, Bell, Mic, ChevronDown, ChevronLeft, ChevronRight,
     TrendingUp, ShieldCheck, Building2, Landmark, Leaf,
     Zap, ArrowUpRight, ArrowDownRight, CheckCircle2,
     Clock, XCircle, Search, MoreHorizontal,
@@ -1246,9 +1246,22 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
 /* ══════════════════════════════════════════
    RESIDENTS PAGE
 ══════════════════════════════════════════ */
+const RESIDENTS_PAGE_SIZE = 15
+
+function getPageNumbers(current, total) {
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1)
+    const pages = [1]
+    if (current > 3) pages.push('...')
+    for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) pages.push(p)
+    if (current < total - 2) pages.push('...')
+    pages.push(total)
+    return pages
+}
+
 function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const [search,           setSearch]          = useState('')
     const [filter,           setFilter]          = useState('all')
+    const [page,             setPage]            = useState(1)
     const [showAddResident,  setShowAddResident] = useState(false)
     const [showImportCSV,    setShowImportCSV]   = useState(false)
     const [showGroupWA,      setShowGroupWA]     = useState(false)
@@ -1273,6 +1286,12 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
         const matchFilter = filter === 'all' || computeStatus(r.paidThrough) === filter
         return matchSearch && matchFilter
     })
+
+    // Reset to page 1 whenever filter or search changes
+    useEffect(() => { setPage(1) }, [search, filter])
+
+    const totalPages = Math.ceil(filtered.length / RESIDENTS_PAGE_SIZE)
+    const paginated  = filtered.slice((page - 1) * RESIDENTS_PAGE_SIZE, page * RESIDENTS_PAGE_SIZE)
 
     const counts = {
         all:     residents.length,
@@ -1373,7 +1392,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/4">
-                        {filtered.map(r => (
+                        {paginated.map(r => (
                             <motion.tr
                                 key={r.id}
                                 initial={r.isNew ? { opacity: 0, backgroundColor: 'rgba(6,182,212,0.08)' } : false}
@@ -1437,6 +1456,39 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                     <div className="text-center py-12 text-slate-500">
                         <Users size={32} className="mx-auto mb-3 opacity-30" />
                         <p className="text-sm">Aucun résident trouvé</p>
+                    </div>
+                )}
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between px-6 py-4 border-t border-white/5">
+                        <p className="text-xs text-slate-500">
+                            {(page - 1) * RESIDENTS_PAGE_SIZE + 1}–{Math.min(page * RESIDENTS_PAGE_SIZE, filtered.length)} sur {filtered.length} résidents
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-navy-700 text-slate-400 hover:text-slate-200 hover:bg-navy-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-white/8"
+                            >
+                                <ChevronLeft size={14} />
+                            </button>
+                            {getPageNumbers(page, totalPages).map((p, i) => (
+                                p === '...'
+                                    ? <span key={`dots-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-500 text-xs select-none">…</span>
+                                    : <button key={p} onClick={() => setPage(p)}
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${
+                                            p === page ? 'bg-sp text-navy-900' : 'bg-navy-700 text-slate-400 hover:text-slate-200 hover:bg-navy-600 border border-white/8'
+                                        }`}>{p}</button>
+                            ))}
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-navy-700 text-slate-400 hover:text-slate-200 hover:bg-navy-600 disabled:opacity-30 disabled:cursor-not-allowed transition-all border border-white/8"
+                            >
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
                     </div>
                 )}
             </div>
