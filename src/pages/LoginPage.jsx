@@ -3,10 +3,11 @@
  * Langue: Français
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { motion } from 'framer-motion'
+import { BUILDINGS, ORGANIZATIONS } from '../lib/mockData.js'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Demo credentials hint shown in development
 const DEMO_HINTS = [
@@ -17,6 +18,55 @@ const DEMO_HINTS = [
 
 const IS_DEV = import.meta.env.DEV
 
+const ADMIN_EMAIL = 'admin@syndicpulse.ma'
+
+// Email → building ids (for syndic managers)
+const USER_BUILDING_MAP = {
+    'omar@norwest.ma': 'bld-1',
+    'sara@atlas.ma':   'bld-2',
+}
+
+function getContextualStats(email) {
+    const e = email.trim().toLowerCase()
+
+    if (e === ADMIN_EMAIL) {
+        const totalUnits = BUILDINGS.reduce((s, b) => s + b.total_units, 0)
+        return {
+            key: 'admin',
+            stats: [
+                { value: String(ORGANIZATIONS.length), label: 'Syndics actifs' },
+                { value: String(BUILDINGS.length),     label: 'Propriétés gérées' },
+                { value: String(totalUnits),           label: 'Unités sur la plateforme' },
+            ],
+        }
+    }
+
+    const bldId = USER_BUILDING_MAP[e]
+    if (bldId) {
+        const bld = BUILDINGS.find(b => b.id === bldId)
+        if (bld) {
+            return {
+                key: bld.id,
+                stats: [
+                    { value: String(bld.total_units),      label: 'Unités gérées' },
+                    { value: `${bld.collection_rate}%`,    label: 'Taux de recouvrement' },
+                    { value: `${(bld.reserve_fund_mad / 1000).toFixed(0)}k MAD`, label: 'Fonds de réserve' },
+                ],
+            }
+        }
+    }
+
+    // Generic default
+    return {
+        key: 'default',
+        stats: [
+            { value: String(BUILDINGS.reduce((s, b) => s + b.total_units, 0)), label: 'Unités gérées' },
+            { value: String(BUILDINGS.length), label: 'Résidences actives' },
+            { value: '98%', label: 'Taux de satisfaction' },
+        ],
+    }
+}
+
 export default function LoginPage() {
     const { login, loginError, setLoginError, loading } = useAuth()
 
@@ -24,6 +74,8 @@ export default function LoginPage() {
     const [password,    setPassword]    = useState('')
     const [showPwd,     setShowPwd]     = useState(false)
     const [rememberMe,  setRememberMe]  = useState(false)
+
+    const { key: statsKey, stats } = useMemo(() => getContextualStats(email), [email])
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -61,7 +113,7 @@ export default function LoginPage() {
                     <h1 className="text-4xl font-bold text-white leading-tight mb-6">
                         La gestion de<br />
                         copropriété,<br />
-                        <span className="text-sp">réinventée par l'IA.</span>
+                        <span className="text-sp">maîtrisée à 100%.</span>
                     </h1>
                     <p className="text-slate-400 text-base leading-relaxed max-w-sm">
                         Automatisez les rappels, offrez la transparence financière,
@@ -72,7 +124,7 @@ export default function LoginPage() {
                     <div className="flex flex-wrap gap-2 mt-8">
                         {[
                             'Rappels WhatsApp automatiques',
-                            'Transparence budgétaire IA',
+                            'Transparence budgétaire totale',
                             'Gestion d\'AG simplifiée',
                             'Conforme Loi 18-00',
                         ].map(f => (
@@ -83,19 +135,24 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Bottom stats */}
-                <div className="flex gap-8 relative z-10">
-                    {[
-                        { value: '3',    label: 'Résidences actives' },
-                        { value: '232',  label: 'Unités gérées' },
-                        { value: '96.8%', label: 'Taux de recouvrement' },
-                    ].map(s => (
-                        <div key={s.label}>
-                            <p className="text-2xl font-bold text-sp">{s.value}</p>
-                            <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
-                        </div>
-                    ))}
-                </div>
+                {/* Bottom stats — dynamic by email */}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={statsKey}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25 }}
+                        className="flex gap-8 relative z-10"
+                    >
+                        {stats.map(s => (
+                            <div key={s.label}>
+                                <p className="text-2xl font-bold text-sp">{s.value}</p>
+                                <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                            </div>
+                        ))}
+                    </motion.div>
+                </AnimatePresence>
             </div>
 
             {/* ── Right panel — Login form ── */}
