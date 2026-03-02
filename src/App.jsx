@@ -2540,6 +2540,119 @@ function AddExpenseModal({ onClose, onAdd }) {
     )
 }
 
+/* ── Searchable resident combobox ─────────────────────────────────────── */
+function ResidentCombobox({ residents, value, onChange }) {
+    const [open,  setOpen]  = useState(false)
+    const [query, setQuery] = useState('')
+    const containerRef = useRef(null)
+    const inputRef     = useRef(null)
+
+    const selected = residents.find(r => r.id === value)
+
+    const filteredOptions = residents.filter(r => {
+        if (!query) return true
+        const q = query.toLowerCase()
+        return r.name.toLowerCase().includes(q) || r.unit.toLowerCase().includes(q)
+    })
+
+    // Close when clicking outside
+    useEffect(() => {
+        function onDown(e) { if (!containerRef.current?.contains(e.target)) setOpen(false) }
+        document.addEventListener('mousedown', onDown)
+        return () => document.removeEventListener('mousedown', onDown)
+    }, [])
+
+    // Auto-focus search input when opening
+    useEffect(() => {
+        if (open) { setQuery(''); setTimeout(() => inputRef.current?.focus(), 30) }
+    }, [open])
+
+    function select(id) { onChange(id); setOpen(false) }
+
+    function stColor(r) {
+        const s = computeStatus(r.paidThrough)
+        return s === 'paid' ? 'text-emerald-400' : s === 'pending' ? 'text-amber-400' : 'text-red-400'
+    }
+    function stIcon(r) {
+        const s = computeStatus(r.paidThrough)
+        return s === 'paid' ? '✓' : s === 'pending' ? '⏳' : '⚠'
+    }
+    function stLabel(r) {
+        const s = computeStatus(r.paidThrough)
+        return s === 'paid' ? 'À jour' : s === 'pending' ? 'Attente' : 'Retard'
+    }
+
+    return (
+        <div ref={containerRef} className="relative">
+            {/* Trigger */}
+            <button
+                type="button"
+                onClick={() => setOpen(o => !o)}
+                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-left flex items-center gap-2 hover:border-white/20 focus:outline-none focus:border-sp/40 transition-colors"
+            >
+                {selected ? (
+                    <>
+                        <span className={`text-xs flex-shrink-0 ${stColor(selected)}`}>{stIcon(selected)}</span>
+                        <span className="font-mono text-[11px] text-sp/80 flex-shrink-0">{selected.unit}</span>
+                        <span className="text-slate-200 flex-1 truncate">— {selected.name}</span>
+                    </>
+                ) : (
+                    <span className="text-slate-500 flex-1">Sélectionner un résident…</span>
+                )}
+                <ChevronDown size={13} className={`text-slate-400 flex-shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Dropdown panel */}
+            {open && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-[#0d1629] border border-white/12 rounded-xl shadow-2xl overflow-hidden">
+                    {/* Search */}
+                    <div className="p-2 border-b border-white/8">
+                        <div className="relative">
+                            <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder="Nom ou numéro d'unité…"
+                                value={query}
+                                onChange={e => setQuery(e.target.value)}
+                                onKeyDown={e => e.key === 'Escape' && setOpen(false)}
+                                className="w-full bg-navy-800 rounded-lg pl-7 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 border border-white/8 focus:border-sp/30 focus:outline-none transition-colors"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Results */}
+                    <div className="max-h-52 overflow-y-auto">
+                        {filteredOptions.length === 0 ? (
+                            <p className="text-xs text-slate-500 text-center py-4">Aucun résultat</p>
+                        ) : filteredOptions.map(r => (
+                            <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => select(r.id)}
+                                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-colors ${
+                                    r.id === value ? 'bg-sp/12 text-sp' : 'hover:bg-navy-700 text-slate-300'
+                                }`}
+                            >
+                                <span className={`flex-shrink-0 w-4 text-center ${stColor(r)}`}>{stIcon(r)}</span>
+                                <span className="font-mono text-[10px] text-slate-500 flex-shrink-0 w-10">{r.unit}</span>
+                                <span className={`flex-1 truncate ${r.id === value ? 'font-semibold' : ''}`}>{r.name}</span>
+                                <span className={`flex-shrink-0 text-[10px] font-semibold ${stColor(r)}`}>{stLabel(r)}</span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {filteredOptions.length > 0 && (
+                        <div className="px-3 py-1.5 border-t border-white/5 text-[10px] text-slate-600 text-right">
+                            {filteredOptions.length} résultat{filteredOptions.length > 1 ? 's' : ''}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
+
 /* ══════════════════════════════════════════
    RECORD PAYMENT MODAL
 ══════════════════════════════════════════ */
@@ -2580,17 +2693,11 @@ function RecordPaymentModal({ building, residents, onClose, onRecord }) {
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1.5">Résident *</label>
-                    <select
+                    <ResidentCombobox
+                        residents={residents}
                         value={form.residentId}
-                        onChange={e => set('residentId', e.target.value)}
-                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors"
-                    >
-                        {residents.map(r => {
-                            const st = computeStatus(r.paidThrough)
-                            const label = st === 'paid' ? '✓' : st === 'pending' ? '⏳' : '⚠'
-                            return <option key={r.id} value={r.id}>{label} {r.unit} — {r.name}</option>
-                        })}
-                    </select>
+                        onChange={id => set('residentId', id)}
+                    />
                     {selectedResident && (
                         <p className="text-[10px] text-slate-500 mt-1.5">
                             Actuellement payé jusqu'à : <span className="text-slate-300 font-medium">{formatMonth(selectedResident.paidThrough)}</span>
