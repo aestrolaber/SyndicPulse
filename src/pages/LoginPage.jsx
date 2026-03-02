@@ -4,9 +4,9 @@
  */
 
 import { useState } from 'react'
-import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check } from 'lucide-react'
+import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check, Home } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { DEMO_USERS } from '../lib/mockData.js'
+import { DEMO_USERS, validateResidentAccess } from '../lib/mockData.js'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Demo credentials hint shown in development
@@ -14,6 +14,12 @@ const DEMO_HINTS = [
     { label: 'Super Admin',     email: 'admin@syndicpulse.ma', password: 'admin', badge: 'Platform' },
     { label: 'Omar (Norwest)',  email: 'omar@norwest.ma',       password: 'omar',  badge: 'Syndic'   },
     { label: 'Sara (Atlas)',    email: 'sara@atlas.ma',         password: 'sara',  badge: 'Syndic'   },
+]
+
+const RESIDENT_HINTS = [
+    { code: 'NRWST-2026',   unit: 'Apt 1A', bldg: 'Norwest' },
+    { code: 'ATLAS-2026',   unit: 'Apt 2A', bldg: 'Résidence Atlas' },
+    { code: 'JARDINS-2026', unit: 'Apt 4A', bldg: 'Jardins du Roi' },
 ]
 
 const IS_DEV = import.meta.env.DEV
@@ -25,7 +31,7 @@ const TRUST_BADGES = [
     { icon: DatabaseBackup, label: 'Sauvegarde automatique' },
 ]
 
-export default function LoginPage() {
+export default function LoginPage({ onResidentLogin }) {
     const { login, loginError, setLoginError, loading } = useAuth()
 
     const [email,       setEmail]       = useState('')
@@ -41,8 +47,18 @@ export default function LoginPage() {
     const [tempPwd,       setTempPwd]       = useState('')
     const [pwdCopied,     setPwdCopied]     = useState(false)
 
+    // Resident portal
+    const [showResident,    setShowResident]    = useState(false)
+    const [residentCode,    setResidentCode]    = useState('')
+    const [residentUnit,    setResidentUnit]    = useState('')
+    const [residentError,   setResidentError]   = useState('')
+    const [residentLoading, setResidentLoading] = useState(false)
+
     function openForgot() { setShowForgot(true); setForgotEmail(email); setForgotStatus(null); setTempPwd('') }
     function closeForgot() { setShowForgot(false); setForgotStatus(null) }
+
+    function openResident() { setShowResident(true); setResidentCode(''); setResidentUnit(''); setResidentError('') }
+    function closeResident() { setShowResident(false); setResidentError('') }
 
     async function handleForgotSubmit(e) {
         e.preventDefault()
@@ -62,6 +78,21 @@ export default function LoginPage() {
         setForgotLoading(false)
     }
 
+    async function handleResidentSubmit(e) {
+        e.preventDefault()
+        setResidentError('')
+        setResidentLoading(true)
+        await new Promise(r => setTimeout(r, 800))
+        const result = validateResidentAccess(residentCode, residentUnit)
+        if (!result) {
+            setResidentError('Code de résidence ou numéro d\'appartement invalide.')
+            setResidentLoading(false)
+            return
+        }
+        setResidentLoading(false)
+        onResidentLogin?.({ buildingId: result.building.id, resident: result.resident })
+    }
+
     function copyPwd() {
         navigator.clipboard.writeText(tempPwd).catch(() => {})
         setPwdCopied(true)
@@ -78,6 +109,9 @@ export default function LoginPage() {
         setPassword(hint.password)
         setLoginError('')
     }
+
+    // Determine which panel key is active for AnimatePresence
+    const panelKey = showResident ? 'resident' : showForgot ? 'forgot' : 'login'
 
     return (
         <div className="min-h-screen bg-navy-900 flex">
@@ -152,7 +186,7 @@ export default function LoginPage() {
                 </div>
             </div>
 
-            {/* ── Right panel — Login form ── */}
+            {/* ── Right panel ── */}
             <div className="flex-1 flex flex-col items-center justify-center px-6 py-12">
 
                 {/* Mobile logo */}
@@ -166,8 +200,92 @@ export default function LoginPage() {
                 </div>
 
                 <AnimatePresence mode="wait">
-                {showForgot ? (
-                    /* ── Forgot password panel ── */
+
+                {/* ── Resident portal panel ── */}
+                {panelKey === 'resident' && (
+                    <motion.div key="resident"
+                        initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}
+                        className="w-full max-w-sm"
+                    >
+                        <button onClick={closeResident} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mb-8">
+                            <ChevronLeft size={14} /> Retour à la connexion
+                        </button>
+
+                        <div className="mb-8">
+                            <div className="flex items-center gap-2.5 mb-3">
+                                <div className="w-8 h-8 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center">
+                                    <Home size={15} className="text-sp" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-white">Espace Résident</h2>
+                            </div>
+                            <p className="text-slate-400 text-sm leading-relaxed">
+                                Entrez le code de votre résidence et votre numéro d'appartement pour accéder à l'espace de transparence.
+                            </p>
+                        </div>
+
+                        {/* Dev hints */}
+                        {IS_DEV && (
+                            <div className="mb-6 p-3 rounded-xl border border-sp/20 bg-sp/5">
+                                <p className="text-[10px] text-sp font-bold uppercase tracking-wider mb-2">Accès démo résidents</p>
+                                <div className="space-y-1.5">
+                                    {RESIDENT_HINTS.map(h => (
+                                        <button key={h.code} onClick={() => { setResidentCode(h.code); setResidentUnit(h.unit) }}
+                                            className="w-full flex items-center gap-2 text-left px-2 py-1.5 rounded-lg hover:bg-navy-700 transition-colors">
+                                            <span className="text-[10px] font-mono text-sp bg-sp/10 px-1.5 py-0.5 rounded">{h.code}</span>
+                                            <span className="text-[11px] text-slate-400">{h.bldg} · {h.unit}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleResidentSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+                                    Code de la résidence
+                                </label>
+                                <input type="text" value={residentCode}
+                                    onChange={e => { setResidentCode(e.target.value.toUpperCase()); setResidentError('') }}
+                                    placeholder="ex : NRWST-2026"
+                                    required
+                                    className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
+                                    Numéro d'appartement
+                                </label>
+                                <input type="text" value={residentUnit}
+                                    onChange={e => { setResidentUnit(e.target.value); setResidentError('') }}
+                                    placeholder="ex : Apt 1A"
+                                    required
+                                    className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
+                            </div>
+
+                            {residentError && (
+                                <motion.div initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl">
+                                    <span className="text-red-500">⚠</span> {residentError}
+                                </motion.div>
+                            )}
+
+                            <button type="submit" disabled={residentLoading}
+                                className="w-full py-3 bg-sp hover:bg-sp-dark disabled:opacity-60 text-navy-900 font-bold text-sm rounded-xl transition-all shadow-glow-cyan flex items-center justify-center gap-2 mt-2">
+                                {residentLoading
+                                    ? <><span className="w-4 h-4 border-2 border-navy-900/30 border-t-navy-900 rounded-full animate-spin" /> Vérification…</>
+                                    : <>Accéder à mon espace <ArrowRight size={15} /></>
+                                }
+                            </button>
+                        </form>
+
+                        <p className="mt-6 text-center text-[11px] text-slate-600">
+                            Le code vous a été fourni par votre syndic.
+                        </p>
+                    </motion.div>
+                )}
+
+                {/* ── Forgot password panel ── */}
+                {panelKey === 'forgot' && (
                     <motion.div key="forgot"
                         initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}
@@ -243,7 +361,10 @@ export default function LoginPage() {
                             </div>
                         )}
                     </motion.div>
-                ) : (
+                )}
+
+                {/* ── Login form panel ── */}
+                {panelKey === 'login' && (
                 <motion.div key="login"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -382,10 +503,10 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    {/* Resident magic link */}
+                    {/* Resident portal link */}
                     <div className="mt-6 pt-6 border-t border-white/5 text-center">
                         <p className="text-xs text-slate-500 mb-3">Vous êtes résident-e ?</p>
-                        <button className="text-xs text-sp hover:text-sp-light transition-colors flex items-center gap-1.5 mx-auto">
+                        <button onClick={openResident} className="text-xs text-sp hover:text-sp-light transition-colors flex items-center gap-1.5 mx-auto">
                             <Building2 size={12} /> Accéder à mon espace résident →
                         </button>
                     </div>
@@ -397,6 +518,7 @@ export default function LoginPage() {
                     </div>
                 </motion.div>
                 )}
+
                 </AnimatePresence>
             </div>
 

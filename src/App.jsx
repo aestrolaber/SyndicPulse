@@ -18,6 +18,7 @@ import {
     Plus, X, Upload, FileText, Check, Download, MessageCircle, Calendar, Pencil, Trash2,
     CalendarCheck, Users2, ClipboardList, Vote,
     UserCog, Key, Eye, EyeOff, Copy,
+    Home, TrendingDown,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -134,8 +135,23 @@ const CSV_SAMPLE = [
 export default function App() {
     const { user, loading } = useAuth()
 
+    // ── Resident portal session (separate from syndic auth) ──────────────────
+    const [residentSession, setResidentSession] = useState(() => {
+        try { return JSON.parse(sessionStorage.getItem('sp_resident_session')) } catch { return null }
+    })
+
+    function handleResidentLogin(session) {
+        sessionStorage.setItem('sp_resident_session', JSON.stringify(session))
+        setResidentSession(session)
+    }
+    function handleResidentLogout() {
+        sessionStorage.removeItem('sp_resident_session')
+        setResidentSession(null)
+    }
+
+    if (residentSession) return <ResidentPortal session={residentSession} onLogout={handleResidentLogout} />
     if (loading) return <LoadingScreen />
-    if (!user)   return <LoginPage />
+    if (!user)   return <LoginPage onResidentLogin={handleResidentLogin} />
     return <Dashboard />
 }
 
@@ -4507,5 +4523,223 @@ function CreateUserModal({ onClose, onCreated }) {
                 </div>
             )}
         </Modal>
+    )
+}
+
+/* ══════════════════════════════════════════
+   RESIDENT PORTAL  (read-only transparency)
+══════════════════════════════════════════ */
+function ResidentPortal({ session, onLogout }) {
+    const { buildingId, resident } = session
+    const building  = BUILDINGS.find(b => b.id === buildingId) ?? {}
+    const bldgData  = getBuildingData(buildingId)
+    const expenses  = bldgData.expenses ?? []
+    const meetings  = bldgData.meetings ?? []
+    const status    = computeStatus(resident.paidThrough)
+
+    const nextAG = meetings.find(m => m.status === 'upcoming')
+
+    const STATUS_META = {
+        paid:    { label: 'À jour',      cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+        pending: { label: 'En attente',  cls: 'bg-amber-500/15  text-amber-400  border-amber-500/20'  },
+        overdue: { label: 'En retard',   cls: 'bg-red-500/15    text-red-400    border-red-500/20'    },
+    }
+    const sm = STATUS_META[status]
+
+    const Icon = BUILDING_ICON_MAP[building.icon] ?? Home
+
+    return (
+        <div className="min-h-screen bg-navy-900">
+
+            {/* ── Header ── */}
+            <header className="bg-navy-800 border-b border-white/5 px-6 py-4">
+                <div className="max-w-4xl mx-auto flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                            style={{ background: `${building.color ?? '#06b6d4'}20`, border: `1px solid ${building.color ?? '#06b6d4'}40` }}>
+                            <Icon size={18} style={{ color: building.color ?? '#06b6d4' }} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white leading-tight">{building.name ?? '—'}</p>
+                            <p className="text-[11px] text-slate-500">
+                                Espace Résident · {resident.unit} · {resident.name}
+                            </p>
+                        </div>
+                    </div>
+                    <button onClick={onLogout}
+                        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 border border-white/8 px-3 py-1.5 rounded-lg hover:bg-navy-700 transition-colors">
+                        <LogOut size={13} /> Se déconnecter
+                    </button>
+                </div>
+            </header>
+
+            {/* ── Content ── */}
+            <main className="max-w-4xl mx-auto px-6 py-8 space-y-6">
+
+                {/* Welcome banner */}
+                <div className="rounded-2xl glass-card p-5 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center flex-shrink-0">
+                        <Home size={18} className="text-sp" />
+                    </div>
+                    <div>
+                        <p className="text-base font-bold text-white">Bienvenue, {resident.name.split(' ')[0]} !</p>
+                        <p className="text-xs text-slate-400 mt-0.5">Voici les informations de transparence pour votre résidence <span className="text-white font-semibold">{building.name}</span>.</p>
+                    </div>
+                </div>
+
+                {/* 2-col grid */}
+                <div className="grid lg:grid-cols-2 gap-4">
+
+                    {/* ── Left col — Personal ── */}
+                    <div className="space-y-4">
+
+                        {/* Mon appartement */}
+                        <div className="glass-card rounded-2xl p-5">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Mon appartement</p>
+                            <div className="space-y-2.5">
+                                {[
+                                    ['Unité',  resident.unit],
+                                    ['Étage',  resident.floor != null ? `Étage ${resident.floor}` : '—'],
+                                    ['Depuis', resident.since ?? '—'],
+                                    ['Quote-part', `${resident.quota ?? '—'}%`],
+                                ].map(([k, v]) => (
+                                    <div key={k} className="flex items-center justify-between">
+                                        <span className="text-xs text-slate-500">{k}</span>
+                                        <span className="text-xs font-semibold text-slate-200">{v}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mes charges */}
+                        <div className="glass-card rounded-2xl p-5">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Mes charges</p>
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-xs text-slate-400">Statut de paiement</span>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${sm.cls}`}>
+                                    {sm.label}
+                                </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-slate-400">À jour jusqu'à</span>
+                                <span className="text-xs font-semibold text-slate-200">{formatMonth(resident.paidThrough)}</span>
+                            </div>
+                            {status !== 'paid' && (
+                                <div className="mt-3 rounded-xl bg-amber-500/8 border border-amber-500/15 p-3">
+                                    <p className="text-[11px] text-amber-300">Pour régulariser votre situation, contactez votre syndic.</p>
+                                </div>
+                            )}
+                        </div>
+
+                    </div>
+
+                    {/* ── Right col — Building ── */}
+                    <div className="space-y-4">
+
+                        {/* Budget résidence */}
+                        <div className="glass-card rounded-2xl p-5">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Budget de la résidence</p>
+                            <div className="space-y-2.5">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-slate-400">Taux de recouvrement</span>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-20 h-1.5 bg-navy-700 rounded-full overflow-hidden">
+                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${building.collection_rate ?? 0}%` }} />
+                                        </div>
+                                        <span className="text-xs font-bold text-emerald-400">{building.collection_rate ?? '—'}%</span>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-slate-400">Fonds de réserve</span>
+                                    <span className="text-xs font-semibold text-slate-200">
+                                        {building.reserve_fund_mad?.toLocaleString('fr-MA') ?? '—'} MAD
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-slate-400">Nombre d'unités</span>
+                                    <span className="text-xs font-semibold text-slate-200">{building.total_units ?? '—'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Dépenses */}
+                        {expenses.length > 0 && (
+                            <div className="glass-card rounded-2xl p-5">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Répartition des dépenses</p>
+                                <div className="space-y-3">
+                                    {expenses.slice(0, 4).map(exp => (
+                                        <div key={exp.category}>
+                                            <div className="flex items-center justify-between mb-1">
+                                                <span className="text-[11px] text-slate-400 truncate pr-2">{exp.category}</span>
+                                                <span className="text-[11px] font-semibold text-slate-200 flex-shrink-0">
+                                                    {exp.amount.toLocaleString('fr-MA')} MAD
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 bg-navy-700 rounded-full overflow-hidden">
+                                                <div className={`h-full ${exp.color ?? 'bg-sp'} rounded-full`} style={{ width: `${exp.pct}%` }} />
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Prochaine AG */}
+                        {nextAG && (
+                            <div className="glass-card rounded-2xl p-5">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Prochaine AG</p>
+                                    <span className="text-[9px] font-bold bg-sp/15 text-sp border border-sp/20 px-2 py-0.5 rounded-full">À VENIR</span>
+                                </div>
+                                <p className="text-sm font-semibold text-white mb-1">{nextAG.title}</p>
+                                <p className="text-xs text-slate-400 mb-3">
+                                    {fmtDate(nextAG.date)} · {nextAG.time} · {nextAG.location}
+                                </p>
+                                {nextAG.agenda?.length > 0 && (
+                                    <div>
+                                        <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Ordre du jour</p>
+                                        <ul className="space-y-1">
+                                            {nextAG.agenda.map((a, i) => (
+                                                <li key={a.id} className="text-xs text-slate-400 flex gap-2">
+                                                    <span className="text-slate-600 flex-shrink-0">{i + 1}.</span>
+                                                    {a.title}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                    </div>
+                </div>
+
+                {/* Contact syndic footer */}
+                <div className="glass-card rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div>
+                        <p className="text-sm font-semibold text-white">Contacter le syndic</p>
+                        <p className="text-xs text-slate-400 mt-0.5">{building.name} · {building.manager ?? 'Gestionnaire'}</p>
+                    </div>
+                    <div className="flex gap-3">
+                        {building.manager && (
+                            <a href={`mailto:contact@syndicpulse.ma?subject=Résidence ${building.name} — Demande résident (${resident.unit})`}
+                                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sp/10 hover:bg-sp/20 text-sp border border-sp/20 text-xs font-semibold transition-colors">
+                                <Mail size={13} /> E-mail
+                            </a>
+                        )}
+                        <a href="https://wa.me/212600000000"
+                            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 text-xs font-semibold transition-colors">
+                            <Phone size={13} /> WhatsApp
+                        </a>
+                    </div>
+                </div>
+
+                {/* Transparency footer note */}
+                <p className="text-center text-[11px] text-slate-600 pb-4">
+                    Ces données sont fournies par votre syndic dans le cadre de la transparence financière prévue par la Loi 18-00.
+                </p>
+
+            </main>
+        </div>
     )
 }

@@ -25,6 +25,7 @@ export const BUILDINGS = [
         icon: 'Building2',
         manager: 'Omar Benali',
         collection_rate: 96.8,
+        accessCode: 'NRWST-2026',
     },
     {
         id: 'bld-2',
@@ -38,6 +39,7 @@ export const BUILDINGS = [
         icon: 'Landmark',
         manager: 'Sara Ezzouine',
         collection_rate: 88.4,
+        accessCode: 'ATLAS-2026',
     },
     {
         id: 'bld-3',
@@ -51,6 +53,7 @@ export const BUILDINGS = [
         icon: 'Leaf',
         manager: 'Karim Tahiri',
         collection_rate: 91.2,
+        accessCode: 'JARDINS-2026',
     },
 ]
 
@@ -470,3 +473,23 @@ export const MEETINGS_BLD3 = [
         notes: 'AG extraordinaire convoquée suite à dégâts eau pluviale. Fonds collectés et travaux planifiés pour Déc. 2025.',
     },
 ]
+
+// ── Resident portal access validation ─────────────────────────────────────────
+// Called from LoginPage to verify building code + unit before granting read-only access.
+export function validateResidentAccess(accessCode, unitInput) {
+    const building = BUILDINGS.find(
+        b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
+    )
+    if (!building) return null
+    const byBldg = {
+        'bld-1': RESIDENTS_BLD1,
+        'bld-2': RESIDENTS_BLD2,
+        'bld-3': RESIDENTS_BLD3,
+    }
+    const residents = byBldg[building.id] ?? []
+    const resident = residents.find(
+        r => r.unit.toLowerCase() === unitInput.toLowerCase().trim()
+    )
+    if (!resident) return null
+    return { building, resident }
+}
