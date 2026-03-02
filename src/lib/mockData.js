@@ -364,3 +364,109 @@ export const COLLECTION_HISTORY_BLD3 = [
     { month: 'Jan.',  value: 93 },
     { month: 'Fév.',  value: 92 },
 ]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+//  ASSEMBLÉES GÉNÉRALES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export const MEETINGS_BLD1 = [
+    {
+        id: 'ag-n-002',
+        title: 'Assemblée Générale Ordinaire 2026',
+        date: '2026-04-20', time: '19:00', location: 'Salle commune — RDC',
+        status: 'upcoming',
+        convocationSent: false,
+        agenda: [
+            { id: 'b1', title: 'Approbation des comptes 2025/2026' },
+            { id: 'b2', title: 'Budget prévisionnel 2026/2027' },
+            { id: 'b3', title: 'Renouvellement contrat gardiennage' },
+            { id: 'b4', title: 'Travaux ravalement façade Bloc A' },
+        ],
+        attendance: null, votes: [], notes: '',
+    },
+    {
+        id: 'ag-n-001',
+        title: 'Assemblée Générale Ordinaire 2025',
+        date: '2026-01-15', time: '19:00', location: 'Salle commune — RDC',
+        status: 'completed',
+        convocationSent: true,
+        agenda: [
+            { id: 'a1', title: 'Approbation des comptes 2024/2025' },
+            { id: 'a2', title: 'Budget prévisionnel 2025/2026' },
+            { id: 'a3', title: 'Réparation ascenseur Bloc B — approbation devis' },
+        ],
+        attendance: { present: 18, total: 24 },
+        votes: [
+            { agendaId: 'a1', pour: 16, contre: 1, abstention: 1 },
+            { agendaId: 'a2', pour: 14, contre: 2, abstention: 2 },
+            { agendaId: 'a3', pour: 15, contre: 2, abstention: 1 },
+        ],
+        notes: 'Réunion tenue dans les délais légaux. Quorum atteint (75%). Tous les points approuvés.',
+    },
+]
+
+export const MEETINGS_BLD2 = [
+    {
+        id: 'ag-a-002',
+        title: 'Assemblée Générale Ordinaire 2026',
+        date: '2026-05-10', time: '18:30', location: 'Salle de réunion — Bloc A RDC',
+        status: 'upcoming',
+        convocationSent: false,
+        agenda: [
+            { id: 'c1', title: 'Approbation des comptes 2025/2026' },
+            { id: 'c2', title: 'Remplacement système interphone' },
+            { id: 'c3', title: 'Aménagement parking visiteurs' },
+        ],
+        attendance: null, votes: [], notes: '',
+    },
+    {
+        id: 'ag-a-001',
+        title: 'Assemblée Générale Ordinaire 2025',
+        date: '2026-01-22', time: '18:30', location: 'Salle de réunion — Bloc A RDC',
+        status: 'completed',
+        convocationSent: true,
+        agenda: [
+            { id: 'd1', title: 'Approbation des comptes 2024/2025' },
+            { id: 'd2', title: 'Contrat maintenance piscine — renouvellement' },
+        ],
+        attendance: { present: 12, total: 16 },
+        votes: [
+            { agendaId: 'd1', pour: 11, contre: 0, abstention: 1 },
+            { agendaId: 'd2', pour: 9,  contre: 2, abstention: 1 },
+        ],
+        notes: 'Quorum atteint (75%). Renouvellement contrat piscine approuvé.',
+    },
+]
+
+export const MEETINGS_BLD3 = [
+    {
+        id: 'ag-j-002',
+        title: 'Assemblée Générale Ordinaire 2026',
+        date: '2026-04-28', time: '19:30', location: 'Club house — Jardins du Roi',
+        status: 'upcoming',
+        convocationSent: true,
+        agenda: [
+            { id: 'e1', title: 'Approbation des comptes 2025/2026' },
+            { id: 'e2', title: 'Vote plan de stationnement résidence' },
+            { id: 'e3', title: 'Rénovation espaces verts communs' },
+        ],
+        attendance: null, votes: [], notes: '',
+    },
+    {
+        id: 'ag-j-001',
+        title: 'Assemblée Générale Extraordinaire — Travaux',
+        date: '2025-11-05', time: '19:30', location: 'Club house — Jardins du Roi',
+        status: 'completed',
+        convocationSent: true,
+        agenda: [
+            { id: 'f1', title: 'Approbation devis réparation réseau eau pluviale' },
+            { id: 'f2', title: 'Appel de fonds exceptionnel — 500 MAD/unité' },
+        ],
+        attendance: { present: 9, total: 12 },
+        votes: [
+            { agendaId: 'f1', pour: 8, contre: 0, abstention: 1 },
+            { agendaId: 'f2', pour: 7, contre: 1, abstention: 1 },
+        ],
+        notes: 'AG extraordinaire convoquée suite à dégâts eau pluviale. Fonds collectés et travaux planifiés pour Déc. 2025.',
+    },
+]

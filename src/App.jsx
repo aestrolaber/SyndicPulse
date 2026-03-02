@@ -16,6 +16,7 @@ import {
     Clock, XCircle, Search, MoreHorizontal,
     CreditCard, Wrench, Phone, Mail, Activity, LogOut,
     Plus, X, Upload, FileText, Check, Download, MessageCircle, Calendar, Pencil, Trash2,
+    CalendarCheck, Users2, ClipboardList, Vote,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -31,6 +32,7 @@ import {
     RECENT_PAYMENTS_BLD2, COLLECTION_HISTORY_BLD2,
     RESIDENTS_BLD3, TICKETS_BLD3, EXPENSES_BLD3, DISPUTES_BLD3,
     RECENT_PAYMENTS_BLD3, COLLECTION_HISTORY_BLD3,
+    MEETINGS_BLD1, MEETINGS_BLD2, MEETINGS_BLD3,
 } from './lib/mockData.js'
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
@@ -93,6 +95,7 @@ const NAV = [
     { id: 'residents',  label: 'Résidents',        icon: Users },
     { id: 'disputes',   label: 'Litiges',          icon: MessageSquare },
     { id: 'planning',   label: 'Planning',         icon: Calendar },
+    { id: 'assemblees', label: 'Assemblées',        icon: CalendarCheck },
 ]
 
 /* ── Expense category options with theme colors ── */
@@ -158,6 +161,7 @@ function Dashboard() {
     const [toast,            setToast]           = useState(null) // { message, type }
     const [residentsByBldg,  setResidentsByBldg] = useState({})  // shared across tabs
     const [disputesByBldg,   setDisputesByBldg]  = useState({})  // shared across tabs
+    const [meetingsByBldg,   setMeetingsByBldg]  = useState({})  // shared across tabs
 
     const buildingData = getBuildingData(activeBuilding?.id)
 
@@ -181,6 +185,18 @@ function Dashboard() {
             ...prev,
             [bldgId]: typeof fn === 'function'
                 ? fn(prev[bldgId] ?? getBuildingData(bldgId).disputes)
+                : fn,
+        }))
+    }
+
+    // Shared meetings state
+    const meetings = meetingsByBldg[activeBuilding?.id] ?? buildingData.meetings
+    function setMeetings(fn) {
+        const bldgId = activeBuilding.id
+        setMeetingsByBldg(prev => ({
+            ...prev,
+            [bldgId]: typeof fn === 'function'
+                ? fn(prev[bldgId] ?? getBuildingData(bldgId).meetings)
                 : fn,
         }))
     }
@@ -220,6 +236,7 @@ function Dashboard() {
                     {activeTab === 'residents'  && <ResidentsPage  building={activeBuilding} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
                     {activeTab === 'disputes'   && <DisputesPage   building={activeBuilding} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
                     {activeTab === 'planning'   && <PlanningPage   building={activeBuilding} data={buildingData} showToast={showToast} />}
+                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuilding} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
                 </main>
             </div>
 
@@ -257,6 +274,7 @@ function getBuildingData(buildingId) {
         disputes:          DISPUTES_BLD1,
         recentPayments:    RECENT_PAYMENTS_BLD1,
         collectionHistory: COLLECTION_HISTORY_BLD1,
+        meetings:          MEETINGS_BLD1,
     }
     if (buildingId === 'bld-2') return {
         residents:         RESIDENTS_BLD2,
@@ -265,6 +283,7 @@ function getBuildingData(buildingId) {
         disputes:          DISPUTES_BLD2,
         recentPayments:    RECENT_PAYMENTS_BLD2,
         collectionHistory: COLLECTION_HISTORY_BLD2,
+        meetings:          MEETINGS_BLD2,
     }
     if (buildingId === 'bld-3') return {
         residents:         RESIDENTS_BLD3,
@@ -273,10 +292,11 @@ function getBuildingData(buildingId) {
         disputes:          DISPUTES_BLD3,
         recentPayments:    RECENT_PAYMENTS_BLD3,
         collectionHistory: COLLECTION_HISTORY_BLD3,
+        meetings:          MEETINGS_BLD3,
     }
     return {
         residents: [], tickets: [], expenses: [], disputes: [],
-        recentPayments: [], collectionHistory: [],
+        recentPayments: [], collectionHistory: [], meetings: [],
     }
 }
 
@@ -653,6 +673,85 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
 /* ══════════════════════════════════════════
    FINANCIALS PAGE
 ══════════════════════════════════════════ */
+function generatePaymentReceipt(building, resident, form, coveredThrough) {
+    const METHOD_LABELS = { especes: 'Espèces', virement: 'Virement bancaire', cheque: 'Chèque' }
+    const dateStr = new Date(form.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const receiptNo = `REC-${Date.now().toString(36).toUpperCase()}`
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Reçu de paiement — ${resident.unit}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; background: #fff; padding: 48px; max-width: 600px; margin: 0 auto; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 2px solid #0e7490; }
+  .brand { font-size: 20px; font-weight: bold; color: #0e7490; }
+  .brand span { color: #111; }
+  .receipt-no { font-size: 11px; color: #6b7280; text-align: right; }
+  .receipt-no strong { display: block; font-size: 14px; color: #111; margin-bottom: 2px; }
+  h2 { font-size: 16px; font-weight: bold; text-align: center; color: #0e7490; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 24px; }
+  .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+  .row .lbl { color: #6b7280; }
+  .row .val { font-weight: 600; color: #111; text-align: right; }
+  .amount-box { background: #ecfdf5; border: 2px solid #6ee7b7; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0; }
+  .amount-box .amt { font-size: 28px; font-weight: bold; color: #065f46; }
+  .amount-box .lbl { font-size: 12px; color: #059669; margin-top: 4px; }
+  .footer { margin-top: 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .sig { text-align: center; }
+  .sig .line { width: 160px; border-top: 1px solid #111; margin: 40px auto 6px; }
+  .sig .name { font-size: 11px; color: #6b7280; }
+  .legal { font-size: 10px; color: #9ca3af; text-align: center; margin-top: 32px; }
+  @media print { body { padding: 32px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <div class="brand">Syndic<span>Pulse</span></div>
+    <div style="font-size:12px;color:#6b7280;margin-top:4px">${building.name} — ${building.city}</div>
+  </div>
+  <div class="receipt-no">
+    <strong>REÇU N° ${receiptNo}</strong>
+    Date : ${dateStr}
+  </div>
+</div>
+
+<h2>Reçu de paiement de charges</h2>
+
+<div class="amount-box">
+  <div class="amt">${Number(form.amount).toLocaleString('fr-FR')} MAD</div>
+  <div class="lbl">${form.months} mois couverts · Jusqu'à ${formatMonth(coveredThrough)}</div>
+</div>
+
+<div class="row"><span class="lbl">Résident</span><span class="val">${resident.name}</span></div>
+<div class="row"><span class="lbl">Unité</span><span class="val">${resident.unit}</span></div>
+<div class="row"><span class="lbl">Mode de paiement</span><span class="val">${METHOD_LABELS[form.method] ?? form.method}</span></div>
+<div class="row"><span class="lbl">Date de réception</span><span class="val">${dateStr}</span></div>
+<div class="row"><span class="lbl">Période couverte</span><span class="val">${form.months} mois</span></div>
+<div class="row"><span class="lbl">Payé jusqu'à</span><span class="val">${formatMonth(coveredThrough)}</span></div>
+${form.ref ? `<div class="row"><span class="lbl">Référence / N° reçu</span><span class="val">${form.ref}</span></div>` : ''}
+
+<div class="footer">
+  <div class="sig">
+    <div class="line"></div>
+    <div class="name">Signature du syndic</div>
+  </div>
+  <div class="sig">
+    <div class="line"></div>
+    <div class="name">Signature du résident</div>
+  </div>
+</div>
+
+<div class="legal">Ce reçu est émis par le syndic de ${building.name} conformément à la Loi 18-00. Conservez ce document.</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+}
+
 function exportFinancesCSV(building, residents, expenseLog, data) {
     const BOM = '\uFEFF' // UTF-8 BOM so Excel reads Arabic/French correctly
 
@@ -1049,7 +1148,7 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
                     <AddExpenseModal onClose={() => setShowAddExp(false)} onAdd={handleAddExpense} />
                 )}
                 {showRecPay && (
-                    <RecordPaymentModal residents={residents} onClose={() => setShowRecPay(false)} onRecord={handleMarkPaid} />
+                    <RecordPaymentModal building={building} residents={residents} onClose={() => setShowRecPay(false)} onRecord={handleMarkPaid} />
                 )}
             </AnimatePresence>
         </div>
@@ -2304,7 +2403,7 @@ function AddExpenseModal({ onClose, onAdd }) {
 /* ══════════════════════════════════════════
    RECORD PAYMENT MODAL
 ══════════════════════════════════════════ */
-function RecordPaymentModal({ residents, onClose, onRecord }) {
+function RecordPaymentModal({ building, residents, onClose, onRecord }) {
     const [form, setForm] = useState({
         residentId: residents[0]?.id ?? '',
         months:     1,
@@ -2327,6 +2426,7 @@ function RecordPaymentModal({ residents, onClose, onRecord }) {
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
         onRecord({ residentId: form.residentId, months: form.months })
+        if (form.amount && selectedResident) generatePaymentReceipt(building, selectedResident, form, coveredThrough)
         setSaving(false)
         onClose()
     }
@@ -3104,5 +3204,725 @@ function ActionBtn({ icon, onClick, color = 'sp' }) {
                 className={`p-1.5 rounded-lg bg-navy-600 ${hoverMap[color] ?? hoverMap.sp} text-slate-400 transition-all`}>
             {icon}
         </button>
+    )
+}
+
+/* ══════════════════════════════════════════
+   AG DOCUMENT GENERATORS
+══════════════════════════════════════════ */
+function fmtDate(iso) {
+    if (!iso) return '—'
+    const [y, m, d] = iso.split('-')
+    return `${d} ${MONTH_LABELS[Number(m) - 1]} ${y}`
+}
+
+function generateConvocation(building, residents, meeting) {
+    const deadlineDate = new Date(meeting.date)
+    deadlineDate.setDate(deadlineDate.getDate() - 15)
+    const waText = `📢 *Convocation — Assemblée Générale*\n*${building.name} · ${building.city}*\n\nVous êtes convoqué(e) à l'Assemblée Générale le :\n📅 *${fmtDate(meeting.date)}* à *${meeting.time}*\n📍 ${meeting.location}\n\n*Ordre du jour :*\n${meeting.agenda.map((a, i) => `${i + 1}. ${a.title}`).join('\n')}\n\n⚠️ Votre présence est indispensable (quorum requis).\nEn cas d'absence, vous pouvez donner procuration à un autre copropriétaire.\n\n— Syndic ${building.name}`
+
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Convocation AG — ${building.name}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; padding: 48px; max-width: 680px; margin: 0 auto; }
+  .header { border-bottom: 2px solid #0e7490; padding-bottom: 16px; margin-bottom: 28px; }
+  .brand { font-size: 18px; font-weight: bold; color: #0e7490; }
+  h1 { font-size: 17px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin: 24px 0 8px; }
+  .sub { text-align: center; color: #6b7280; font-size: 12px; margin-bottom: 28px; }
+  .info-box { background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 8px; padding: 16px 20px; margin-bottom: 24px; }
+  .info-row { display: flex; gap: 12px; margin-bottom: 8px; }
+  .info-row:last-child { margin-bottom: 0; }
+  .info-lbl { font-weight: 600; min-width: 80px; color: #0e7490; }
+  .agenda { margin-bottom: 28px; }
+  .agenda h3 { font-size: 13px; font-weight: bold; text-transform: uppercase; color: #0e7490; margin-bottom: 12px; letter-spacing: .5px; }
+  .agenda-item { display: flex; gap: 12px; padding: 8px 0; border-bottom: 1px solid #f3f4f6; }
+  .agenda-num { font-weight: bold; color: #0e7490; min-width: 24px; }
+  .legal { font-size: 11px; color: #6b7280; border-top: 1px solid #e5e7eb; padding-top: 16px; margin-bottom: 28px; }
+  .sig-row { display: flex; justify-content: space-between; margin-top: 40px; }
+  .sig { text-align: center; }
+  .sig .line { width: 160px; border-top: 1px solid #111; margin: 36px auto 6px; }
+  .sig .name { font-size: 11px; color: #6b7280; }
+  /* WhatsApp panel — hidden on print */
+  .wa-panel { margin-top: 40px; background: #f0fdf4; border: 1px solid #86efac; border-radius: 8px; padding: 20px; }
+  .wa-panel h3 { color: #166534; font-size: 13px; font-weight: bold; margin-bottom: 12px; }
+  .wa-text { font-family: monospace; font-size: 12px; white-space: pre-wrap; background: #fff; border: 1px solid #d1fae5; border-radius: 6px; padding: 12px; color: #111; }
+  .wa-btn { margin-top: 10px; background: #16a34a; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; font-size: 12px; font-weight: bold; cursor: pointer; }
+  @media print { .wa-panel { display: none; } body { padding: 32px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="brand">SyndicPulse &nbsp;·&nbsp; ${building.name}</div>
+  <div style="font-size:11px;color:#6b7280;margin-top:3px">${building.city} &nbsp;·&nbsp; Loi 18-00 relative au statut de la copropriété</div>
+</div>
+
+<h1>Convocation à l'Assemblée Générale</h1>
+<p class="sub">${meeting.title}</p>
+
+<div class="info-box">
+  <div class="info-row"><span class="info-lbl">Date :</span><span>${fmtDate(meeting.date)}</span></div>
+  <div class="info-row"><span class="info-lbl">Heure :</span><span>${meeting.time}</span></div>
+  <div class="info-row"><span class="info-lbl">Lieu :</span><span>${meeting.location}</span></div>
+  <div class="info-row"><span class="info-lbl">Convoqués :</span><span>Tous les copropriétaires de ${building.name}</span></div>
+</div>
+
+<div class="agenda">
+  <h3>Ordre du jour</h3>
+  ${meeting.agenda.map((a, i) => `<div class="agenda-item"><span class="agenda-num">${i + 1}.</span><span>${a.title}</span></div>`).join('')}
+</div>
+
+<div class="legal">
+  Conformément à l'article 25 de la Loi 18-00, cette convocation est adressée à tous les copropriétaires au moins 15 jours avant la tenue de l'assemblée. En cas d'empêchement, vous pouvez donner procuration écrite à un autre copropriétaire. Le quorum est atteint si la majorité des copropriétaires est présente ou représentée.
+</div>
+
+<div class="sig-row">
+  <div class="sig"><div class="line"></div><div class="name">Le Syndic — ${building.name}</div></div>
+  <div class="sig"><div class="line"></div><div class="name">Date d'envoi</div></div>
+</div>
+
+<div class="wa-panel">
+  <h3>💬 Message WhatsApp (copier-coller dans le groupe)</h3>
+  <div class="wa-text" id="watext">${waText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  <button class="wa-btn" onclick="navigator.clipboard.writeText(document.getElementById('watext').innerText).then(()=>this.textContent='✓ Copié !')">📋 Copier le message</button>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+}
+
+function generateAttendanceSheet(building, residents, meeting) {
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Feuille de présence — ${building.name}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 12px; color: #111; padding: 40px; }
+  .header { border-bottom: 2px solid #0e7490; padding-bottom: 12px; margin-bottom: 24px; display:flex; justify-content:space-between; }
+  h1 { font-size: 15px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+  .meta { font-size: 11px; color: #6b7280; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #0e7490; color: #fff; padding: 8px 10px; text-align: left; font-size: 11px; text-transform: uppercase; }
+  td { padding: 9px 10px; border-bottom: 1px solid #e5e7eb; font-size: 12px; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  .sig-cell { width: 140px; }
+  .footer { margin-top: 32px; display: flex; justify-content: space-between; font-size: 11px; color: #6b7280; }
+  @media print { body { padding: 24px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>Feuille de présence — AG</h1>
+    <div class="meta">${building.name} · ${building.city} &nbsp;|&nbsp; ${fmtDate(meeting.date)} à ${meeting.time} &nbsp;|&nbsp; ${meeting.location}</div>
+  </div>
+  <div style="font-size:11px;color:#6b7280;text-align:right">Total copropriétaires : ${residents.length}<br/>Quorum (50%+1) : ${Math.ceil(residents.length / 2)}</div>
+</div>
+
+<table>
+  <thead><tr><th>#</th><th>Unité</th><th>Copropriétaire</th><th>Présent(e)</th><th>Procuration donnée à</th><th>Signature</th></tr></thead>
+  <tbody>
+    ${residents.map((r, i) => `<tr><td>${i + 1}</td><td>${r.unit}</td><td>${r.name}</td><td style="text-align:center">☐</td><td class="sig-cell">&nbsp;</td><td class="sig-cell">&nbsp;</td></tr>`).join('')}
+  </tbody>
+</table>
+
+<div class="footer">
+  <div>Présents : ______ / ${residents.length} &nbsp;&nbsp; Quorum atteint : ☐ Oui &nbsp; ☐ Non</div>
+  <div>Signature du Syndic : _______________________</div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+}
+
+function generatePV(building, meeting) {
+    const quorumOk = meeting.attendance ? meeting.attendance.present >= Math.ceil(meeting.attendance.total / 2) : false
+    const html = `<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Procès-verbal AG — ${building.name}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 13px; color: #111; padding: 48px; max-width: 700px; margin: 0 auto; }
+  .header { border-bottom: 2px solid #0e7490; padding-bottom: 14px; margin-bottom: 28px; }
+  h1 { font-size: 17px; font-weight: bold; text-align: center; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .sub { text-align: center; color: #6b7280; font-size: 12px; }
+  h2 { font-size: 13px; font-weight: bold; color: #0e7490; text-transform: uppercase; letter-spacing: .5px; margin: 24px 0 10px; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; }
+  .info-row { display: flex; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+  .info-lbl { font-weight: 600; min-width: 120px; }
+  .vote-item { background: #f8fafc; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 16px; margin-bottom: 12px; }
+  .vote-title { font-weight: bold; margin-bottom: 8px; }
+  .vote-row { display: flex; gap: 24px; font-size: 12px; margin-bottom: 4px; }
+  .vote-row span { min-width: 120px; }
+  .result { font-weight: bold; margin-top: 6px; font-size: 12px; }
+  .adopted { color: #16a34a; }
+  .rejected { color: #dc2626; }
+  .sig-row { display: flex; justify-content: space-between; margin-top: 48px; gap: 20px; }
+  .sig { text-align: center; flex: 1; }
+  .sig .line { border-top: 1px solid #111; margin: 40px 0 6px; }
+  .sig .name { font-size: 11px; color: #6b7280; }
+  @media print { body { padding: 32px; } }
+</style>
+</head>
+<body>
+<div class="header">
+  <div style="font-size:13px;font-weight:bold;color:#0e7490;margin-bottom:4px">SyndicPulse · ${building.name}</div>
+  <div style="font-size:11px;color:#6b7280">${building.city} · Loi 18-00 relative au statut de la copropriété</div>
+</div>
+
+<h1>Procès-verbal</h1>
+<p class="sub">${meeting.title}</p>
+
+<h2>Informations de séance</h2>
+<div class="info-row"><span class="info-lbl">Date :</span><span>${fmtDate(meeting.date)}</span></div>
+<div class="info-row"><span class="info-lbl">Heure :</span><span>${meeting.time}</span></div>
+<div class="info-row"><span class="info-lbl">Lieu :</span><span>${meeting.location}</span></div>
+<div class="info-row"><span class="info-lbl">Présents :</span><span>${meeting.attendance?.present ?? '—'} / ${meeting.attendance?.total ?? '—'} copropriétaires</span></div>
+<div class="info-row"><span class="info-lbl">Quorum :</span><span style="font-weight:bold;color:${quorumOk ? '#16a34a' : '#dc2626'}">${quorumOk ? '✓ Atteint' : '✗ Non atteint'}</span></div>
+
+<h2>Résultats des votes</h2>
+${meeting.agenda.map((a, i) => {
+    const v = (meeting.votes ?? []).find(x => x.agendaId === a.id)
+    const total = v ? (v.pour + v.contre + v.abstention) : 0
+    const adopted = v && v.pour > v.contre
+    return `<div class="vote-item">
+  <div class="vote-title">${i + 1}. ${a.title}</div>
+  ${v ? `
+  <div class="vote-row"><span>✅ Pour :</span><span>${v.pour} voix</span></div>
+  <div class="vote-row"><span>❌ Contre :</span><span>${v.contre} voix</span></div>
+  <div class="vote-row"><span>⬜ Abstention :</span><span>${v.abstention} voix</span></div>
+  <div class="result ${adopted ? 'adopted' : 'rejected'}">${adopted ? '✓ POINT ADOPTÉ' : '✗ POINT REJETÉ'}</div>
+  ` : '<div style="color:#9ca3af;font-size:12px">Votes non enregistrés</div>'}
+</div>`
+}).join('')}
+
+${meeting.notes ? `<h2>Notes</h2><p style="font-size:12px;color:#374151;line-height:1.6">${meeting.notes}</p>` : ''}
+
+<div class="sig-row">
+  <div class="sig"><div class="line"></div><div class="name">Le Syndic</div></div>
+  <div class="sig"><div class="line"></div><div class="name">Témoin 1</div></div>
+  <div class="sig"><div class="line"></div><div class="name">Témoin 2</div></div>
+</div>
+<script>window.onload = () => window.print()</script>
+</body>
+</html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+}
+
+/* ══════════════════════════════════════════
+   ASSEMBLÉES PAGE
+══════════════════════════════════════════ */
+function AssembliesPage({ building, residents, meetings, setMeetings, showToast }) {
+    const [filter,        setFilter]        = useState('all')
+    const [showAdd,       setShowAdd]       = useState(false)
+    const [editingMeeting, setEditingMeeting] = useState(null)
+
+    const filtered = filter === 'all' ? meetings : meetings.filter(m => m.status === filter)
+    const upcoming = meetings.filter(m => m.status === 'upcoming')
+    const completed = meetings.filter(m => m.status === 'completed')
+    const next = upcoming.sort((a, b) => a.date.localeCompare(b.date))[0]
+
+    function daysUntil(iso) {
+        const diff = Math.ceil((new Date(iso) - new Date()) / 86400000)
+        if (diff < 0) return `il y a ${Math.abs(diff)} j`
+        if (diff === 0) return "aujourd'hui"
+        return `dans ${diff} j`
+    }
+
+    function handleAdd(m) {
+        const newId = `ag-${building.id.replace('bld-', '')}-${Date.now().toString(36)}`
+        setMeetings(prev => [{ ...m, id: newId, status: 'upcoming', convocationSent: false, votes: [], attendance: null, notes: '' }, ...prev])
+        showToast(`AG "${m.title}" planifiée`)
+    }
+
+    function handleSaveEdit(m) {
+        setMeetings(prev => prev.map(x => x.id === m.id ? m : x))
+        showToast('AG mise à jour')
+        setEditingMeeting(null)
+    }
+
+    function handleDelete(id) {
+        setMeetings(prev => prev.filter(x => x.id !== id))
+        showToast('AG supprimée', 'error')
+        setEditingMeeting(null)
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-lg font-bold text-white">Assemblées Générales</h2>
+                    <p className="text-xs text-slate-500 mt-0.5">{building.name} · {upcoming.length} à venir · {completed.length} terminée{completed.length !== 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={() => setShowAdd(true)}
+                    className="flex items-center gap-2 bg-sp/10 hover:bg-sp/20 text-sp border border-sp/25 rounded-xl px-4 py-2 text-sm font-semibold transition-all">
+                    <Plus size={15} /> Planifier une AG
+                </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+                <div onClick={() => setFilter('upcoming')} className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:border-sp/20 transition-colors">
+                    <CalendarCheck size={22} className="text-sp flex-shrink-0" />
+                    <div>
+                        <p className="text-xl font-bold text-sp">{upcoming.length}</p>
+                        <p className="text-xs text-slate-400">À venir</p>
+                    </div>
+                </div>
+                <div onClick={() => setFilter('completed')} className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:border-emerald-500/20 transition-colors">
+                    <ClipboardList size={22} className="text-emerald-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-xl font-bold text-emerald-400">{completed.length}</p>
+                        <p className="text-xs text-slate-400">Terminées</p>
+                    </div>
+                </div>
+                <div className="glass-card p-4 flex items-center gap-3">
+                    <Calendar size={22} className="text-amber-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-sm font-bold text-amber-400">{next ? fmtDate(next.date) : '—'}</p>
+                        <p className="text-xs text-slate-400">{next ? `Prochaine · ${daysUntil(next.date)}` : 'Aucune planifiée'}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Filter tabs */}
+            <div className="flex gap-1.5">
+                {[{ key: 'all', label: 'Toutes' }, { key: 'upcoming', label: 'À venir' }, { key: 'completed', label: 'Terminées' }].map(t => (
+                    <button key={t.key} onClick={() => setFilter(t.key)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                            filter === t.key ? 'bg-sp/15 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/15'
+                        }`}>
+                        {t.label}
+                    </button>
+                ))}
+            </div>
+
+            {/* AG cards */}
+            <div className="space-y-4">
+                {filtered.length === 0 && (
+                    <div className="glass-card p-10 text-center text-slate-500 text-sm">Aucune assemblée pour ce filtre.</div>
+                )}
+                {filtered.map(m => (
+                    <div key={m.id} className="glass-card p-6">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-3 flex-wrap">
+                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${
+                                    m.status === 'upcoming'
+                                        ? 'bg-sp/15 text-sp border-sp/25'
+                                        : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+                                }`}>
+                                    {m.status === 'upcoming' ? 'À venir' : 'Terminée'}
+                                </span>
+                                {m.convocationSent && (
+                                    <span className="text-[10px] font-semibold text-emerald-400 flex items-center gap-1">
+                                        <Check size={10} /> Convocation envoyée
+                                    </span>
+                                )}
+                            </div>
+                            <button onClick={() => setEditingMeeting(m)}
+                                className="p-1.5 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-navy-700 transition-colors ml-2">
+                                <Pencil size={13} />
+                            </button>
+                        </div>
+
+                        <h3 className="font-bold text-white text-base mb-1">{m.title}</h3>
+                        <div className="flex items-center gap-4 text-xs text-slate-400 mb-4">
+                            <span className="flex items-center gap-1"><Calendar size={11} /> {fmtDate(m.date)} · {m.time}</span>
+                            <span className="flex items-center gap-1"><ClipboardList size={11} /> {m.agenda.length} point{m.agenda.length !== 1 ? 's' : ''} à l'ordre du jour</span>
+                            {m.status === 'upcoming' && <span className="text-amber-400 font-semibold">{daysUntil(m.date)}</span>}
+                            {m.status === 'completed' && m.attendance && (
+                                <span className="flex items-center gap-1"><Users2 size={11} /> {m.attendance.present} / {m.attendance.total} présents</span>
+                            )}
+                        </div>
+
+                        {/* Agenda preview */}
+                        <div className="space-y-1 mb-5">
+                            {m.agenda.slice(0, 3).map((a, i) => (
+                                <div key={a.id} className="flex items-center gap-2 text-xs text-slate-400">
+                                    <span className="w-4 h-4 rounded-full bg-navy-600 text-[9px] font-bold text-slate-300 flex items-center justify-center flex-shrink-0">{i + 1}</span>
+                                    {a.title}
+                                </div>
+                            ))}
+                            {m.agenda.length > 3 && <p className="text-[11px] text-slate-600 pl-6">+{m.agenda.length - 3} autre{m.agenda.length - 3 > 1 ? 's' : ''} point{m.agenda.length - 3 > 1 ? 's' : ''}…</p>}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex gap-2 flex-wrap border-t border-white/5 pt-4">
+                            {m.status === 'upcoming' && (<>
+                                <button onClick={() => generateConvocation(building, residents, m)}
+                                    className="flex items-center gap-1.5 text-xs bg-sp/10 text-sp border border-sp/20 px-3 py-1.5 rounded-lg hover:bg-sp/20 transition-colors">
+                                    <FileText size={12} /> Générer convocation
+                                </button>
+                                <button onClick={() => generateAttendanceSheet(building, residents, m)}
+                                    className="flex items-center gap-1.5 text-xs bg-navy-700 text-slate-300 border border-white/8 px-3 py-1.5 rounded-lg hover:bg-navy-600 transition-colors">
+                                    <Users2 size={12} /> Feuille de présence
+                                </button>
+                            </>)}
+                            {m.status === 'completed' && (<>
+                                <button onClick={() => generatePV(building, m)}
+                                    className="flex items-center gap-1.5 text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors">
+                                    <ClipboardList size={12} /> Voir le PV
+                                </button>
+                                <button onClick={() => generateAttendanceSheet(building, residents, m)}
+                                    className="flex items-center gap-1.5 text-xs bg-navy-700 text-slate-300 border border-white/8 px-3 py-1.5 rounded-lg hover:bg-navy-600 transition-colors">
+                                    <Users2 size={12} /> Feuille de présence
+                                </button>
+                            </>)}
+                            <button onClick={() => setEditingMeeting(m)}
+                                className="flex items-center gap-1.5 text-xs bg-navy-700 text-slate-300 border border-white/8 px-3 py-1.5 rounded-lg hover:bg-navy-600 transition-colors ml-auto">
+                                <Pencil size={12} /> Modifier
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <AnimatePresence>
+                {showAdd && <AddAGModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
+                {editingMeeting && (
+                    <EditAGModal
+                        meeting={editingMeeting}
+                        onClose={() => setEditingMeeting(null)}
+                        onSave={handleSaveEdit}
+                        onDelete={handleDelete}
+                    />
+                )}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   ADD AG MODAL
+══════════════════════════════════════════ */
+function AddAGModal({ onClose, onAdd }) {
+    const year = new Date().getFullYear()
+    const [form, setForm] = useState({
+        title:    `Assemblée Générale Ordinaire ${year}`,
+        date:     '',
+        time:     '19:00',
+        location: 'Salle commune — RDC',
+        agenda:   [{ id: 'n1', title: 'Approbation des comptes' }, { id: 'n2', title: 'Budget prévisionnel' }],
+    })
+    const [saving, setSaving] = useState(false)
+    const [errors, setErrors] = useState({})
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+    function setAgenda(i, v) { setForm(f => { const a = [...f.agenda]; a[i] = { ...a[i], title: v }; return { ...f, agenda: a } }) }
+    function addPoint()      { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `n${Date.now()}`, title: '' }] })) }
+    function removePoint(i)  { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        const errs = {}
+        if (!form.date) errs.date = 'Date requise'
+        if (form.agenda.filter(a => a.title.trim()).length === 0) errs.agenda = 'Au moins un point requis'
+        if (Object.keys(errs).length) { setErrors(errs); return }
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 600))
+        onAdd({ ...form, agenda: form.agenda.filter(a => a.title.trim()) })
+        setSaving(false)
+        onClose()
+    }
+
+    return (
+        <Modal title="Planifier une AG" subtitle="Nouvelle assemblée générale" onClose={onClose}>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Titre</label>
+                    <input type="text" value={form.title} onChange={e => set('title', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Date *</label>
+                        <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                        {errors.date && <p className="text-[11px] text-red-400 mt-1">{errors.date}</p>}
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Heure</label>
+                        <input type="time" value={form.time} onChange={e => set('time', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Lieu</label>
+                    <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Ordre du jour</label>
+                    <div className="space-y-2">
+                        {form.agenda.map((a, i) => (
+                            <div key={a.id} className="flex gap-2">
+                                <span className="w-5 h-9 flex items-center justify-center text-xs font-bold text-slate-500">{i + 1}.</span>
+                                <input type="text" value={a.title} onChange={e => setAgenda(i, e.target.value)}
+                                    placeholder={`Point ${i + 1}`}
+                                    className="flex-1 bg-navy-700 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                                {form.agenda.length > 1 && (
+                                    <button type="button" onClick={() => removePoint(i)}
+                                        className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {form.agenda.length < 8 && (
+                            <button type="button" onClick={addPoint}
+                                className="text-xs text-sp hover:text-sp/80 flex items-center gap-1 transition-colors">
+                                <Plus size={12} /> Ajouter un point
+                            </button>
+                        )}
+                    </div>
+                    {errors.agenda && <p className="text-[11px] text-red-400 mt-1">{errors.agenda}</p>}
+                </div>
+                <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">
+                        Annuler
+                    </button>
+                    <button type="submit" disabled={saving}
+                        className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                        {saving ? <Spinner /> : <><Check size={15} /> Enregistrer</>}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    )
+}
+
+/* ══════════════════════════════════════════
+   EDIT AG MODAL
+══════════════════════════════════════════ */
+function EditAGModal({ meeting, onClose, onSave, onDelete }) {
+    const [form, setForm] = useState({
+        title:    meeting.title,
+        date:     meeting.date,
+        time:     meeting.time,
+        location: meeting.location,
+        status:   meeting.status,
+        convocationSent: meeting.convocationSent,
+        agenda:   meeting.agenda.map(a => ({ ...a })),
+        attendance: meeting.attendance ? { ...meeting.attendance } : { present: '', total: '' },
+        votes:    meeting.votes.map(v => ({ ...v })),
+        notes:    meeting.notes ?? '',
+    })
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [confirmSave,   setConfirmSave]   = useState(false)
+    const [saving, setSaving]               = useState(false)
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
+    function setAgenda(i, v) { setForm(f => { const a = [...f.agenda]; a[i] = { ...a[i], title: v }; return { ...f, agenda: a } }); setConfirmSave(false) }
+    function addPoint()      { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `e${Date.now()}`, title: '' }] })) }
+    function removePoint(i)  { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
+    function setVote(agendaId, field, val) {
+        setForm(f => {
+            const votes = f.votes.map(v => v.agendaId === agendaId ? { ...v, [field]: Number(val) } : v)
+            if (!votes.find(v => v.agendaId === agendaId)) votes.push({ agendaId, pour: 0, contre: 0, abstention: 0, [field]: Number(val) })
+            return { ...f, votes }
+        })
+        setConfirmSave(false)
+    }
+
+    function handleSubmit(e) {
+        e.preventDefault()
+        setConfirmSave(true)
+    }
+
+    async function doSave() {
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 600))
+        const att = form.status === 'completed' && form.attendance?.present !== ''
+            ? { present: Number(form.attendance.present), total: Number(form.attendance.total) }
+            : meeting.attendance
+        onSave({ ...meeting, ...form, agenda: form.agenda.filter(a => a.title.trim()), attendance: att })
+    }
+
+    return (
+        <Modal title="Modifier l'AG" subtitle={`${meeting.title}`} onClose={onClose} width="max-w-xl">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Titre</label>
+                    <input type="text" value={form.title} onChange={e => set('title', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Date</label>
+                        <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Heure</label>
+                        <input type="time" value={form.time} onChange={e => set('time', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Lieu</label>
+                    <input type="text" value={form.location} onChange={e => set('location', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Statut</label>
+                    <div className="flex gap-2">
+                        {[{ key: 'upcoming', label: 'À venir', cls: 'border-sp/40 text-sp bg-sp/10' }, { key: 'completed', label: 'Terminée', cls: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' }].map(s => (
+                            <button type="button" key={s.key} onClick={() => set('status', s.key)}
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${form.status === s.key ? s.cls : 'bg-navy-700 border-white/8 text-slate-500'}`}>
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <button type="button" onClick={() => set('convocationSent', !form.convocationSent)}
+                        className={`w-5 h-5 rounded border flex items-center justify-center transition-all ${form.convocationSent ? 'bg-emerald-500 border-emerald-500' : 'border-white/20 bg-navy-700'}`}>
+                        {form.convocationSent && <Check size={11} className="text-white" />}
+                    </button>
+                    <span className="text-xs text-slate-400">Convocation envoyée aux résidents</span>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Ordre du jour</label>
+                    <div className="space-y-2">
+                        {form.agenda.map((a, i) => (
+                            <div key={a.id} className="flex gap-2">
+                                <span className="w-5 h-9 flex items-center justify-center text-xs font-bold text-slate-500">{i + 1}.</span>
+                                <input type="text" value={a.title} onChange={e => setAgenda(i, e.target.value)}
+                                    className="flex-1 bg-navy-700 border border-white/10 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                                {form.agenda.length > 1 && (
+                                    <button type="button" onClick={() => removePoint(i)}
+                                        className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                                        <X size={14} />
+                                    </button>
+                                )}
+                            </div>
+                        ))}
+                        {form.agenda.length < 8 && (
+                            <button type="button" onClick={addPoint} className="text-xs text-sp hover:text-sp/80 flex items-center gap-1">
+                                <Plus size={12} /> Ajouter un point
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {form.status === 'completed' && (
+                    <>
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Présents</label>
+                                <input type="number" min="0" value={form.attendance?.present ?? ''} onChange={e => set('attendance', { ...form.attendance, present: e.target.value })}
+                                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Total copropriétaires</label>
+                                <input type="number" min="0" value={form.attendance?.total ?? ''} onChange={e => set('attendance', { ...form.attendance, total: e.target.value })}
+                                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-2">Résultats des votes</label>
+                            <div className="space-y-2">
+                                {form.agenda.filter(a => a.title.trim()).map(a => {
+                                    const v = form.votes.find(x => x.agendaId === a.id) ?? { pour: 0, contre: 0, abstention: 0 }
+                                    return (
+                                        <div key={a.id} className="bg-navy-700/60 rounded-xl p-3 border border-white/5">
+                                            <p className="text-xs font-semibold text-slate-300 mb-2">{a.title}</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {[['pour', 'Pour', 'text-emerald-400'], ['contre', 'Contre', 'text-red-400'], ['abstention', 'Abstention', 'text-slate-400']].map(([field, label, cls]) => (
+                                                    <div key={field}>
+                                                        <label className={`block text-[10px] font-semibold ${cls} mb-1`}>{label}</label>
+                                                        <input type="number" min="0" value={v[field] ?? 0}
+                                                            onChange={e => setVote(a.id, field, e.target.value)}
+                                                            className="w-full bg-navy-800 border border-white/10 rounded-lg px-2 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Notes</label>
+                    <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={2}
+                        placeholder="Observations, décisions complémentaires..."
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors resize-none" />
+                </div>
+
+                {!confirmSave ? (
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">
+                            Annuler
+                        </button>
+                        <button type="submit"
+                            className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                            <Check size={15} /> Enregistrer
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bg-sp/8 border border-sp/25 rounded-xl p-3.5">
+                        <p className="text-xs text-slate-300 text-center mb-3">
+                            Confirmer les modifications pour <span className="text-white font-semibold">"{form.title}"</span> ?
+                        </p>
+                        <div className="flex gap-2">
+                            <button type="button" onClick={() => setConfirmSave(false)}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-navy-700 text-slate-300 border border-white/8 hover:bg-navy-600 transition-colors">
+                                Revenir
+                            </button>
+                            <button type="button" onClick={doSave} disabled={saving}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-sp/20 text-sp border border-sp/30 hover:bg-sp/30 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+                                {saving ? <Spinner /> : <><Check size={12} /> Oui, enregistrer</>}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <div className="border-t border-white/5 pt-3">
+                    {!confirmDelete ? (
+                        <button type="button" onClick={() => setConfirmDelete(true)}
+                            className="w-full py-2 text-xs text-red-400/60 hover:text-red-400 transition-colors flex items-center justify-center gap-1.5">
+                            <Trash2 size={12} /> Supprimer cette AG
+                        </button>
+                    ) : (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-3">
+                            <p className="text-xs text-red-300 text-center mb-3">Supprimer définitivement cette AG ?</p>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setConfirmDelete(false)}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-navy-700 text-slate-300 border border-white/8 hover:bg-navy-600 transition-colors">
+                                    Revenir
+                                </button>
+                                <button type="button" onClick={() => onDelete(meeting.id)}
+                                    className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 text-red-300 border border-red-500/30 hover:bg-red-500/30 transition-colors">
+                                    Oui, supprimer
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </form>
+        </Modal>
     )
 }
