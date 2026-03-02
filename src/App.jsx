@@ -162,6 +162,10 @@ function Dashboard() {
     const [residentsByBldg,  setResidentsByBldg] = useState({})  // shared across tabs
     const [disputesByBldg,   setDisputesByBldg]  = useState({})  // shared across tabs
     const [meetingsByBldg,   setMeetingsByBldg]  = useState({})  // shared across tabs
+    const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState({})  // logo + name overrides per building
+    const [extraBuildings,   setExtraBuildings]  = useState([])  // user-added buildings
+    const [showBldgSettings, setShowBldgSettings] = useState(false)
+    const [showAddBuilding,  setShowAddBuilding]  = useState(false)
 
     const buildingData = getBuildingData(activeBuilding?.id)
 
@@ -201,6 +205,16 @@ function Dashboard() {
         }))
     }
 
+    // Merge user-customized settings (logo, name, manager) on top of base building data
+    const activeBuildingMerged = activeBuilding
+        ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
+        : null
+
+    // All buildings: seed list + user-added
+    const allBuildings = [...accessibleBuildings, ...extraBuildings].map(b => ({
+        ...b, ...(buildingSettingsByBldg[b.id] ?? {}),
+    }))
+
     if (!activeBuilding) return <LoadingScreen />
 
     function showToast(message, type = 'success', duration = 3500) {
@@ -213,34 +227,62 @@ function Dashboard() {
             <Sidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
-                activeBuilding={activeBuilding}
-                buildings={accessibleBuildings}
+                activeBuilding={activeBuildingMerged}
+                buildings={allBuildings}
                 canSwitchBuildings={canSwitchBuildings}
                 showBuildingMenu={showBuildingMenu}
                 setShowBuildingMenu={setShowBuildingMenu}
                 onSwitchBuilding={(b) => {
-                    setActiveBuilding(b)
+                    setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b)
                     setShowBuildingMenu(false)
                     setActiveTab('dashboard')
                 }}
                 setIsVoiceOpen={setIsVoiceOpen}
                 buildingData={buildingData}
                 disputes={disputes}
+                onOpenSettings={() => setShowBldgSettings(true)}
+                onAddBuilding={() => setShowAddBuilding(true)}
             />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <TopBar activeTab={activeTab} activeBuilding={activeBuilding} showToast={showToast} />
+                <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
-                    {activeTab === 'dashboard'  && <DashboardPage  building={activeBuilding} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
-                    {activeTab === 'financials' && <FinancialsPage building={activeBuilding} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
-                    {activeTab === 'residents'  && <ResidentsPage  building={activeBuilding} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
-                    {activeTab === 'disputes'   && <DisputesPage   building={activeBuilding} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
-                    {activeTab === 'planning'   && <PlanningPage   building={activeBuilding} data={buildingData} showToast={showToast} />}
-                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuilding} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
+                    {activeTab === 'dashboard'  && <DashboardPage  building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
+                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
+                    {activeTab === 'residents'  && <ResidentsPage  building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
+                    {activeTab === 'disputes'   && <DisputesPage   building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
+                    {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
+                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
                 </main>
             </div>
 
             <AIVoiceAgent isOpen={isVoiceOpen} onClose={() => setIsVoiceOpen(false)} />
+
+            {showBldgSettings && activeBuildingMerged && (
+                <BuildingSettingsModal
+                    building={activeBuildingMerged}
+                    onClose={() => setShowBldgSettings(false)}
+                    onSave={(overrides) => {
+                        setBuildingSettingsByBldg(prev => ({
+                            ...prev,
+                            [activeBuilding.id]: { ...(prev[activeBuilding.id] ?? {}), ...overrides },
+                        }))
+                        setShowBldgSettings(false)
+                    }}
+                />
+            )}
+
+            {showAddBuilding && (
+                <AddBuildingModal
+                    onClose={() => setShowAddBuilding(false)}
+                    onSave={(newBld) => {
+                        setExtraBuildings(prev => [...prev, newBld])
+                        setActiveBuilding(newBld)
+                        setShowAddBuilding(false)
+                        setActiveTab('dashboard')
+                    }}
+                />
+            )}
 
             {/* Global toast notification */}
             <AnimatePresence>
@@ -303,7 +345,7 @@ function getBuildingData(buildingId) {
 /* ══════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════ */
-function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitchBuildings, showBuildingMenu, setShowBuildingMenu, onSwitchBuilding, setIsVoiceOpen, buildingData, disputes }) {
+function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitchBuildings, showBuildingMenu, setShowBuildingMenu, onSwitchBuilding, setIsVoiceOpen, buildingData, disputes, onOpenSettings, onAddBuilding }) {
     const { logout, user, isSuperAdmin } = useAuth()
     const menuRef = useRef(null)
 
@@ -376,7 +418,8 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                                     </button>
                                 ))}
                                 <div className="border-t border-white/5 px-3 py-2">
-                                    <button className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
+                                    <button onClick={() => { setShowBuildingMenu(false); onAddBuilding?.() }}
+                                        className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
                                         <Building2 size={11} /> Ajouter une propriété
                                     </button>
                                 </div>
@@ -439,7 +482,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                     </button>
                 </div>
 
-                <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-navy-700 transition-all">
+                <button onClick={() => onOpenSettings?.()} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-navy-700 transition-all">
                     <Settings size={18} strokeWidth={1.5} /> Paramètres
                 </button>
                 <button
@@ -673,6 +716,21 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
 /* ══════════════════════════════════════════
    FINANCIALS PAGE
 ══════════════════════════════════════════ */
+/* Returns an HTML string (img or SVG initials icon) for use in print documents */
+function buildingLogoHTML(building, size = 44) {
+    if (building.logo) {
+        return `<img src="${building.logo}" style="height:${size}px;width:auto;max-width:${size * 3}px;border-radius:6px;object-fit:contain;flex-shrink:0;" alt="logo"/>`
+    }
+    const words    = (building.name ?? '').trim().split(/\s+/)
+    const initials = words.length >= 2
+        ? (words[0][0] + words[1][0]).toUpperCase()
+        : (building.name ?? '??').slice(0, 2).toUpperCase()
+    const color = building.color ?? '#06b6d4'
+    const r = Math.round(size / 5)
+    const fs = Math.round(size * 0.38)
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="${size}" height="${size}" rx="${r}" fill="${color}" opacity="0.18"/><rect width="${size}" height="${size}" rx="${r}" fill="none" stroke="${color}" stroke-width="1.5"/><text x="${size/2}" y="${size/2}" dominant-baseline="central" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fs}" font-weight="bold" fill="${color}">${initials}</text></svg>`
+}
+
 function generatePaymentReceipt(building, resident, form, coveredThrough) {
     const METHOD_LABELS = { especes: 'Espèces', virement: 'Virement bancaire', cheque: 'Chèque' }
     const dateStr = new Date(form.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -707,9 +765,12 @@ function generatePaymentReceipt(building, resident, form, coveredThrough) {
 </head>
 <body>
 <div class="header">
-  <div>
-    <div class="brand">Syndic<span>Pulse</span></div>
-    <div style="font-size:12px;color:#6b7280;margin-top:4px">${building.name} — ${building.city}</div>
+  <div style="display:flex;align-items:center;gap:12px">
+    ${buildingLogoHTML(building, 44)}
+    <div>
+      <div class="brand">${building.manager ?? building.name}</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px">${building.name} — ${building.city}</div>
+    </div>
   </div>
   <div class="receipt-no">
     <strong>REÇU N° ${receiptNo}</strong>
@@ -812,7 +873,7 @@ function exportFinancesCSV(building, residents, expenseLog, data) {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = `SyndicPulse_${building.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0,10)}.csv`
+    a.download = `${building.name.replace(/\s+/g, '_')}_Rapport_${new Date().toISOString().slice(0,10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
 }
@@ -851,8 +912,13 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
 </style>
 </head>
 <body>
-<h1>Rapport financier — ${building.name}</h1>
-<p class="meta">${building.city} &nbsp;·&nbsp; Généré le ${dateStr} &nbsp;·&nbsp; SyndicPulse</p>
+<div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:14px;border-bottom:2px solid #0e7490">
+  ${buildingLogoHTML(building, 48)}
+  <div>
+    <h1 style="font-size:20px;color:#0e7490;margin:0">Rapport financier — ${building.name}</h1>
+    <p class="meta" style="margin:4px 0 0">${building.city} &nbsp;·&nbsp; ${building.manager ?? building.name} &nbsp;·&nbsp; Généré le ${dateStr}</p>
+  </div>
+</div>
 
 <h2>Résumé</h2>
 <div class="kpis">
@@ -898,7 +964,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
   </tbody>
 </table>
 
-<div class="footer">SyndicPulse &nbsp;·&nbsp; ${building.name} &nbsp;·&nbsp; ${dateStr}</div>
+<div class="footer">${building.manager ?? building.name} &nbsp;·&nbsp; ${building.name} &nbsp;·&nbsp; ${dateStr}</div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
@@ -3110,12 +3176,286 @@ function ImportCSVModal({ onClose, onImport }) {
 /* ══════════════════════════════════════════
    SHARED COMPONENTS
 ══════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   BUILDING SETTINGS MODAL
+══════════════════════════════════════════ */
+function BuildingSettingsModal({ building, onClose, onSave }) {
+    const [form, setForm] = useState({
+        name:    building.name    ?? '',
+        city:    building.city    ?? '',
+        manager: building.manager ?? '',
+        logo:    building.logo    ?? null,
+    })
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [saving,      setSaving]      = useState(false)
+    const [logoPreview, setLogoPreview] = useState(building.logo ?? null)
+    const fileRef = useRef(null)
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
+
+    function handleLogoChange(e) {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => { set('logo', ev.target.result); setLogoPreview(ev.target.result) }
+        reader.readAsDataURL(file)
+    }
+
+    function handleSubmit(e) { e.preventDefault(); if (!form.name.trim()) return; setConfirmSave(true) }
+
+    async function doSave() {
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 500))
+        onSave({ ...form })
+    }
+
+    const logoColor    = building.color ?? '#06b6d4'
+    const logoInitials = form.name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase() || '??'
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                    <h2 className="text-base font-bold text-white">Paramètres de la propriété</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {/* Logo section */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Logo de la syndic</label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center flex-shrink-0"
+                                 style={{ backgroundColor: logoColor + '22' }}>
+                                {logoPreview
+                                    ? <img src={logoPreview} alt="" className="w-full h-full object-cover" />
+                                    : <span className="text-xl font-bold" style={{ color: logoColor }}>{logoInitials}</span>
+                                }
+                            </div>
+                            <div className="space-y-2">
+                                <button type="button" onClick={() => fileRef.current?.click()}
+                                    className="px-3 py-1.5 bg-sp/10 hover:bg-sp/20 text-sp text-xs font-semibold rounded-lg border border-sp/20 transition-all flex items-center gap-1.5">
+                                    <Upload size={12} /> {logoPreview ? 'Changer le logo' : 'Importer un logo'}
+                                </button>
+                                {logoPreview && (
+                                    <button type="button" onClick={() => { set('logo', null); setLogoPreview(null) }}
+                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg border border-red-500/20 transition-all">
+                                        Supprimer le logo
+                                    </button>
+                                )}
+                                <p className="text-[10px] text-slate-500">PNG, JPG — max 2 Mo</p>
+                            </div>
+                            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nom de la propriété</label>
+                            <input value={form.name} onChange={e => set('name', e.target.value)} required
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Ville</label>
+                            <input value={form.city} onChange={e => set('city', e.target.value)}
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Gestionnaire</label>
+                            <input value={form.manager} onChange={e => set('manager', e.target.value)}
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                        </div>
+                    </div>
+
+                    {confirmSave ? (
+                        <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 flex items-center justify-between gap-3">
+                            <p className="text-sm text-cyan-300 font-medium">Confirmer les modifications ?</p>
+                            <div className="flex gap-2">
+                                <button type="button" onClick={() => setConfirmSave(false)}
+                                    className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white bg-white/5 rounded-lg transition-colors">
+                                    Revenir
+                                </button>
+                                <button type="button" onClick={doSave} disabled={saving}
+                                    className="px-3 py-1.5 text-xs font-semibold bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1">
+                                    {saving ? 'Enregistrement…' : <><Check size={12} /> Oui, enregistrer</>}
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex justify-end gap-3 pt-1">
+                            <button type="button" onClick={onClose}
+                                className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                                Annuler
+                            </button>
+                            <button type="submit"
+                                className="px-4 py-2 text-sm font-semibold bg-sp hover:bg-sp-light text-white rounded-xl transition-colors flex items-center gap-1.5">
+                                <Check size={14} /> Enregistrer
+                            </button>
+                        </div>
+                    )}
+                </form>
+            </div>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   ADD BUILDING MODAL
+══════════════════════════════════════════ */
+const BUILDING_COLORS = ['#22c55e','#06b6d4','#6366f1','#f59e0b','#ec4899','#ef4444','#8b5cf6','#14b8a6']
+
+function AddBuildingModal({ onClose, onSave }) {
+    const [form, setForm] = useState({
+        name: '', city: '', address: '', manager: '',
+        total_units: '', monthly_charge: '',
+        color: BUILDING_COLORS[0],
+        logo: null,
+    })
+    const [saving,      setSaving]      = useState(false)
+    const [logoPreview, setLogoPreview] = useState(null)
+    const fileRef = useRef(null)
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+    function handleLogoChange(e) {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => { set('logo', ev.target.result); setLogoPreview(ev.target.result) }
+        reader.readAsDataURL(file)
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        if (!form.name.trim() || !form.city.trim() || !form.manager.trim()) return
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 700))
+        onSave({
+            id:                 `bld-${Date.now()}`,
+            name:               form.name.trim(),
+            city:               form.city.trim(),
+            address:            form.address.trim(),
+            manager:            form.manager.trim(),
+            total_units:        Number(form.total_units) || 0,
+            monthly_charge_mad: Number(form.monthly_charge) || 0,
+            reserve_fund_mad:   0,
+            color:              form.color,
+            icon:               'Building2',
+            logo:               form.logo,
+            collection_rate:    100,
+        })
+    }
+
+    const logoInitials = form.name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase() || '??'
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                    <h2 className="text-base font-bold text-white">Ajouter une propriété</h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                    {/* Logo + color */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Logo de la syndic</label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center flex-shrink-0"
+                                 style={{ backgroundColor: form.color + '22' }}>
+                                {logoPreview
+                                    ? <img src={logoPreview} alt="" className="w-full h-full object-cover" />
+                                    : <span className="text-xl font-bold" style={{ color: form.color }}>{logoInitials}</span>
+                                }
+                            </div>
+                            <div className="space-y-2 flex-1">
+                                <button type="button" onClick={() => fileRef.current?.click()}
+                                    className="px-3 py-1.5 bg-sp/10 hover:bg-sp/20 text-sp text-xs font-semibold rounded-lg border border-sp/20 transition-all flex items-center gap-1.5">
+                                    <Upload size={12} /> {logoPreview ? 'Changer le logo' : 'Importer un logo'}
+                                </button>
+                                {logoPreview && (
+                                    <button type="button" onClick={() => { set('logo', null); setLogoPreview(null) }}
+                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg border border-red-500/20 transition-all">
+                                        Supprimer
+                                    </button>
+                                )}
+                                <p className="text-[10px] text-slate-500">Optionnel — une icône générée sera utilisée si absent</p>
+                            </div>
+                            <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                        </div>
+                        <div className="mt-3 flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] text-slate-500 uppercase tracking-wider">Couleur :</span>
+                            {BUILDING_COLORS.map(c => (
+                                <button key={c} type="button" onClick={() => set('color', c)}
+                                    className={`w-5 h-5 rounded-full border-2 transition-all ${form.color === c ? 'border-white scale-125' : 'border-transparent'}`}
+                                    style={{ backgroundColor: c }} />
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nom de la propriété <span className="text-red-400">*</span></label>
+                            <input value={form.name} onChange={e => set('name', e.target.value)} required placeholder="ex. Résidence Al Amal"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Ville <span className="text-red-400">*</span></label>
+                            <input value={form.city} onChange={e => set('city', e.target.value)} required placeholder="ex. Marrakech"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Gestionnaire <span className="text-red-400">*</span></label>
+                            <input value={form.manager} onChange={e => set('manager', e.target.value)} required placeholder="ex. Karim Alami"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Adresse</label>
+                            <input value={form.address} onChange={e => set('address', e.target.value)} placeholder="ex. Bd Mohammed V, 40000"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Nombre d'unités</label>
+                            <input type="number" min="1" value={form.total_units} onChange={e => set('total_units', e.target.value)} placeholder="ex. 24"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Cotisation mensuelle (MAD)</label>
+                            <input type="number" min="0" value={form.monthly_charge} onChange={e => set('monthly_charge', e.target.value)} placeholder="ex. 1500"
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                            Annuler
+                        </button>
+                        <button type="submit" disabled={saving || !form.name.trim() || !form.city.trim() || !form.manager.trim()}
+                            className="px-4 py-2 text-sm font-semibold bg-sp hover:bg-sp-light text-white rounded-xl transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                            {saving ? 'Création…' : <><Plus size={14} /> Créer la propriété</>}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+
 const BUILDING_ICON_MAP = { Building2, Landmark, Leaf }
 
 function BuildingAvatar({ building, size = 'sm' }) {
     const dim      = size === 'sm' ? 'w-8 h-8'  : 'w-10 h-10'
     const iconSize = size === 'sm' ? 15          : 18
     const Icon     = BUILDING_ICON_MAP[building.icon] ?? Building2
+    if (building.logo) {
+        return (
+            <div className={`${dim} rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden`}
+                 style={{ border: `1px solid ${building.color}55` }}>
+                <img src={building.logo} alt="" className="w-full h-full object-cover" />
+            </div>
+        )
+    }
     return (
         <div className={`${dim} rounded-lg flex items-center justify-center flex-shrink-0`}
              style={{ backgroundColor: building.color + '33', border: `1px solid ${building.color}55` }}>
@@ -3256,8 +3596,8 @@ function generateConvocation(building, residents, meeting) {
 </head>
 <body>
 <div class="header">
-  <div class="brand">SyndicPulse &nbsp;·&nbsp; ${building.name}</div>
-  <div style="font-size:11px;color:#6b7280;margin-top:3px">${building.city} &nbsp;·&nbsp; Loi 18-00 relative au statut de la copropriété</div>
+  <div class="brand" style="display:flex;align-items:center;gap:10px">${buildingLogoHTML(building, 36)}<span>${building.manager ?? building.name}</span></div>
+  <div style="font-size:11px;color:#6b7280;margin-top:3px">${building.name} &nbsp;·&nbsp; ${building.city} &nbsp;·&nbsp; Loi 18-00 relative au statut de la copropriété</div>
 </div>
 
 <h1>Convocation à l'Assemblée Générale</h1>
@@ -3320,9 +3660,12 @@ function generateAttendanceSheet(building, residents, meeting) {
 </head>
 <body>
 <div class="header">
-  <div>
-    <h1>Feuille de présence — AG</h1>
-    <div class="meta">${building.name} · ${building.city} &nbsp;|&nbsp; ${fmtDate(meeting.date)} à ${meeting.time} &nbsp;|&nbsp; ${meeting.location}</div>
+  <div style="display:flex;align-items:flex-start;gap:10px">
+    ${buildingLogoHTML(building, 36)}
+    <div>
+      <h1>Feuille de présence — AG</h1>
+      <div class="meta">${building.manager ?? building.name} &nbsp;·&nbsp; ${building.name} · ${building.city} &nbsp;|&nbsp; ${fmtDate(meeting.date)} à ${meeting.time} &nbsp;|&nbsp; ${meeting.location}</div>
+    </div>
   </div>
   <div style="font-size:11px;color:#6b7280;text-align:right">Total copropriétaires : ${residents.length}<br/>Quorum (50%+1) : ${Math.ceil(residents.length / 2)}</div>
 </div>
@@ -3378,8 +3721,8 @@ function generatePV(building, meeting) {
 </head>
 <body>
 <div class="header">
-  <div style="font-size:13px;font-weight:bold;color:#0e7490;margin-bottom:4px">SyndicPulse · ${building.name}</div>
-  <div style="font-size:11px;color:#6b7280">${building.city} · Loi 18-00 relative au statut de la copropriété</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">${buildingLogoHTML(building, 36)}<span style="font-size:13px;font-weight:bold;color:#0e7490">${building.manager ?? building.name}</span></div>
+  <div style="font-size:11px;color:#6b7280">${building.name} &nbsp;·&nbsp; ${building.city} · Loi 18-00 relative au statut de la copropriété</div>
 </div>
 
 <h1>Procès-verbal</h1>
