@@ -90,17 +90,29 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Trust badges */}
-                <div className="relative z-10 grid grid-cols-2 gap-2.5">
-                    {TRUST_BADGES.map(({ icon: Icon, label }) => (
-                        <div key={label}
-                            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-navy-700/60 border border-white/6 backdrop-blur-sm">
-                            <div className="w-6 h-6 rounded-lg bg-sp/10 flex items-center justify-center flex-shrink-0">
-                                <Icon size={13} className="text-sp" strokeWidth={1.8} />
+                {/* Trust ticker — infinite scroll */}
+                <div className="relative z-10 overflow-hidden">
+                    <style>{`
+                        @keyframes trust-ticker {
+                            0%   { transform: translateX(0); }
+                            100% { transform: translateX(-50%); }
+                        }
+                        .trust-ticker { animation: trust-ticker 18s linear infinite; }
+                        .trust-ticker:hover { animation-play-state: paused; }
+                    `}</style>
+                    {/* left + right fade masks */}
+                    <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-navy-800 to-transparent z-10 pointer-events-none" />
+                    <div className="absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-navy-800 to-transparent z-10 pointer-events-none" />
+
+                    <div className="trust-ticker flex gap-2.5" style={{ width: 'max-content' }}>
+                        {[...TRUST_BADGES, ...TRUST_BADGES].map(({ icon: Icon, label }, i) => (
+                            <div key={i}
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-navy-700/50 border border-white/6 flex-shrink-0">
+                                <Icon size={11} className="text-sp flex-shrink-0" strokeWidth={1.8} />
+                                <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{label}</span>
                             </div>
-                            <span className="text-[11px] text-slate-300 font-medium leading-tight">{label}</span>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
             </div>
 
