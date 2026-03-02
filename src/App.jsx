@@ -28,6 +28,7 @@ import LoginPage from './pages/LoginPage.jsx'
 import AIVoiceAgent from './components/AIVoiceAgent.jsx'
 
 import {
+    BUILDINGS,
     RESIDENTS_BLD1, TICKETS_BLD1, EXPENSES_BLD1, DISPUTES_BLD1,
     RECENT_PAYMENTS_BLD1, COLLECTION_HISTORY_BLD1,
     RESIDENTS_BLD2, TICKETS_BLD2, EXPENSES_BLD2, DISPUTES_BLD2,
