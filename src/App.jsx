@@ -7,7 +7,8 @@
  *   - syndic_manager   → Dashboard scoped to their building, no switcher
  */
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import * as XLSX from 'xlsx'
 import {
     LayoutDashboard, BarChart3, Users, MessageSquare,
     Settings, Bell, Mic, ChevronDown, ChevronRight,
@@ -2992,46 +2993,126 @@ function AddResidentModal({ onClose, onAdd }) {
 }
 
 /* ══════════════════════════════════════════
-   IMPORT CSV MODAL  (3-step wizard)
+   IMPORT CSV / EXCEL MODAL  (3-step wizard)
 ══════════════════════════════════════════ */
+
+// Column header aliases → internal key mapping (handles French accents + common variants)
+const COL_ALIAS = {
+    nom: 'nom', name: 'nom', 'nom complet': 'nom', 'full name': 'nom',
+    telephone: 'telephone', tel: 'telephone', phone: 'telephone', mobile: 'telephone',
+    'téléphone': 'telephone', 'numero': 'telephone', 'numéro': 'telephone',
+    unite: 'unite', 'unité': 'unite', unit: 'unite', appartement: 'unite',
+    appart: 'unite', appt: 'unite', 'n° appart': 'unite', 'n°appart': 'unite',
+    etage: 'etage', 'étage': 'etage', floor: 'etage', niveau: 'etage',
+    type: 'type', 'type résident': 'type', 'type resident': 'type',
+    quota: 'quota', 'quote-part': 'quota', 'quotepart': 'quota',
+}
+
+const COL_LABEL = {
+    nom: 'Nom complet', telephone: 'Téléphone WhatsApp',
+    unite: 'Unité', etage: 'Étage', type: 'Type de résident', quota: 'Quote-part',
+}
+
+function normalizeHeader(h) {
+    return COL_ALIAS[
+        String(h).toLowerCase().trim()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')   // strip accents
+            .replace(/[^a-z0-9 °#-]/g, '')                      // keep alphanums + space/dash
+            .trim()
+    ] || null
+}
+
+function mapRowsToObjects(rawHeaders, dataLines) {
+    const mapped = rawHeaders.map(h => normalizeHeader(h))
+    if (!mapped.includes('nom') || !mapped.includes('unite')) {
+        throw new Error('Colonnes obligatoires manquantes : "nom" et "unite" (ou "unité") doivent être présentes.')
+    }
+    return dataLines
+        .filter(row => row.some(c => String(c).trim() !== ''))
+        .map(row => {
+            const obj = {}
+            mapped.forEach((key, i) => { if (key) obj[key] = String(row[i] ?? '').trim() })
+            return obj
+        })
+        .filter(r => r.nom && r.unite)
+}
+
+function downloadResidentsTemplate() {
+    const headers = 'nom;telephone;unite;etage;type;quota'
+    const example = 'Rachid Benkirane;+212 661 234 567;A-01;1;Propriétaire;250'
+    const blob = new Blob(['\uFEFF' + headers + '\n' + example + '\n'], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = 'modele_residents_syndicpulse.csv'; a.click()
+    URL.revokeObjectURL(url)
+}
+
 function ImportCSVModal({ onClose, onImport }) {
-    const [step,      setStep]      = useState(1)
-    const [fileName,  setFileName]  = useState('')
-    const [importing, setImporting] = useState(false)
+    const [step,        setStep]        = useState(1)
+    const [fileName,    setFileName]    = useState('')
+    const [parsedRows,  setParsedRows]  = useState([])
+    const [parseError,  setParseError]  = useState('')
+    const [importing,   setImporting]   = useState(false)
     const fileRef = useRef(null)
 
-    function handleFile(e) {
+    const detectedCols = parsedRows.length > 0
+        ? Object.keys(parsedRows[0]).filter(k => COL_LABEL[k])
+        : []
+    const previewRows  = parsedRows.slice(0, 5)
+
+    async function handleFile(e) {
         const file = e.target.files?.[0]
         if (!file) return
+        setParseError('')
         setFileName(file.name)
-        setTimeout(() => setStep(2), 300)
+        try {
+            let rows
+            if (/\.xlsx?$/i.test(file.name)) {
+                // Excel: parse with SheetJS
+                const buffer = await file.arrayBuffer()
+                const wb = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+                const ws = wb.Sheets[wb.SheetNames[0]]
+                const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' })
+                if (data.length < 2) throw new Error('Le fichier Excel est vide ou ne contient pas de données.')
+                rows = mapRowsToObjects(data[0].map(String), data.slice(1))
+            } else {
+                // CSV: parse natively
+                const text = await file.text()
+                const firstLine = text.split('\n')[0]
+                const sep = firstLine.includes(';') ? ';' : firstLine.includes('\t') ? '\t' : ','
+                const lines = text.trim().split(/\r?\n/).map(l =>
+                    l.split(sep).map(c => c.trim().replace(/^"|"$/g, ''))
+                )
+                if (lines.length < 2) throw new Error('Le fichier CSV est vide.')
+                rows = mapRowsToObjects(lines[0], lines.slice(1))
+            }
+            if (rows.length === 0) throw new Error('Aucun résident valide trouvé (les colonnes "nom" et "unité" sont obligatoires).')
+            setParsedRows(rows)
+            setStep(2)
+        } catch (err) {
+            setParseError(err.message || 'Erreur de lecture du fichier.')
+            fileRef.current.value = ''
+        }
     }
 
     async function handleImport() {
         setImporting(true)
-        await new Promise(r => setTimeout(r, 1500))
-        onImport(CSV_SAMPLE.map((row, i) => ({
-            id:     `csv-${Date.now()}-${i}`,
-            unit:   row.unite,
-            name:   row.nom,
-            phone:       row.telephone,
-            floor:       parseInt(row.etage),
+        await new Promise(r => setTimeout(r, 900))
+        onImport(parsedRows.map((row, i) => ({
+            id:          `csv-${Date.now()}-${i}`,
+            unit:        row.unite,
+            name:        row.nom,
+            phone:       row.telephone || '',
+            floor:       parseInt(row.etage) || 0,
             paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
-            since:       'Fév. 2026',
-            type:        row.type.toLowerCase(),
+            since:       formatMonth(CURRENT_MONTH),
+            type:        (row.type || 'propriétaire').toLowerCase(),
+            quota:       row.quota ? parseFloat(row.quota) : null,
             isNew:       true,
         })))
         setImporting(false)
         setStep(3)
     }
-
-    const COLUMNS = [
-        { csv: 'nom',       mapped: 'Nom complet'       },
-        { csv: 'telephone', mapped: 'Téléphone WhatsApp' },
-        { csv: 'unite',     mapped: 'Unité'              },
-        { csv: 'etage',     mapped: 'Étage'              },
-        { csv: 'type',      mapped: 'Type de résident'   },
-    ]
 
     const STEPS = [
         { n: 1, label: 'Sélectionner fichier'       },
@@ -3076,14 +3157,20 @@ function ImportCSVModal({ onClose, onImport }) {
                         <div className="text-center">
                             <p className="text-sm font-semibold text-slate-200 mb-1">Glissez votre fichier ici</p>
                             <p className="text-xs text-slate-500">ou cliquez pour parcourir</p>
-                            <p className="text-[11px] text-slate-600 mt-1">Excel (.xlsx) · CSV · max 10 Mo</p>
+                            <p className="text-[11px] text-slate-600 mt-1">Excel (.xlsx / .xls) · CSV · max 10 Mo</p>
                         </div>
                         <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFile} className="hidden" />
                     </div>
+                    {parseError && (
+                        <div className="mt-3 flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+                            <XCircle size={15} className="text-red-400 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs text-red-300">{parseError}</p>
+                        </div>
+                    )}
                     <div className="mt-4 flex items-center justify-between px-1">
-                        <p className="text-xs text-slate-500">Vous avez un fichier existant ?</p>
-                        <button className="text-xs text-sp hover:text-sp-light flex items-center gap-1.5 transition-colors">
-                            <Download size={12} /> Télécharger le modèle Excel
+                        <p className="text-xs text-slate-500">Colonnes requises : <span className="font-mono text-slate-400">nom, unite</span></p>
+                        <button onClick={downloadResidentsTemplate} className="text-xs text-sp hover:text-sp-light flex items-center gap-1.5 transition-colors">
+                            <Download size={12} /> Télécharger le modèle CSV
                         </button>
                     </div>
                 </div>
@@ -3096,8 +3183,10 @@ function ImportCSVModal({ onClose, onImport }) {
                     <div className="flex items-center gap-3 bg-navy-700 rounded-xl px-4 py-3 border border-white/5">
                         <FileText size={16} className="text-sp flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-200 truncate">{fileName || 'residents_norwest.xlsx'}</p>
-                            <p className="text-[11px] text-slate-500">3 résidents détectés · 5 colonnes mappées automatiquement</p>
+                            <p className="text-sm font-medium text-slate-200 truncate">{fileName}</p>
+                            <p className="text-[11px] text-slate-500">
+                                {parsedRows.length} résident{parsedRows.length > 1 ? 's' : ''} détecté{parsedRows.length > 1 ? 's' : ''} · {detectedCols.length} colonnes mappées automatiquement
+                            </p>
                         </div>
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 flex-shrink-0">
                             Valide
@@ -3106,13 +3195,13 @@ function ImportCSVModal({ onClose, onImport }) {
 
                     {/* Column mapping */}
                     <div>
-                        <p className="text-xs font-semibold text-slate-400 mb-2.5">Correspondance des colonnes</p>
+                        <p className="text-xs font-semibold text-slate-400 mb-2.5">Correspondance des colonnes détectées</p>
                         <div className="space-y-2">
-                            {COLUMNS.map(col => (
-                                <div key={col.csv} className="flex items-center gap-3 text-xs">
-                                    <span className="font-mono text-slate-500 bg-navy-700 px-2 py-1 rounded text-[11px] w-24 text-center">{col.csv}</span>
+                            {detectedCols.map(key => (
+                                <div key={key} className="flex items-center gap-3 text-xs">
+                                    <span className="font-mono text-slate-500 bg-navy-700 px-2 py-1 rounded text-[11px] w-28 text-center truncate">{key}</span>
                                     <ChevronRight size={10} className="text-slate-600 flex-shrink-0" />
-                                    <span className="text-slate-300 font-medium flex-1">{col.mapped}</span>
+                                    <span className="text-slate-300 font-medium flex-1">{COL_LABEL[key]}</span>
                                     <Check size={12} className="text-emerald-400 flex-shrink-0" />
                                 </div>
                             ))}
@@ -3121,8 +3210,10 @@ function ImportCSVModal({ onClose, onImport }) {
 
                     {/* Data preview */}
                     <div>
-                        <p className="text-xs font-semibold text-slate-400 mb-2.5">Aperçu des données importées</p>
-                        <div className="rounded-xl border border-white/8 overflow-hidden">
+                        <p className="text-xs font-semibold text-slate-400 mb-2.5">
+                            Aperçu{parsedRows.length > 5 ? ` (5 premiers sur ${parsedRows.length})` : ''}
+                        </p>
+                        <div className="rounded-xl border border-white/8 overflow-x-auto">
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="bg-navy-700">
@@ -3132,13 +3223,13 @@ function ImportCSVModal({ onClose, onImport }) {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {CSV_SAMPLE.map((row, i) => (
+                                    {previewRows.map((row, i) => (
                                         <tr key={i} className="hover:bg-navy-700/40">
                                             <td className="px-3 py-2.5 font-mono text-sp font-semibold">{row.unite}</td>
                                             <td className="px-3 py-2.5 text-slate-200">{row.nom}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.telephone}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.etage}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.type}</td>
+                                            <td className="px-3 py-2.5 text-slate-400">{row.telephone || '—'}</td>
+                                            <td className="px-3 py-2.5 text-slate-400">{row.etage || '—'}</td>
+                                            <td className="px-3 py-2.5 text-slate-400">{row.type || '—'}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -3147,7 +3238,7 @@ function ImportCSVModal({ onClose, onImport }) {
                     </div>
 
                     <div className="flex gap-3">
-                        <button onClick={() => setStep(1)}
+                        <button onClick={() => { setStep(1); fileRef.current && (fileRef.current.value = '') }}
                             className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">
                             Retour
                         </button>
@@ -3155,7 +3246,7 @@ function ImportCSVModal({ onClose, onImport }) {
                             className="flex-1 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-70 flex items-center justify-center gap-2">
                             {importing
                                 ? <><Spinner /> Importation en cours…</>
-                                : 'Importer 3 résidents'
+                                : `Importer ${parsedRows.length} résident${parsedRows.length > 1 ? 's' : ''}`
                             }
                         </button>
                     </div>
@@ -3169,17 +3260,19 @@ function ImportCSVModal({ onClose, onImport }) {
                         <CheckCircle2 size={32} className="text-emerald-400" />
                     </div>
                     <div>
-                        <p className="text-lg font-bold text-white">3 résidents importés !</p>
+                        <p className="text-lg font-bold text-white">
+                            {parsedRows.length} résident{parsedRows.length > 1 ? 's' : ''} importé{parsedRows.length > 1 ? 's' : ''} !
+                        </p>
                         <p className="text-sm text-slate-400 mt-1">
                             Ils apparaissent dans la liste avec le statut{' '}
                             <span className="text-amber-400 font-semibold">En attente</span>.
                         </p>
                     </div>
-                    <div className="bg-navy-700 rounded-xl p-4 text-left space-y-2.5 border border-white/5">
-                        {CSV_SAMPLE.map((row, i) => (
+                    <div className="bg-navy-700 rounded-xl p-4 text-left space-y-2.5 border border-white/5 max-h-48 overflow-y-auto">
+                        {parsedRows.map((row, i) => (
                             <div key={i} className="flex items-center gap-2.5 text-sm">
                                 <span className="font-mono text-[11px] text-sp bg-sp/10 px-1.5 py-0.5 rounded flex-shrink-0">{row.unite}</span>
-                                <span className="text-slate-200">{row.nom}</span>
+                                <span className="text-slate-200 truncate">{row.nom}</span>
                                 <CheckCircle2 size={13} className="text-emerald-400 ml-auto flex-shrink-0" />
                             </div>
                         ))}
