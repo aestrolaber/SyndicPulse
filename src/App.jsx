@@ -4632,6 +4632,45 @@ function ResidentPortal({ session, onLogout }) {
                             )}
                         </div>
 
+                        {/* Historique des 6 derniers mois */}
+                        {(() => {
+                            // Build last-6-months list relative to CURRENT_MONTH
+                            const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+                            const months = Array.from({ length: 6 }, (_, i) => {
+                                let m = cm - 5 + i
+                                let y = cy
+                                while (m <= 0) { m += 12; y-- }
+                                return `${y}-${String(m).padStart(2, '0')}`
+                            })
+                            const [py, pm] = (resident.paidThrough ?? '0000-00').split('-').map(Number)
+                            return (
+                                <div className="glass-card rounded-2xl p-5">
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Historique des 6 derniers mois</p>
+                                    <div className="space-y-2">
+                                        {months.map(ym => {
+                                            const [y, m] = ym.split('-').map(Number)
+                                            const paid = y < py || (y === py && m <= pm)
+                                            return (
+                                                <div key={ym} className="flex items-center justify-between">
+                                                    <span className="text-xs text-slate-400">{formatMonth(ym)}</span>
+                                                    <div className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
+                                                        paid
+                                                            ? 'bg-emerald-500/12 text-emerald-400'
+                                                            : ym === CURRENT_MONTH
+                                                                ? 'bg-amber-500/12 text-amber-400'
+                                                                : 'bg-red-500/12 text-red-400'
+                                                    }`}>
+                                                        {paid ? '✓' : ym === CURRENT_MONTH ? '–' : '✗'}
+                                                        {paid ? 'Payé' : ym === CURRENT_MONTH ? 'En attente' : 'Non payé'}
+                                                    </div>
+                                                </div>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )
+                        })()}
+
                     </div>
 
                     {/* ── Right col — Building ── */}
