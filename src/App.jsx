@@ -768,8 +768,8 @@ function generatePaymentReceipt(building, resident, form, coveredThrough) {
   <div style="display:flex;align-items:center;gap:12px">
     ${buildingLogoHTML(building, 44)}
     <div>
-      <div class="brand">${building.manager ?? building.name}</div>
-      <div style="font-size:12px;color:#6b7280;margin-top:4px">${building.name} — ${building.city}</div>
+      <div class="brand">${building.name}</div>
+      <div style="font-size:12px;color:#6b7280;margin-top:4px">${building.city}</div>
     </div>
   </div>
   <div class="receipt-no">
@@ -916,7 +916,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
   ${buildingLogoHTML(building, 48)}
   <div>
     <h1 style="font-size:20px;color:#0e7490;margin:0">Rapport financier — ${building.name}</h1>
-    <p class="meta" style="margin:4px 0 0">${building.city} &nbsp;·&nbsp; ${building.manager ?? building.name} &nbsp;·&nbsp; Généré le ${dateStr}</p>
+    <p class="meta" style="margin:4px 0 0">${building.city} &nbsp;·&nbsp; Généré le ${dateStr}</p>
   </div>
 </div>
 
@@ -964,7 +964,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
   </tbody>
 </table>
 
-<div class="footer">${building.manager ?? building.name} &nbsp;·&nbsp; ${building.name} &nbsp;·&nbsp; ${dateStr}</div>
+<div class="footer">${building.name} &nbsp;·&nbsp; ${building.city} &nbsp;·&nbsp; ${dateStr}</div>
 <script>window.onload = () => window.print()</script>
 </body>
 </html>`
@@ -3596,7 +3596,7 @@ function generateConvocation(building, residents, meeting) {
 </head>
 <body>
 <div class="header">
-  <div class="brand" style="display:flex;align-items:center;gap:10px">${buildingLogoHTML(building, 36)}<span>${building.manager ?? building.name}</span></div>
+  <div class="brand" style="display:flex;align-items:center;gap:10px">${buildingLogoHTML(building, 36)}<span>${building.name}</span></div>
   <div style="font-size:11px;color:#6b7280;margin-top:3px">${building.name} &nbsp;·&nbsp; ${building.city} &nbsp;·&nbsp; Loi 18-00 relative au statut de la copropriété</div>
 </div>
 
@@ -3664,7 +3664,7 @@ function generateAttendanceSheet(building, residents, meeting) {
     ${buildingLogoHTML(building, 36)}
     <div>
       <h1>Feuille de présence — AG</h1>
-      <div class="meta">${building.manager ?? building.name} &nbsp;·&nbsp; ${building.name} · ${building.city} &nbsp;|&nbsp; ${fmtDate(meeting.date)} à ${meeting.time} &nbsp;|&nbsp; ${meeting.location}</div>
+      <div class="meta">${building.name} · ${building.city} &nbsp;|&nbsp; ${fmtDate(meeting.date)} à ${meeting.time} &nbsp;|&nbsp; ${meeting.location}</div>
     </div>
   </div>
   <div style="font-size:11px;color:#6b7280;text-align:right">Total copropriétaires : ${residents.length}<br/>Quorum (50%+1) : ${Math.ceil(residents.length / 2)}</div>
@@ -3721,7 +3721,7 @@ function generatePV(building, meeting) {
 </head>
 <body>
 <div class="header">
-  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">${buildingLogoHTML(building, 36)}<span style="font-size:13px;font-weight:bold;color:#0e7490">${building.manager ?? building.name}</span></div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">${buildingLogoHTML(building, 36)}<span style="font-size:13px;font-weight:bold;color:#0e7490">${building.name}</span></div>
   <div style="font-size:11px;color:#6b7280">${building.name} &nbsp;·&nbsp; ${building.city} · Loi 18-00 relative au statut de la copropriété</div>
 </div>
 
