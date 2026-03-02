@@ -143,7 +143,7 @@ export default function LoginPage() {
                     <div className="trust-ticker flex gap-2.5" style={{ width: 'max-content' }}>
                         {[...TRUST_BADGES, ...TRUST_BADGES].map(({ icon: Icon, label }, i) => (
                             <div key={i}
-                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-navy-700/50 border border-white/6 flex-shrink-0">
+                                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-navy-700/50 flex-shrink-0">
                                 <Icon size={11} className="text-sp flex-shrink-0" strokeWidth={1.8} />
                                 <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">{label}</span>
                             </div>
@@ -384,7 +384,7 @@ export default function LoginPage() {
 
                     {/* Resident magic link */}
                     <div className="mt-6 pt-6 border-t border-white/5 text-center">
-                        <p className="text-xs text-slate-500 mb-3">Vous êtes résident·e ?</p>
+                        <p className="text-xs text-slate-500 mb-3">Vous êtes résident-e ?</p>
                         <button className="text-xs text-sp hover:text-sp-light transition-colors flex items-center gap-1.5 mx-auto">
                             <Building2 size={12} /> Accéder à mon espace résident →
                         </button>
