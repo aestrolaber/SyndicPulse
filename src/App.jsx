@@ -17,6 +17,7 @@ import {
     CreditCard, Wrench, Phone, Mail, Activity, LogOut,
     Plus, X, Upload, FileText, Check, Download, MessageCircle, Calendar, Pencil, Trash2,
     CalendarCheck, Users2, ClipboardList, Vote,
+    UserCog, Key, Eye, EyeOff, Copy,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -33,6 +34,7 @@ import {
     RESIDENTS_BLD3, TICKETS_BLD3, EXPENSES_BLD3, DISPUTES_BLD3,
     RECENT_PAYMENTS_BLD3, COLLECTION_HISTORY_BLD3,
     MEETINGS_BLD1, MEETINGS_BLD2, MEETINGS_BLD3,
+    DEMO_USERS,
 } from './lib/mockData.js'
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
@@ -96,6 +98,7 @@ const NAV = [
     { id: 'disputes',   label: 'Litiges',          icon: MessageSquare },
     { id: 'planning',   label: 'Planning',         icon: Calendar },
     { id: 'assemblees', label: 'Assemblées',        icon: CalendarCheck },
+    { id: 'users',      label: 'Utilisateurs',     icon: UserCog, adminOnly: true },
 ]
 
 /* ── Expense category options with theme colors ── */
@@ -253,6 +256,7 @@ function Dashboard() {
                     {activeTab === 'disputes'   && <DisputesPage   building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
                     {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
                     {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
+                    {activeTab === 'users'      && <UsersPage showToast={showToast} />}
                 </main>
             </div>
 
@@ -439,7 +443,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
             {/* Navigation */}
             <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-                {NAV.map(item => {
+                {NAV.filter(item => !item.adminOnly || isSuperAdmin).map(item => {
                     const Icon = item.icon
                     const active = activeTab === item.id
                     return (
@@ -4266,6 +4270,242 @@ function EditAGModal({ meeting, onClose, onSave, onDelete }) {
                     )}
                 </div>
             </form>
+        </Modal>
+    )
+}
+
+/* ══════════════════════════════════════════
+   USERS PAGE  (super_admin only)
+══════════════════════════════════════════ */
+function UsersPage({ showToast }) {
+    const [showCreate, setShowCreate] = useState(false)
+    const [, forceUpdate] = useState(0)
+
+    function getAllUsers() {
+        const created = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        return [...DEMO_USERS, ...created]
+    }
+
+    const users = getAllUsers()
+
+    const ROLE_META = {
+        super_admin:    { label: 'Super Admin', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
+        syndic_manager: { label: 'Syndic',      cls: 'bg-sp/15 text-sp border-sp/20' },
+    }
+
+    function handleCreated() {
+        forceUpdate(n => n + 1)
+        showToast?.('Compte créé avec succès.', 'success')
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Utilisateurs</h1>
+                    <p className="text-slate-400 text-sm mt-0.5">{users.length} compte{users.length > 1 ? 's' : ''} enregistré{users.length > 1 ? 's' : ''}</p>
+                </div>
+                <button onClick={() => setShowCreate(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 font-bold text-sm rounded-xl transition-all shadow-glow-cyan">
+                    <Plus size={16} /> Créer un compte
+                </button>
+            </div>
+
+            {/* Users table */}
+            <div className="glass-card rounded-2xl overflow-hidden">
+                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr] px-4 py-2.5 border-b border-white/5">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nom / Email</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rôle</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Accès bâtiments</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Statut</span>
+                </div>
+                {users.map(u => {
+                    const meta = ROLE_META[u.role] ?? ROLE_META.syndic_manager
+                    const isDemo = DEMO_USERS.some(d => d.id === u.id)
+                    return (
+                        <div key={u.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr] px-4 py-3.5 border-b border-white/4 hover:bg-white/2 transition-colors items-center">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                                    style={{ background: `#${u.avatar_bg ?? '0d1629'}`, color: `#${u.avatar_color ?? '06b6d4'}`, border: `1px solid #${u.avatar_color ?? '06b6d4'}33` }}>
+                                    {(u.full_name ?? u.email).slice(0, 1).toUpperCase()}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-slate-200 truncate">{u.full_name ?? '—'}</p>
+                                    <p className="text-[11px] text-slate-500 truncate">{u.email}</p>
+                                </div>
+                            </div>
+                            <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border w-fit ${meta.cls}`}>
+                                {meta.label}
+                            </span>
+                            <span className="text-xs text-slate-400">{u.accessible_building_ids?.length ?? 0} bâtiment{(u.accessible_building_ids?.length ?? 0) > 1 ? 's' : ''}</span>
+                            <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDemo ? 'bg-slate-700 text-slate-400 border border-white/8' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                                    {isDemo ? 'Démo' : 'Actif'}
+                                </span>
+                            </div>
+                        </div>
+                    )
+                })}
+            </div>
+
+            <AnimatePresence>
+                {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   CREATE USER MODAL  (super_admin only)
+══════════════════════════════════════════ */
+function CreateUserModal({ onClose, onCreated }) {
+    const [form, setForm] = useState({ fullName: '', syndicName: '', buildingIds: '' })
+    const [saving, setSaving] = useState(false)
+    const [done, setDone] = useState(null) // { email, password }
+    const [showPwd, setShowPwd] = useState(false)
+    const [copied, setCopied] = useState(false)
+
+    // Auto-derive email from syndicName
+    const emailSlug = form.syndicName.trim()
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '')
+        || 'syndic'
+    const derivedEmail = `syndic_manager@${emailSlug}.ma`
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+    function generatePassword() {
+        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        const lower = 'abcdefghjkmnpqrstuvwxyz'
+        const digits = '23456789'
+        return (
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)] +
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)]
+        )
+    }
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        if (!form.syndicName.trim()) return
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 800))
+
+        const pwd = generatePassword()
+        const bldIds = form.buildingIds.split(',').map(s => s.trim()).filter(Boolean)
+        const newUser = {
+            id: `usr-${Date.now()}`,
+            email: derivedEmail,
+            password: pwd,
+            full_name: form.fullName.trim() || derivedEmail,
+            role: 'syndic_manager',
+            org_id: `org-${Date.now()}`,
+            accessible_building_ids: bldIds.length ? bldIds : ['bld-1'],
+            avatar_bg: '0d1629',
+            avatar_color: '06b6d4',
+        }
+
+        const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        localStorage.setItem('sp_created_users', JSON.stringify([...existing, newUser]))
+
+        setSaving(false)
+        setDone({ email: derivedEmail, password: pwd })
+        onCreated?.()
+    }
+
+    function copyCredentials() {
+        navigator.clipboard.writeText(`Email: ${done.email}\nMot de passe: ${done.password}`).catch(() => {})
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+
+    return (
+        <Modal title="Créer un compte" subtitle="Nouveau gestionnaire de syndic" onClose={onClose} width="max-w-md">
+            {!done ? (
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Nom du syndic <span className="text-red-400">*</span></label>
+                        <input type="text" value={form.syndicName} onChange={e => set('syndicName', e.target.value)}
+                            placeholder="ex : Norwest, Résidence Atlas…"
+                            required
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                        <p className="text-[11px] text-slate-500 mt-1.5 flex items-center gap-1">
+                            <Mail size={11} className="text-sp" /> Email généré : <span className="text-sp font-mono">{derivedEmail}</span>
+                        </p>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">Nom complet du gestionnaire</label>
+                        <input type="text" value={form.fullName} onChange={e => set('fullName', e.target.value)}
+                            placeholder="ex : Omar Benali"
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">IDs de bâtiments accessibles</label>
+                        <input type="text" value={form.buildingIds} onChange={e => set('buildingIds', e.target.value)}
+                            placeholder="ex : bld-1, bld-2"
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                        <p className="text-[11px] text-slate-500 mt-1">Séparez les IDs par une virgule. Défaut : bld-1</p>
+                    </div>
+
+                    <div className="rounded-xl bg-sp/5 border border-sp/15 p-3">
+                        <p className="text-[11px] text-slate-400 leading-relaxed">
+                            <span className="text-sp font-bold">Convention :</span> Email au format <span className="font-mono text-sp">syndic_manager@syndicname.ma</span>. Le mot de passe temporaire généré devra être communiqué au gestionnaire.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                            Annuler
+                        </button>
+                        <button type="submit" disabled={saving || !form.syndicName.trim()}
+                            className="flex-1 py-2.5 bg-sp hover:bg-sp-dark disabled:opacity-50 text-navy-900 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                            {saving
+                                ? <><span className="w-4 h-4 border-2 border-navy-900/30 border-t-navy-900 rounded-full animate-spin" /> Création…</>
+                                : <><Key size={14} /> Créer le compte</>
+                            }
+                        </button>
+                    </div>
+                </form>
+            ) : (
+                /* ── Success state — show credentials ── */
+                <div className="space-y-4">
+                    <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                        <p className="text-sm font-bold text-emerald-400 mb-1">Compte créé avec succès ✓</p>
+                        <p className="text-xs text-slate-400">Communiquez ces identifiants au gestionnaire de façon sécurisée.</p>
+                    </div>
+                    <div className="rounded-xl bg-navy-700 border border-white/8 p-4 space-y-3">
+                        <div>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Email</p>
+                            <p className="font-mono text-sm text-sp">{done.email}</p>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Mot de passe temporaire</p>
+                            <div className="flex items-center gap-3">
+                                <code className="font-mono text-base font-bold text-white tracking-widest flex-1">
+                                    {showPwd ? done.password : '••••••'}
+                                </code>
+                                <button type="button" onClick={() => setShowPwd(v => !v)} className="text-slate-500 hover:text-slate-300 transition-colors">
+                                    {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button onClick={copyCredentials}
+                        className="w-full py-2.5 flex items-center justify-center gap-2 rounded-xl border text-sm font-semibold transition-colors bg-sp/10 hover:bg-sp/20 text-sp border-sp/20">
+                        {copied ? <><Check size={14} /> Copié !</> : <><Copy size={14} /> Copier les identifiants</>}
+                    </button>
+                    <button onClick={onClose}
+                        className="w-full py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                        Fermer
+                    </button>
+                </div>
+            )}
         </Modal>
     )
 }

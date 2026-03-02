@@ -4,9 +4,10 @@
  */
 
 import { useState } from 'react'
-import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck } from 'lucide-react'
+import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { motion } from 'framer-motion'
+import { DEMO_USERS } from '../lib/mockData.js'
+import { motion, AnimatePresence } from 'framer-motion'
 
 // Demo credentials hint shown in development
 const DEMO_HINTS = [
@@ -31,6 +32,41 @@ export default function LoginPage() {
     const [password,    setPassword]    = useState('')
     const [showPwd,     setShowPwd]     = useState(false)
     const [rememberMe,  setRememberMe]  = useState(false)
+
+    // Forgot password
+    const [showForgot,    setShowForgot]    = useState(false)
+    const [forgotEmail,   setForgotEmail]   = useState('')
+    const [forgotStatus,  setForgotStatus]  = useState(null) // 'sent' | 'not-found'
+    const [forgotLoading, setForgotLoading] = useState(false)
+    const [tempPwd,       setTempPwd]       = useState('')
+    const [pwdCopied,     setPwdCopied]     = useState(false)
+
+    function openForgot() { setShowForgot(true); setForgotEmail(email); setForgotStatus(null); setTempPwd('') }
+    function closeForgot() { setShowForgot(false); setForgotStatus(null) }
+
+    async function handleForgotSubmit(e) {
+        e.preventDefault()
+        setForgotLoading(true)
+        await new Promise(r => setTimeout(r, 1000))
+        const createdUsers = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        const allUsers = [...DEMO_USERS, ...createdUsers]
+        const found = allUsers.find(u => u.email.toLowerCase() === forgotEmail.trim().toLowerCase())
+        if (found) {
+            const pwd = Math.random().toString(36).slice(2, 6).toUpperCase() +
+                        Math.random().toString(36).slice(2, 6)
+            setTempPwd(pwd)
+            setForgotStatus('sent')
+        } else {
+            setForgotStatus('not-found')
+        }
+        setForgotLoading(false)
+    }
+
+    function copyPwd() {
+        navigator.clipboard.writeText(tempPwd).catch(() => {})
+        setPwdCopied(true)
+        setTimeout(() => setPwdCopied(false), 2000)
+    }
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -129,7 +165,86 @@ export default function LoginPage() {
                     </span>
                 </div>
 
-                <motion.div
+                <AnimatePresence mode="wait">
+                {showForgot ? (
+                    /* ── Forgot password panel ── */
+                    <motion.div key="forgot"
+                        initial={{ opacity: 0, x: 24 }} animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -24 }} transition={{ duration: 0.25 }}
+                        className="w-full max-w-sm"
+                    >
+                        <button onClick={closeForgot} className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors mb-8">
+                            <ChevronLeft size={14} /> Retour à la connexion
+                        </button>
+
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-white mb-1">Mot de passe oublié</h2>
+                            <p className="text-slate-400 text-sm">Entrez votre adresse e-mail pour recevoir un mot de passe temporaire.</p>
+                        </div>
+
+                        {forgotStatus === null && (
+                            <form onSubmit={handleForgotSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">Adresse e-mail</label>
+                                    <input type="email" value={forgotEmail} onChange={e => setForgotEmail(e.target.value)} required
+                                        placeholder="vous@exemple.ma"
+                                        className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
+                                </div>
+                                <button type="submit" disabled={forgotLoading}
+                                    className="w-full py-3 bg-sp hover:bg-sp-dark disabled:opacity-60 text-navy-900 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                                    {forgotLoading
+                                        ? <><span className="w-4 h-4 border-2 border-navy-900/30 border-t-navy-900 rounded-full animate-spin" /> Vérification…</>
+                                        : <><Mail size={15} /> Envoyer le mot de passe temporaire</>
+                                    }
+                                </button>
+                            </form>
+                        )}
+
+                        {forgotStatus === 'sent' && (
+                            <div className="space-y-4">
+                                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-4">
+                                    <p className="text-sm font-semibold text-emerald-400 mb-1">Mot de passe envoyé ✓</p>
+                                    <p className="text-xs text-slate-400">Un mot de passe temporaire a été envoyé à <span className="text-white">{forgotEmail}</span>. Veuillez le changer après connexion.</p>
+                                </div>
+                                <div className="rounded-xl bg-navy-700 border border-white/8 p-4">
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Mot de passe temporaire</p>
+                                    <div className="flex items-center justify-between gap-3">
+                                        <code className="text-base font-bold text-sp tracking-widest">{tempPwd}</code>
+                                        <button onClick={copyPwd} className="p-2 rounded-lg bg-sp/10 hover:bg-sp/20 text-sp transition-colors flex-shrink-0">
+                                            {pwdCopied ? <Check size={14} /> : <Copy size={14} />}
+                                        </button>
+                                    </div>
+                                </div>
+                                <button onClick={closeForgot} className="w-full py-2.5 text-sm font-semibold text-slate-300 hover:text-white bg-white/5 rounded-xl transition-colors">
+                                    Retour à la connexion
+                                </button>
+                            </div>
+                        )}
+
+                        {forgotStatus === 'not-found' && (
+                            <div className="space-y-4">
+                                <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+                                    <p className="text-sm font-semibold text-amber-400 mb-1">Compte introuvable</p>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        L'adresse <span className="text-white">{forgotEmail}</span> n'est associée à aucun compte SyndicPulse.
+                                    </p>
+                                </div>
+                                <div className="rounded-xl bg-navy-700 border border-white/8 p-4 text-center">
+                                    <p className="text-xs text-slate-400 mb-3">Vous souhaitez rejoindre la plateforme ?</p>
+                                    <a href={`mailto:support@syndicpulse.ma?subject=Demande d'accès SyndicPulse&body=Bonjour, je souhaite obtenir un accès à SyndicPulse. Mon email : ${forgotEmail}`}
+                                        className="inline-flex items-center gap-2 px-4 py-2 bg-sp/10 hover:bg-sp/20 text-sp text-xs font-semibold rounded-lg border border-sp/20 transition-colors">
+                                        <Mail size={13} /> Contacter support@syndicpulse.ma
+                                    </a>
+                                    <p className="text-[10px] text-slate-600 mt-2">Notre équipe vous contactera dans les 24h.</p>
+                                </div>
+                                <button onClick={() => setForgotStatus(null)} className="w-full py-2.5 text-xs font-medium text-slate-500 hover:text-slate-300 transition-colors">
+                                    ← Réessayer avec un autre email
+                                </button>
+                            </div>
+                        )}
+                    </motion.div>
+                ) : (
+                <motion.div key="login"
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.4 }}
@@ -197,7 +312,7 @@ export default function LoginPage() {
                                 <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                                     Mot de passe
                                 </label>
-                                <button type="button" className="text-[11px] text-sp hover:text-sp-light transition-colors">
+                                <button type="button" onClick={openForgot} className="text-[11px] text-sp hover:text-sp-light transition-colors">
                                     Mot de passe oublié ?
                                 </button>
                             </div>
@@ -281,7 +396,10 @@ export default function LoginPage() {
                         Données chiffrées · Conforme CNDP Maroc
                     </div>
                 </motion.div>
+                )}
+                </AnimatePresence>
             </div>
+
         </div>
     )
 }

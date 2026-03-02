@@ -23,7 +23,10 @@ const AUTH_KEY = 'sp_auth_user'
 const auth = {
     async signInWithPassword({ email, password }) {
         await delay(800) // simulate network
-        const user = DEMO_USERS.find(
+        // Check static demo users + any accounts created by super_admin (stored in localStorage)
+        const createdUsers = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        const allUsers = [...DEMO_USERS, ...createdUsers]
+        const user = allUsers.find(
             u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
         )
         if (!user) {
