@@ -3,11 +3,10 @@
  * Langue: Français
  */
 
-import { useState, useMemo } from 'react'
-import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck } from 'lucide-react'
+import { useState } from 'react'
+import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { BUILDINGS, ORGANIZATIONS } from '../lib/mockData.js'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 
 // Demo credentials hint shown in development
 const DEMO_HINTS = [
@@ -18,54 +17,12 @@ const DEMO_HINTS = [
 
 const IS_DEV = import.meta.env.DEV
 
-const ADMIN_EMAIL = 'admin@syndicpulse.ma'
-
-// Email → building ids (for syndic managers)
-const USER_BUILDING_MAP = {
-    'omar@norwest.ma': 'bld-1',
-    'sara@atlas.ma':   'bld-2',
-}
-
-function getContextualStats(email) {
-    const e = email.trim().toLowerCase()
-
-    if (e === ADMIN_EMAIL) {
-        const totalUnits = BUILDINGS.reduce((s, b) => s + b.total_units, 0)
-        return {
-            key: 'admin',
-            stats: [
-                { value: String(ORGANIZATIONS.length), label: 'Syndics actifs' },
-                { value: String(BUILDINGS.length),     label: 'Propriétés gérées' },
-                { value: String(totalUnits),           label: 'Unités sur la plateforme' },
-            ],
-        }
-    }
-
-    const bldId = USER_BUILDING_MAP[e]
-    if (bldId) {
-        const bld = BUILDINGS.find(b => b.id === bldId)
-        if (bld) {
-            return {
-                key: bld.id,
-                stats: [
-                    { value: String(bld.total_units),      label: 'Unités gérées' },
-                    { value: `${bld.collection_rate}%`,    label: 'Taux de recouvrement' },
-                    { value: `${(bld.reserve_fund_mad / 1000).toFixed(0)}k MAD`, label: 'Fonds de réserve' },
-                ],
-            }
-        }
-    }
-
-    // Generic default
-    return {
-        key: 'default',
-        stats: [
-            { value: String(BUILDINGS.reduce((s, b) => s + b.total_units, 0)), label: 'Unités gérées' },
-            { value: String(BUILDINGS.length), label: 'Résidences actives' },
-            { value: '98%', label: 'Taux de satisfaction' },
-        ],
-    }
-}
+const TRUST_BADGES = [
+    { icon: FileCheck,    label: 'Conforme Loi 18-00' },
+    { icon: BadgeCheck,   label: 'Certifié CNDP Maroc' },
+    { icon: Lock,         label: 'Chiffrement SSL 256-bit' },
+    { icon: DatabaseBackup, label: 'Sauvegarde automatique' },
+]
 
 export default function LoginPage() {
     const { login, loginError, setLoginError, loading } = useAuth()
@@ -74,8 +31,6 @@ export default function LoginPage() {
     const [password,    setPassword]    = useState('')
     const [showPwd,     setShowPwd]     = useState(false)
     const [rememberMe,  setRememberMe]  = useState(false)
-
-    const { key: statsKey, stats } = useMemo(() => getContextualStats(email), [email])
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -135,24 +90,18 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Bottom stats — dynamic by email */}
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={statsKey}
-                        initial={{ opacity: 0, y: 6 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -6 }}
-                        transition={{ duration: 0.25 }}
-                        className="flex gap-8 relative z-10"
-                    >
-                        {stats.map(s => (
-                            <div key={s.label}>
-                                <p className="text-2xl font-bold text-sp">{s.value}</p>
-                                <p className="text-xs text-slate-500 mt-0.5">{s.label}</p>
+                {/* Trust badges */}
+                <div className="relative z-10 grid grid-cols-2 gap-2.5">
+                    {TRUST_BADGES.map(({ icon: Icon, label }) => (
+                        <div key={label}
+                            className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-navy-700/60 border border-white/6 backdrop-blur-sm">
+                            <div className="w-6 h-6 rounded-lg bg-sp/10 flex items-center justify-center flex-shrink-0">
+                                <Icon size={13} className="text-sp" strokeWidth={1.8} />
                             </div>
-                        ))}
-                    </motion.div>
-                </AnimatePresence>
+                            <span className="text-[11px] text-slate-300 font-medium leading-tight">{label}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
 
             {/* ── Right panel — Login form ── */}
