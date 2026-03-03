@@ -6271,6 +6271,14 @@ function ResidentPortal({ session, onLogout }) {
 
     const nextAG = meetings.find(m => m.status === 'upcoming')
 
+    const [expandedCirc, setExpandedCirc] = useState(null)
+    let recentCircs = []
+    try {
+        const allCircs = JSON.parse(localStorage.getItem(`sp_circ_${buildingId}`) ?? '[]')
+        const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+        recentCircs = allCircs.filter(c => new Date(c.createdAt).getTime() >= cutoff).slice(0, 5)
+    } catch {}
+
     const STATUS_META = {
         paid:    { label: 'À jour',      cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
         pending: { label: 'En attente',  cls: 'bg-amber-500/15  text-amber-400  border-amber-500/20'  },
@@ -6320,42 +6328,75 @@ function ResidentPortal({ session, onLogout }) {
                 </div>
 
                 {/* ── Avis en cours (Circulaires) ── */}
-                {(() => {
-                    let circs = []
-                    try { circs = JSON.parse(localStorage.getItem(`sp_circ_${buildingId}`) ?? '[]') } catch {}
-                    // Last 30 days only
-                    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
-                    const recent = circs.filter(c => new Date(c.createdAt).getTime() >= cutoff).slice(0, 3)
-                    if (!recent.length) return null
-                    return (
-                        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
-                            <div className="flex items-center gap-2 mb-3">
-                                <Megaphone size={15} className="text-amber-400" />
-                                <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Avis de la résidence</p>
-                            </div>
-                            <div className="space-y-2">
-                                {recent.map(c => {
-                                    const tpl = CIRCULAIRE_TEMPLATES.find(t => t.key === c.template)
-                                    const label  = tpl?.label ?? c.template
-                                    const icon   = tpl?.icon  ?? '📢'
-                                    const when   = new Date(c.createdAt).toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' })
-                                    const msg    = buildCirculaireMessage(c.template, c.vars, building.name ?? '')
-                                    const preview = msg.split('\n').find(l => l.trim()) ?? label
-                                    return (
-                                        <div key={c.id} className="flex items-start gap-2.5 bg-amber-500/8 border border-amber-500/12 rounded-xl px-3 py-2.5">
-                                            <span className="text-base leading-none mt-0.5">{icon}</span>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[11px] font-bold text-amber-200">{label}</p>
-                                                <p className="text-[11px] text-slate-400 truncate">{preview}</p>
-                                            </div>
-                                            <span className="text-[10px] text-slate-500 whitespace-nowrap">{when}</span>
-                                        </div>
-                                    )
-                                })}
-                            </div>
+                {recentCircs.length > 0 && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
+                        {/* Section header */}
+                        <div className="flex items-center gap-2 px-4 py-3 border-b border-amber-500/15">
+                            <Megaphone size={14} className="text-amber-400" />
+                            <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Avis de la résidence</p>
+                            <span className="ml-auto text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-bold">
+                                {recentCircs.length} avis
+                            </span>
                         </div>
-                    )
-                })()}
+
+                        {/* Cards */}
+                        <div className="divide-y divide-amber-500/10">
+                            {recentCircs.map(c => {
+                                const tpl     = CIRCULAIRE_TEMPLATES.find(t => t.key === c.template)
+                                const label   = tpl?.label ?? c.template
+                                const icon    = tpl?.icon  ?? '📢'
+                                const when    = new Date(c.createdAt).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })
+                                const fullMsg = buildCirculaireMessage(c.template, c.vars, building.name ?? '')
+                                // First non-empty line as teaser
+                                const teaser  = fullMsg.split('\n').find(l => l.trim()) ?? label
+                                const isOpen  = expandedCirc === c.id
+                                return (
+                                    <div key={c.id}>
+                                        {/* Clickable header row */}
+                                        <button
+                                            className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-amber-500/8 transition-colors text-left"
+                                            onClick={() => setExpandedCirc(isOpen ? null : c.id)}
+                                        >
+                                            <span className="text-xl leading-none flex-shrink-0">{icon}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <p className="text-xs font-bold text-amber-200">{label}</p>
+                                                    {c.diffuse && (
+                                                        <span className="text-[9px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">
+                                                            Diffusé
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {!isOpen && (
+                                                    <p className="text-[11px] text-slate-400 mt-0.5 truncate">{teaser}</p>
+                                                )}
+                                                <p className="text-[10px] text-slate-600 mt-0.5">Publié le {when}</p>
+                                            </div>
+                                            <ChevronDown
+                                                size={14}
+                                                className={`text-amber-400/50 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                                            />
+                                        </button>
+
+                                        {/* Expanded body */}
+                                        {isOpen && (
+                                            <div className="px-4 pb-4 pt-1">
+                                                <div className="rounded-xl bg-navy-800/60 border border-amber-500/10 p-4">
+                                                    <pre className="text-[12px] text-slate-200 whitespace-pre-wrap font-sans leading-relaxed">
+                                                        {fullMsg}
+                                                    </pre>
+                                                </div>
+                                                <p className="text-[10px] text-slate-600 mt-2 text-right">
+                                                    Publié le {when} · {building.name}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    </div>
+                )}
 
                 {/* 2-col grid */}
                 <div className="grid lg:grid-cols-2 gap-4">
