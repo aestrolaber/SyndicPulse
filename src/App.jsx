@@ -769,11 +769,29 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
     const [showWAModal, setShowWAModal] = useState(false)
     const overdueResidents = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
 
+    // ── Transparence score (computed from live data) ──
+    const totalRes     = residents.length || 1
+    const resWithPhone = residents.filter(r => r.phone).length
+    const ticketsDone  = data.tickets.filter(t => t.status === 'done').length
+    const ticketsTotal = data.tickets.length || 1
+    const hasExpenses  = data.expenses.length > 0
+    const hasAG        = data.meetings.some(m => ['upcoming', 'held'].includes(m.status))
+
+    const transBreakdown = [
+        { label: 'Recouvrement documenté', pts: Math.round((building.collection_rate / 100) * 30), max: 30 },
+        { label: 'Dépenses tracées',       pts: hasExpenses ? (data.expenses.length >= 5 ? 25 : 15) : 0,  max: 25 },
+        { label: 'Tickets suivis',         pts: Math.round((ticketsDone / ticketsTotal) * 20),             max: 20 },
+        { label: 'Résidents renseignés',   pts: Math.round((resWithPhone / totalRes) * 15),                max: 15 },
+        { label: 'Assemblée planifiée',    pts: hasAG ? 10 : 0,                                            max: 10 },
+    ]
+    const transScore = transBreakdown.reduce((s, b) => s + b.pts, 0)
+    const transTier  = transScore >= 95 ? 'Gold Elite' : transScore >= 80 ? 'Silver Pro' : transScore >= 60 ? 'Bronze' : 'Standard'
+
     const kpis = [
         { label: 'Taux de recouvrement', value: `${building.collection_rate}%`, delta: '+2.1%', up: true,  icon: TrendingUp,  color: 'emerald' },
         { label: 'Charges impayées',     value: '8 200 MAD',  delta: '-12%',      up: false, icon: CreditCard,  color: 'cyan'    },
         { label: 'Tickets ouverts',      value: data.tickets.filter(t => t.status !== 'done').length.toString(), delta: 'Stable', up: null, icon: Wrench, color: 'amber' },
-        { label: 'Transparence',         value: '99/100',     delta: 'Gold Elite', up: null,  icon: ShieldCheck, color: 'violet'  },
+        { label: 'Transparence',         value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet', tooltip: transBreakdown },
     ]
 
     const statusDot = {
@@ -5214,16 +5232,16 @@ function BuildingAvatar({ building, size = 'sm' }) {
     )
 }
 
-function KpiCard({ label, value, delta, up, icon: Icon, color }) {
+function KpiCard({ label, value, delta, up, icon: Icon, color, tooltip }) {
     const colorMap = {
-        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
-        cyan:    { bg: 'bg-sp/10',          border: 'border-sp/20',          text: 'text-sp'          },
-        amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400'  },
-        violet:  { bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  text: 'text-violet-400' },
+        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', bar: 'bg-emerald-400' },
+        cyan:    { bg: 'bg-sp/10',          border: 'border-sp/20',          text: 'text-sp',          bar: 'bg-sp'          },
+        amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400',   bar: 'bg-amber-400'   },
+        violet:  { bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  text: 'text-violet-400',  bar: 'bg-violet-400'  },
     }
     const c = colorMap[color] ?? colorMap.cyan
     return (
-        <div className="glass-card p-5 group hover:border-sp/20 transition-all">
+        <div className="glass-card p-5 group hover:border-sp/20 transition-all relative">
             <div className="flex items-start justify-between mb-4">
                 <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} group-hover:scale-110 transition-transform`}>
                     <Icon size={18} className={c.text} strokeWidth={1.5} />
@@ -5238,6 +5256,32 @@ function KpiCard({ label, value, delta, up, icon: Icon, color }) {
             </div>
             <p className="text-slate-400 text-xs font-medium mb-1">{label}</p>
             <p className="text-2xl font-bold text-white">{value}</p>
+
+            {/* Breakdown tooltip — shown on hover when tooltip prop is provided */}
+            {tooltip && (
+                <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0d1629] border border-white/10 rounded-xl p-3.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-2xl">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">Détail du score</p>
+                    <div className="space-y-2.5">
+                        {tooltip.map(item => (
+                            <div key={item.label}>
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-[11px] text-slate-400">{item.label}</span>
+                                    <span className={`text-[11px] font-bold ${c.text}`}>
+                                        {item.pts}<span className="text-slate-600 font-normal">/{item.max}</span>
+                                    </span>
+                                </div>
+                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                                    <div className={`h-full ${c.bar} rounded-full`} style={{ width: `${Math.round((item.pts / item.max) * 100)}%` }} />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-3 pt-2.5 border-t border-white/8 flex items-center justify-between">
+                        <span className="text-[10px] text-slate-500">Score total</span>
+                        <span className={`text-xs font-bold ${c.text}`}>{tooltip.reduce((s, b) => s + b.pts, 0)}<span className="text-slate-500 font-normal">/100</span></span>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
