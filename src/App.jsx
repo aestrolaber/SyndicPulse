@@ -21,6 +21,7 @@ import {
     UserCog, Key, Eye, EyeOff, Copy,
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
+    Megaphone,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -132,8 +133,141 @@ const NAV = [
     { id: 'planning',   label: 'Planning',         icon: Calendar },
     { id: 'assemblees',   label: 'Assemblées',    icon: CalendarCheck },
     { id: 'fournisseurs', label: 'Fournisseurs',  icon: Truck },
+    { id: 'circulaires',  label: 'Circulaires',   icon: Megaphone },
     { id: 'users',        label: 'Utilisateurs',  icon: UserCog, adminOnly: true },
 ]
+
+/* ── Circulaire templates ── */
+const CIRCULAIRE_TEMPLATES = [
+    {
+        key: 'coupure_eau', label: "Coupure d'eau", icon: '💧', color: '#06b6d4',
+        fields: [
+            { key: 'date',        label: 'Date',                   type: 'date', required: true },
+            { key: 'heure_debut', label: 'Heure début',            type: 'time', required: true, default: '08:00' },
+            { key: 'heure_fin',   label: 'Heure fin',              type: 'time', required: true, default: '14:00' },
+            { key: 'tranches',    label: 'Tranches / zones',       type: 'text', placeholder: 'Ex: Tranches 2, 3 et 4' },
+            { key: 'raison',      label: 'Raison',                 type: 'text', required: true, placeholder: 'Ex: Réparation de la pompe principale' },
+        ],
+    },
+    {
+        key: 'coupure_elec', label: "Coupure d'électricité", icon: '⚡', color: '#f59e0b',
+        fields: [
+            { key: 'date',        label: 'Date',            type: 'date', required: true },
+            { key: 'heure_debut', label: 'Heure début',     type: 'time', required: true, default: '09:00' },
+            { key: 'heure_fin',   label: 'Heure fin',       type: 'time', required: true, default: '13:00' },
+            { key: 'zones',       label: 'Zones concernées',type: 'text', placeholder: 'Ex: Bâtiment A et B' },
+            { key: 'raison',      label: 'Raison',          type: 'text', required: true, placeholder: 'Ex: Travaux ONEE' },
+        ],
+    },
+    {
+        key: 'travaux', label: 'Travaux / Maintenance', icon: '🔧', color: '#8b5cf6',
+        fields: [
+            { key: 'date',  label: 'Date de début',      type: 'date', required: true },
+            { key: 'zone',  label: 'Équipement / zone',  type: 'text', required: true, placeholder: 'Ex: Ascenseur – Hall principal' },
+            { key: 'duree', label: 'Durée estimée',      type: 'text', placeholder: 'Ex: 2 à 3 jours' },
+            { key: 'raison',label: 'Nature des travaux', type: 'text', required: true, placeholder: 'Ex: Remplacement câblage ascenseur' },
+        ],
+    },
+    {
+        key: 'rappel_ag', label: 'Rappel Assemblée', icon: '🏛️', color: '#10b981',
+        fields: [
+            { key: 'date',  label: "Date de l'AG", type: 'date', required: true },
+            { key: 'heure', label: 'Heure',         type: 'time', required: true, default: '18:00' },
+            { key: 'lieu',  label: 'Lieu',          type: 'text', required: true, placeholder: 'Ex: Salle commune – RDC' },
+            { key: 'odj',   label: "Ordre du jour", type: 'textarea', placeholder: 'Ex: Approbation comptes, budget 2026, travaux...' },
+        ],
+    },
+    {
+        key: 'proprete', label: 'Propreté & Règlement', icon: '🧹', color: '#ec4899',
+        fields: [
+            { key: 'sujet',    label: 'Sujet',               type: 'text',     required: true, placeholder: 'Ex: Dépôt sauvage dans le hall' },
+            { key: 'rappel',   label: 'Rappel réglementaire',type: 'textarea', placeholder: 'Rappeler les règles applicables...' },
+            { key: 'sanction', label: 'Sanction prévue',     type: 'text',     placeholder: 'Ex: Mise en demeure' },
+        ],
+    },
+    {
+        key: 'avis_libre', label: 'Avis personnalisé', icon: '📝', color: '#6366f1',
+        fields: [
+            { key: 'titre',   label: "Titre",   type: 'text',     required: true, placeholder: 'Ex: Information importante' },
+            { key: 'contenu', label: 'Contenu', type: 'textarea', required: true, placeholder: 'Rédigez votre message ici...' },
+        ],
+    },
+]
+
+function buildCirculaireMessage(templateKey, vars, buildingName) {
+    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const fmtDate = (d) => {
+        if (!d) return '—'
+        const [y, m, day] = d.split('-')
+        return `${parseInt(day)} ${MONTHS_FR[parseInt(m) - 1]} ${y}`
+    }
+    const closing = `\n\nNous nous excusons pour ce désagrément et vous remercions pour votre compréhension.\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
+    switch (templateKey) {
+        case 'coupure_eau':
+            return `Avis important — Coupure d'eau\n\nLe bureau du syndic de ${buildingName} informe les résidents${vars.tranches ? ` (${vars.tranches})` : ''} d'une coupure temporaire d'eau le ${fmtDate(vars.date)}, de ${vars.heure_debut ?? '—'} à ${vars.heure_fin ?? '—'}.\n\nRaison : ${vars.raison || '—'}\n\nMerci de prendre les précautions nécessaires.${closing}`
+        case 'coupure_elec':
+            return `Avis important — Coupure d'électricité\n\nLe bureau du syndic de ${buildingName} informe les résidents${vars.zones ? ` (${vars.zones})` : ''} d'une coupure temporaire d'électricité le ${fmtDate(vars.date)}, de ${vars.heure_debut ?? '—'} à ${vars.heure_fin ?? '—'}.\n\nRaison : ${vars.raison || '—'}\n\nMerci de prendre les précautions nécessaires.${closing}`
+        case 'travaux':
+            return `Avis — Travaux / Maintenance\n\nLe bureau du syndic de ${buildingName} vous informe de travaux le ${fmtDate(vars.date)}.\n\nÉquipement / zone : ${vars.zone || '—'}\nDurée estimée : ${vars.duree || 'à confirmer'}\nNature des travaux : ${vars.raison || '—'}${closing}`
+        case 'rappel_ag':
+            return `Rappel — Assemblée Générale\n\nLe bureau du syndic de ${buildingName} vous rappelle que l'Assemblée Générale se tiendra le ${fmtDate(vars.date)} à ${vars.heure ?? '—'}.\n\nLieu : ${vars.lieu || '—'}${vars.odj ? `\n\nOrdre du jour :\n${vars.odj}` : ''}\n\nVotre présence est importante.${closing}`
+        case 'proprete':
+            return `Avis — Propreté & Règlement intérieur\n\nLe bureau du syndic de ${buildingName} attire votre attention sur : ${vars.sujet || '—'}.${vars.rappel ? `\n\nRappel : ${vars.rappel}` : ''}${vars.sanction ? `\n\nSanction prévue : ${vars.sanction}` : ''}\n\nNous comptons sur votre civisme et coopération.${closing}`
+        case 'avis_libre':
+        default:
+            return `${vars.titre ? `${vars.titre}\n\n` : ''}${vars.contenu || ''}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
+    }
+}
+
+function generateCirculaireDoc(building, circ) {
+    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const fmtDate = (d) => {
+        if (!d) return new Date().toLocaleDateString('fr-FR')
+        const [y, m, day] = d.split('-')
+        return `${parseInt(day)} ${MONTHS_FR[parseInt(m) - 1]} ${y}`
+    }
+    const msg = buildCirculaireMessage(circ.template, circ.vars, building.name)
+    const logoHtml = buildingLogoHTML(building, 48)
+    const arabicTitles = {
+        coupure_eau:  'إعلان هام — انقطاع الماء',
+        coupure_elec: 'إعلان هام — انقطاع الكهرباء',
+        travaux:      'إعلان — أشغال الصيانة',
+        rappel_ag:    'تذكير — اجتماع الجمع العام',
+        proprete:     'إعلان — النظافة والنظام الداخلي',
+        avis_libre:   'إعلان هام',
+    }
+    const frTitles = {
+        coupure_eau:  "Avis Important — Coupure d'eau",
+        coupure_elec: "Avis Important — Coupure d'électricité",
+        travaux:      "Avis — Travaux / Maintenance",
+        rappel_ag:    "Rappel — Assemblée Générale",
+        proprete:     "Avis — Propreté & Règlement intérieur",
+        avis_libre:   circ.vars.titre ?? "Avis Important",
+    }
+    const arTitle = arabicTitles[circ.template] ?? 'إعلان هام'
+    const frTitle = frTitles[circ.template] ?? 'Avis Important'
+    const w = window.open('', '_blank')
+    w.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"/><title>${frTitle} — ${building.name}</title><style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Times New Roman',serif;background:#fff;color:#1a1a1a;padding:40px 60px;max-width:760px;margin:0 auto}
+.header{display:flex;align-items:center;gap:20px;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid #1a1a1a}
+.bname{font-size:18px;font-weight:bold}.bsub{font-size:13px;color:#555}
+.date-right{margin-left:auto;text-align:right;font-size:13px;color:#555}
+.title-ar{font-size:20px;font-weight:bold;text-align:center;direction:rtl;margin-bottom:8px;text-decoration:underline;font-family:'Arial',sans-serif}
+.title-fr{font-size:18px;font-weight:bold;text-align:center;margin-bottom:28px;text-decoration:underline}
+.body{font-size:14px;line-height:2;white-space:pre-wrap;margin-bottom:32px}
+.sig{margin-top:40px;display:flex;justify-content:space-between;align-items:flex-end}
+.stamp{width:90px;height:90px;border:2px solid #aaa;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:10px;color:#aaa;padding:10px}
+@media print{body{padding:20px 40px}}
+</style></head><body>
+<div class="header">${logoHtml}<div><div class="bname">${building.name}</div><div class="bsub">${building.city ?? ''} · Bureau du Syndic</div></div><div class="date-right">${fmtDate(circ.createdAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10))}</div></div>
+<div class="title-ar">${arTitle}</div>
+<div class="title-fr">${frTitle}</div>
+<div class="body">${msg.replace(/\n/g, '<br/>')}</div>
+<div class="sig"><div><div style="font-size:13px;font-weight:bold">Le Bureau du Syndic</div><div style="font-size:12px;color:#555;margin-top:2px">${building.name}</div><div style="margin-top:24px;border-top:1px solid #555;width:160px;padding-top:6px;font-size:11px;color:#888">Signature</div></div><div class="stamp">Cachet<br/>du<br/>Syndic</div></div>
+<script>window.onload=()=>{window.print();}<\/script></body></html>`)
+    w.document.close()
+}
 
 /* ── Expense category options with theme colors ── */
 const EXPENSE_CATEGORIES = [
@@ -270,6 +404,22 @@ function Dashboard() {
         }))
     }
 
+    // Circulaires — persisted in localStorage so ResidentPortal can read them too
+    const CIRC_KEY = (id) => `sp_circ_${id}`
+    const [circulairesByBldg, setCirculairesByBldg] = useState({})
+    const circulaires = circulairesByBldg[activeBuilding?.id] ?? (() => {
+        try { return JSON.parse(localStorage.getItem(CIRC_KEY(activeBuilding?.id)) ?? '[]') } catch { return [] }
+    })()
+    function setCirculaires(fn) {
+        const bldgId = activeBuilding.id
+        setCirculairesByBldg(prev => {
+            const cur = prev[bldgId] ?? (() => { try { return JSON.parse(localStorage.getItem(CIRC_KEY(bldgId)) ?? '[]') } catch { return [] } })()
+            const next = typeof fn === 'function' ? fn(cur) : fn
+            localStorage.setItem(CIRC_KEY(bldgId), JSON.stringify(next))
+            return { ...prev, [bldgId]: next }
+        })
+    }
+
     // Merge user-customized settings (logo, name, manager) on top of base building data
     const activeBuildingMerged = activeBuilding
         ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
@@ -319,6 +469,7 @@ function Dashboard() {
                     {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
                     {activeTab === 'assemblees'   && <AssembliesPage   building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
                     {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} showToast={showToast} />}
+                    {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} showToast={showToast} />}
                     {activeTab === 'users'        && <UsersPage showToast={showToast} />}
                 </main>
             </div>
@@ -1852,6 +2003,304 @@ function StarRating({ value, onChange, size = 16 }) {
                     }`} />
                 </button>
             ))}
+        </div>
+    )
+}
+
+/* ════════════════════════════════════
+   CIRCULAIRES PAGE
+════════════════════════════════════ */
+function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
+    const [showAdd, setShowAdd] = useState(false)
+
+    const MONTHS_S = ['Jan.','Fév.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.']
+    const fmtDate = (iso) => {
+        if (!iso) return '—'
+        const d = new Date(iso)
+        return `${d.getDate()} ${MONTHS_S[d.getMonth()]} ${d.getFullYear()}`
+    }
+
+    function handleAdd(circ) {
+        setCirculaires(prev => [circ, ...prev])
+        showToast('Circulaire enregistrée', 'success')
+    }
+    function handleDelete(id) {
+        setCirculaires(prev => prev.filter(c => c.id !== id))
+        showToast('Circulaire supprimée', 'success')
+    }
+    function handleMarkSent(id) {
+        setCirculaires(prev => prev.map(c => c.id === id ? { ...c, diffuse: true } : c))
+        showToast('Marqué comme diffusé', 'success')
+    }
+    function handleCopyWA(circ) {
+        const msg = buildCirculaireMessage(circ.template, circ.vars, building.name)
+        navigator.clipboard.writeText(msg).then(() =>
+            showToast('Message copié — collez-le dans WhatsApp Broadcast', 'success'))
+    }
+
+    const thisMonth = new Date().toISOString().slice(0, 7)
+    const countThisMonth = circulaires.filter(c => c.createdAt?.startsWith(thisMonth)).length
+    const countDiffuses  = circulaires.filter(c => c.diffuse).length
+
+    return (
+        <div className="p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-white">Circulaires & Avis</h2>
+                    <p className="text-xs text-slate-400 mt-1">Rédigez et diffusez les avis aux résidents en quelques clics</p>
+                </div>
+                <button onClick={() => setShowAdd(true)}
+                    className="flex items-center gap-2 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                    <Megaphone size={15} /> Nouvel avis
+                </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+                {[
+                    { label: 'Ce mois-ci',   val: countThisMonth, color: 'text-cyan-400' },
+                    { label: 'Diffusés',      val: countDiffuses,  color: 'text-emerald-400' },
+                    { label: 'Total archivés',val: circulaires.length, color: 'text-slate-300' },
+                ].map(s => (
+                    <div key={s.label} className="glass-card p-4">
+                        <p className="text-xs text-slate-400 mb-1">{s.label}</p>
+                        <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Quick-launch templates */}
+            <div className="glass-card p-5">
+                <p className="text-[11px] text-slate-400 uppercase tracking-widest mb-4">Lancement rapide</p>
+                <div className="grid grid-cols-3 gap-3">
+                    {CIRCULAIRE_TEMPLATES.map(t => (
+                        <button key={t.key} onClick={() => setShowAdd({ defaultTemplate: t.key })}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-navy-700/60 border border-white/8 hover:border-white/20 hover:bg-navy-700 transition-all text-left">
+                            <span className="text-xl flex-shrink-0">{t.icon}</span>
+                            <span className="text-sm font-medium text-slate-200 leading-tight">{t.label}</span>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* History */}
+            {circulaires.length === 0 ? (
+                <div className="glass-card p-12 text-center">
+                    <div className="text-5xl mb-4">📢</div>
+                    <p className="text-slate-400 text-sm">Aucune circulaire pour l'instant.</p>
+                    <p className="text-slate-500 text-xs mt-2">Cliquez "Nouvel avis" pour rédiger votre premier avis.</p>
+                </div>
+            ) : (
+                <div className="glass-card overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-white/5">
+                        <p className="text-sm font-semibold text-white">Historique ({circulaires.length})</p>
+                    </div>
+                    <div className="divide-y divide-white/5">
+                        {circulaires.map(circ => {
+                            const tmpl = CIRCULAIRE_TEMPLATES.find(t => t.key === circ.template) ?? { icon: '📝', label: 'Avis' }
+                            const summary = circ.vars.titre ?? circ.vars.raison ?? circ.vars.sujet ?? circ.vars.zone ?? circ.vars.contenu?.slice(0, 70) ?? '—'
+                            return (
+                                <div key={circ.id} className="flex items-center gap-4 px-5 py-4 hover:bg-navy-700/30 transition-colors">
+                                    <span className="text-2xl flex-shrink-0">{tmpl.icon}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <span className="text-sm font-semibold text-white">{tmpl.label}</span>
+                                            {circ.diffuse && (
+                                                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Diffusé</span>
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-400 truncate">{summary}</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">{fmtDate(circ.createdAt)}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                                        <button onClick={() => generateCirculaireDoc(building, circ)} title="Imprimer / PDF"
+                                            className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-navy-600 text-slate-400 hover:text-white border border-white/8 transition-colors">
+                                            <FileText size={13} />
+                                        </button>
+                                        <button onClick={() => handleCopyWA(circ)} title="Copier message WhatsApp"
+                                            className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/8 transition-colors">
+                                            <Copy size={13} />
+                                        </button>
+                                        {!circ.diffuse && (
+                                            <button onClick={() => handleMarkSent(circ.id)} title="Marquer comme diffusé"
+                                                className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/8 transition-colors">
+                                                <Check size={13} />
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleDelete(circ.id)} title="Supprimer"
+                                            className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/8 transition-colors">
+                                            <Trash2 size={13} />
+                                        </button>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
+            {showAdd && (
+                <AddCirculaireModal
+                    building={building}
+                    defaultTemplate={typeof showAdd === 'object' ? showAdd.defaultTemplate : undefined}
+                    onClose={() => setShowAdd(false)}
+                    onAdd={handleAdd}
+                    showToast={showToast}
+                />
+            )}
+        </div>
+    )
+}
+
+function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToast }) {
+    const [step, setStep] = useState(defaultTemplate ? 2 : 1)
+    const [selectedTemplate, setSelectedTemplate] = useState(defaultTemplate ?? null)
+    const [vars, setVars] = useState({})
+    const [preview, setPreview] = useState(false)
+    const [copied, setCopied] = useState(false)
+
+    const tmpl = CIRCULAIRE_TEMPLATES.find(t => t.key === selectedTemplate)
+
+    useEffect(() => {
+        if (tmpl) {
+            const defaults = {}
+            tmpl.fields.forEach(f => { if (f.default) defaults[f.key] = f.default })
+            setVars(defaults)
+        }
+    }, [selectedTemplate])
+
+    const msgText = selectedTemplate ? buildCirculaireMessage(selectedTemplate, vars, building.name) : ''
+
+    function handleSave() {
+        const missing = tmpl?.fields.filter(f => f.required && !vars[f.key]) ?? []
+        if (missing.length > 0) { showToast(`Champ requis : ${missing[0].label}`, 'error'); return }
+        onAdd({
+            id: `circ-${Date.now()}`,
+            template: selectedTemplate,
+            vars,
+            createdAt: new Date().toISOString(),
+            diffuse: false,
+        })
+        onClose()
+    }
+
+    function copyToClipboard() {
+        navigator.clipboard.writeText(msgText).then(() => {
+            setCopied(true)
+            setTimeout(() => setCopied(false), 2500)
+        })
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-white/8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center">
+                            <Megaphone size={15} className="text-cyan-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white">Nouvel avis</p>
+                            <p className="text-xs text-slate-400">{step === 1 ? 'Choisir un template' : `${tmpl?.icon ?? ''} ${tmpl?.label ?? ''}`}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+
+                <div className="p-5">
+                    {/* STEP 1 — Template picker */}
+                    {step === 1 && (
+                        <div className="grid grid-cols-2 gap-3">
+                            {CIRCULAIRE_TEMPLATES.map(t => (
+                                <button key={t.key}
+                                    onClick={() => { setSelectedTemplate(t.key); setStep(2) }}
+                                    className="flex items-start gap-4 p-4 rounded-xl bg-navy-700/60 border border-white/8 hover:border-white/25 hover:bg-navy-700 transition-all text-left">
+                                    <span className="text-2xl flex-shrink-0 mt-0.5">{t.icon}</span>
+                                    <div>
+                                        <p className="text-sm font-semibold text-white">{t.label}</p>
+                                        <p className="text-xs text-slate-500 mt-1">{t.fields.map(f => f.label).join(' · ')}</p>
+                                    </div>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+
+                    {/* STEP 2 — Fill form */}
+                    {step === 2 && tmpl && (
+                        <div className="space-y-4">
+                            {/* Back + template label */}
+                            {!defaultTemplate && (
+                                <button onClick={() => { setStep(1); setSelectedTemplate(null); setVars({}) }}
+                                    className="text-xs text-slate-400 hover:text-white flex items-center gap-1 transition-colors mb-2">
+                                    ← Changer de template
+                                </button>
+                            )}
+
+                            {/* Dynamic fields */}
+                            {tmpl.fields.map(field => (
+                                <div key={field.key}>
+                                    <label className="block text-xs text-slate-400 mb-1.5">
+                                        {field.label} {field.required && <span className="text-red-400">*</span>}
+                                    </label>
+                                    {field.type === 'textarea' ? (
+                                        <textarea
+                                            value={vars[field.key] ?? ''}
+                                            onChange={e => setVars(v => ({ ...v, [field.key]: e.target.value }))}
+                                            placeholder={field.placeholder ?? ''}
+                                            rows={3}
+                                            className="w-full bg-navy-700/60 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 resize-none"
+                                        />
+                                    ) : (
+                                        <input
+                                            type={field.type}
+                                            value={vars[field.key] ?? ''}
+                                            onChange={e => setVars(v => ({ ...v, [field.key]: e.target.value }))}
+                                            placeholder={field.placeholder ?? ''}
+                                            className="w-full bg-navy-700/60 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50"
+                                        />
+                                    )}
+                                </div>
+                            ))}
+
+                            {/* Preview toggle */}
+                            <button onClick={() => setPreview(p => !p)}
+                                className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors">
+                                {preview ? '▼ Masquer l\'aperçu' : '▶ Aperçu du message généré'}
+                            </button>
+                            {preview && (
+                                <div className="bg-black/30 border border-white/8 rounded-xl p-4">
+                                    <p className="text-[10px] text-slate-500 uppercase tracking-widest mb-3">Aperçu message</p>
+                                    <pre className="text-xs text-slate-200 whitespace-pre-wrap font-sans leading-relaxed">{msgText}</pre>
+                                </div>
+                            )}
+
+                            {/* WhatsApp how-to */}
+                            <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl p-3 text-xs text-slate-400">
+                                <p className="text-emerald-400 font-semibold mb-1">📱 Comment diffuser sur WhatsApp ?</p>
+                                <p>1. Copiez le message ci-dessous → 2. Ouvrez WhatsApp → Nouvelle liste de diffusion → collez le message → envoyez à tous les résidents en une seule fois.</p>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex gap-3 pt-1">
+                                <button onClick={() => generateCirculaireDoc(building, { template: selectedTemplate, vars, createdAt: new Date().toISOString() })}
+                                    className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl bg-navy-700/60 border border-white/12 text-sm font-semibold text-slate-300 hover:border-white/25 hover:text-white transition-colors">
+                                    <FileText size={14} /> Imprimer / PDF
+                                </button>
+                                <button onClick={copyToClipboard}
+                                    className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-sm font-semibold text-emerald-400 hover:bg-emerald-500/25 transition-colors">
+                                    <Copy size={14} /> {copied ? 'Copié !' : 'Copier message WA'}
+                                </button>
+                            </div>
+                            <button onClick={handleSave}
+                                className="w-full py-3 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-sm font-semibold text-cyan-400 hover:bg-cyan-500/25 transition-colors">
+                                Enregistrer dans les archives
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     )
 }
@@ -5869,6 +6318,44 @@ function ResidentPortal({ session, onLogout }) {
                         <p className="text-xs text-slate-400 mt-0.5">Voici les informations de transparence pour votre résidence <span className="text-white font-semibold">{building.name}</span>.</p>
                     </div>
                 </div>
+
+                {/* ── Avis en cours (Circulaires) ── */}
+                {(() => {
+                    let circs = []
+                    try { circs = JSON.parse(localStorage.getItem(`sp_circ_${buildingId}`) ?? '[]') } catch {}
+                    // Last 30 days only
+                    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
+                    const recent = circs.filter(c => new Date(c.createdAt).getTime() >= cutoff).slice(0, 3)
+                    if (!recent.length) return null
+                    return (
+                        <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4">
+                            <div className="flex items-center gap-2 mb-3">
+                                <Megaphone size={15} className="text-amber-400" />
+                                <p className="text-xs font-bold text-amber-300 uppercase tracking-wider">Avis de la résidence</p>
+                            </div>
+                            <div className="space-y-2">
+                                {recent.map(c => {
+                                    const tpl = CIRCULAIRE_TEMPLATES.find(t => t.key === c.template)
+                                    const label  = tpl?.label ?? c.template
+                                    const icon   = tpl?.icon  ?? '📢'
+                                    const when   = new Date(c.createdAt).toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' })
+                                    const msg    = buildCirculaireMessage(c.template, c.vars, building.name ?? '')
+                                    const preview = msg.split('\n').find(l => l.trim()) ?? label
+                                    return (
+                                        <div key={c.id} className="flex items-start gap-2.5 bg-amber-500/8 border border-amber-500/12 rounded-xl px-3 py-2.5">
+                                            <span className="text-base leading-none mt-0.5">{icon}</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-[11px] font-bold text-amber-200">{label}</p>
+                                                <p className="text-[11px] text-slate-400 truncate">{preview}</p>
+                                            </div>
+                                            <span className="text-[10px] text-slate-500 whitespace-nowrap">{when}</span>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 {/* 2-col grid */}
                 <div className="grid lg:grid-cols-2 gap-4">
