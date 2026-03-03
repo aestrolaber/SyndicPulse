@@ -1026,6 +1026,17 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const [showAppelDF, setShowAppelDF] = useState(false)
     const [recPayPreset, setRecPayPreset] = useState(null)  // { residentId } pre-fill from recouvrement grid
 
+    // Dépenses date-range filter (empty string = no bound)
+    const [expFrom, setExpFrom] = useState('')
+    const [expTo,   setExpTo]   = useState('')
+    function setExpPreset(months) {
+        if (months === null) { setExpFrom(''); setExpTo(''); return }
+        const today = new Date()
+        const from  = new Date(today); from.setMonth(from.getMonth() - months)
+        setExpFrom(from.toISOString().slice(0, 10))
+        setExpTo(today.toISOString().slice(0, 10))
+    }
+
     const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').map(r => ({
         id: r.id, unit: r.unit, name: r.name, months: 2, amount: '1 700 MAD',
     }))
@@ -1043,7 +1054,19 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
         showToast(`Paiement enregistré — ${months} mois couverts`)
     }
 
-    const totalExpenseLog = expenseLog.reduce((s, e) => s + e.amount, 0)
+    const filteredLog = expenseLog.filter(e =>
+        (!expFrom || e.date >= expFrom) &&
+        (!expTo   || e.date <= expTo)
+    )
+    const totalExpenseLog = filteredLog.reduce((s, e) => s + e.amount, 0)
+
+    // Dépenses pagination
+    const [expPage, setExpPage] = useState(1)
+    const EXP_PER_PAGE = 15
+    const expTotalPages = Math.max(1, Math.ceil(filteredLog.length / EXP_PER_PAGE))
+    const paginatedLog  = filteredLog.slice((expPage - 1) * EXP_PER_PAGE, expPage * EXP_PER_PAGE)
+    // Reset page when filter changes
+    useEffect(() => setExpPage(1), [expFrom, expTo])
 
     return (
         <div className="space-y-6">
@@ -1213,23 +1236,48 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
 
             {/* ── Sub-tab: Dépenses ─────────────────────────────────── */}
             {subTab === 'depenses' && (
-                <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-5">
+                <div className="glass-card p-6 space-y-4">
+                    {/* Date range + presets */}
+                    <div className="flex flex-wrap items-center gap-3">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <span className="text-xs text-slate-400 flex-shrink-0">Du</span>
+                            <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)}
+                                className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                            <span className="text-xs text-slate-400 flex-shrink-0">au</span>
+                            <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)}
+                                className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                        </div>
+                        <div className="flex gap-1 flex-shrink-0">
+                            {[['1M',1],['3M',3],['6M',6],['1an',12],['Tout',null]].map(([lbl,n]) => (
+                                <button key={lbl} onClick={() => setExpPreset(n)}
+                                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-white/8 bg-navy-700 text-slate-400 hover:border-sp/30 hover:text-sp transition-all">
+                                    {lbl}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Header row */}
+                    <div className="flex items-center justify-between">
                         <div>
                             <h3 className="font-bold text-white">Journal des dépenses</h3>
-                            <p className="text-[11px] text-slate-500 mt-0.5">{expenseLog.length} entrées · {totalExpenseLog.toLocaleString('fr-FR')} MAD total</p>
+                            <p className="text-[11px] text-slate-500 mt-0.5">
+                                {filteredLog.length} entrées{filteredLog.length !== expenseLog.length && ` / ${expenseLog.length} total`} · {totalExpenseLog.toLocaleString('fr-FR')} MAD
+                            </p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => { exportFinancesCSV(building, residents, expenseLog, data); showToast('Export Excel téléchargé') }}
+                            <button onClick={() => { exportFinancesCSV(building, residents, filteredLog, data); showToast('Export Excel téléchargé') }}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-all">
                                 <Download size={12} /> Excel
                             </button>
-                            <button onClick={() => exportFinancesPDF(building, residents, expenseLog, data)}
+                            <button onClick={() => exportFinancesPDF(building, residents, filteredLog, data)}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/10 transition-all">
                                 <FileText size={12} /> PDF
                             </button>
                         </div>
                     </div>
+
+                    {/* Table */}
                     <table className="w-full text-sm">
                         <thead>
                             <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
@@ -1242,7 +1290,10 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/4">
-                            {expenseLog.map((e) => (
+                            {paginatedLog.length === 0 && (
+                                <tr><td colSpan={6} className="py-10 text-center text-slate-500 text-sm">Aucune dépense pour cette période.</td></tr>
+                            )}
+                            {paginatedLog.map((e) => (
                                 <motion.tr key={e.id}
                                     initial={e.isNew ? { opacity: 0, y: -8 } : false}
                                     animate={{ opacity: 1, y: 0 }}
@@ -1262,6 +1313,32 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                             ))}
                         </tbody>
                     </table>
+
+                    {/* Pagination */}
+                    {expTotalPages > 1 && (
+                        <div className="flex items-center justify-between pt-2 border-t border-white/5">
+                            <span className="text-[11px] text-slate-500">
+                                Page {expPage} / {expTotalPages} · {filteredLog.length} entrées
+                            </span>
+                            <div className="flex gap-1">
+                                <button disabled={expPage === 1} onClick={() => setExpPage(p => p - 1)}
+                                    className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
+                                    <ChevronLeft size={13} />
+                                </button>
+                                {getPageNumbers(expPage, expTotalPages).map((n, i) =>
+                                    n === '…' ? <span key={`e${i}`} className="w-7 h-7 flex items-center justify-center text-slate-600 text-xs">…</span>
+                                    : <button key={n} onClick={() => setExpPage(n)}
+                                        className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${expPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
+                                        {n}
+                                    </button>
+                                )}
+                                <button disabled={expPage === expTotalPages} onClick={() => setExpPage(p => p + 1)}
+                                    className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
+                                    <ChevronRight size={13} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1345,13 +1422,34 @@ function exportRecouvrementPDF(building, residents, months) {
 }
 
 function RecouvrementTab({ building, residents, setResidents, onRecordPayment, showToast }) {
-    // Last 6 months including current
-    const months = Array.from({ length: 6 }, (_, i) => {
+    // Date range state — default last 6 months
+    const [recFrom, setRecFrom] = useState(() => {
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
-        let m = cm - 5 + i; let y = cy
+        let m = cm - 5; let y = cy
         while (m <= 0) { m += 12; y-- }
         return `${y}-${String(m).padStart(2, '0')}`
     })
+    const [recTo, setRecTo] = useState(CURRENT_MONTH)
+
+    // Build months array from recFrom → recTo (capped at 36 months)
+    const months = (() => {
+        const result = []
+        let [y, m] = recFrom.split('-').map(Number)
+        const [ty, tm] = recTo.split('-').map(Number)
+        while ((y < ty || (y === ty && m <= tm)) && result.length < 36) {
+            result.push(`${y}-${String(m).padStart(2, '0')}`)
+            m++; if (m > 12) { m = 1; y++ }
+        }
+        return result
+    })()
+
+    function setPreset(n) {
+        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+        let fm = cm - (n - 1); let fy = cy
+        while (fm <= 0) { fm += 12; fy-- }
+        setRecFrom(`${fy}-${String(fm).padStart(2, '0')}`)
+        setRecTo(CURRENT_MONTH)
+    }
 
     const paid    = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const pending = residents.filter(r => computeStatus(r.paidThrough) === 'pending').length
@@ -1362,12 +1460,18 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
         const [ry, rm] = m.split('-').map(Number)
         const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
-        const monthIdx = (ry - cy) * 12 + (rm - cm)  // negative = past, 0 = current
+        const monthIdx = (ry - cy) * 12 + (rm - cm)
         const paidIdx  = (py - cy) * 12 + (pm - cm)
         if (monthIdx < 0)       return paidIdx >= monthIdx ? 'paid' : 'overdue'
         if (monthIdx === 0)     return paidIdx >= 0 ? 'paid' : 'pending'
         return 'future'
     }
+
+    // Residents pagination
+    const [recPage, setRecPage] = useState(1)
+    const REC_PER_PAGE = 15
+    const recTotalPages = Math.max(1, Math.ceil(residents.length / REC_PER_PAGE))
+    const paginatedResidents = residents.slice((recPage - 1) * REC_PER_PAGE, recPage * REC_PER_PAGE)
 
     return (
         <div className="space-y-5">
@@ -1386,16 +1490,36 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                 ))}
             </div>
 
-            {/* Export buttons */}
-            <div className="flex gap-2 justify-end">
-                <button onClick={() => { exportRecouvrementCSV(building, residents, months); showToast('Export recouvrement téléchargé') }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-all">
-                    <Download size={12} /> Excel
-                </button>
-                <button onClick={() => exportRecouvrementPDF(building, residents, months)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/10 transition-all">
-                    <FileText size={12} /> PDF
-                </button>
+            {/* Date range controls */}
+            <div className="glass-card p-4 flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-xs text-slate-400 flex-shrink-0">De</span>
+                    <input type="month" value={recFrom} onChange={e => setRecFrom(e.target.value)}
+                        max={recTo}
+                        className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    <span className="text-xs text-slate-400 flex-shrink-0">à</span>
+                    <input type="month" value={recTo} onChange={e => setRecTo(e.target.value)}
+                        min={recFrom}
+                        className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div className="flex gap-1 flex-shrink-0">
+                    {[[3,'3M'],[6,'6M'],[12,'12M'],[24,'24M']].map(([n,lbl]) => (
+                        <button key={lbl} onClick={() => setPreset(n)}
+                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-white/8 bg-navy-700 text-slate-400 hover:border-sp/30 hover:text-sp transition-all">
+                            {lbl}
+                        </button>
+                    ))}
+                </div>
+                <div className="flex gap-2 ml-auto">
+                    <button onClick={() => { exportRecouvrementCSV(building, residents, months); showToast('Export recouvrement téléchargé') }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-all">
+                        <Download size={12} /> Excel
+                    </button>
+                    <button onClick={() => exportRecouvrementPDF(building, residents, months)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/10 transition-all">
+                        <FileText size={12} /> PDF
+                    </button>
+                </div>
             </div>
 
             {/* Matrix */}
@@ -1403,22 +1527,22 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                 <table className="w-full text-xs">
                     <thead>
                         <tr className="border-b border-white/5 text-[10px] text-slate-500 uppercase tracking-wider">
-                            <th className="text-left px-4 py-3 font-semibold">Unité</th>
-                            <th className="text-left px-4 py-3 font-semibold">Résident</th>
+                            <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-[#111d35]">Unité</th>
+                            <th className="text-left px-4 py-3 font-semibold sticky left-16 bg-[#111d35]">Résident</th>
                             {months.map(m => (
-                                <th key={m} className="px-3 py-3 font-semibold text-center">{formatMonth(m)}</th>
+                                <th key={m} className="px-3 py-3 font-semibold text-center whitespace-nowrap">{formatMonth(m)}</th>
                             ))}
                             <th className="px-4 py-3 font-semibold text-center">Total</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/4">
-                        {residents.map(r => {
+                        {paginatedResidents.map(r => {
                             const statuses = months.map(m => cellStatus(r, m))
                             const paidCount = statuses.filter(s => s === 'paid').length
                             return (
                                 <tr key={r.id} className="hover:bg-navy-700/40 transition-colors">
-                                    <td className="px-4 py-3 font-mono text-sp font-semibold">{r.unit}</td>
-                                    <td className="px-4 py-3 text-slate-200">{r.name}</td>
+                                    <td className="px-4 py-3 font-mono text-sp font-semibold sticky left-0 bg-[#111d35]">{r.unit}</td>
+                                    <td className="px-4 py-3 text-slate-200 sticky left-16 bg-[#111d35] whitespace-nowrap">{r.name}</td>
                                     {statuses.map((st, i) => (
                                         <td key={i} className="px-3 py-3 text-center">
                                             {st === 'future' ? (
@@ -1451,10 +1575,34 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                 {residents.length === 0 && (
                     <div className="text-center py-10 text-slate-500 text-sm">Aucun résident</div>
                 )}
-                <div className="px-4 py-3 border-t border-white/5 flex items-center gap-6 text-[10px] text-slate-500">
-                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-emerald-500/15 border border-emerald-500/20 inline-flex items-center justify-center text-emerald-400 font-bold">✓</span> Payé</span>
-                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-amber-500/15 border border-amber-500/20 inline-flex items-center justify-center text-amber-400">⏳</span> En attente — cliquer pour enregistrer</span>
-                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-500/15 border border-red-500/20 inline-flex items-center justify-center text-red-400 font-bold">✗</span> En retard — cliquer pour enregistrer</span>
+                <div className="px-4 py-3 border-t border-white/5 flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-6 text-[10px] text-slate-500">
+                        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-emerald-500/15 border border-emerald-500/20 inline-flex items-center justify-center text-emerald-400 font-bold">✓</span> Payé</span>
+                        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-amber-500/15 border border-amber-500/20 inline-flex items-center justify-center text-amber-400">⏳</span> En attente</span>
+                        <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-500/15 border border-red-500/20 inline-flex items-center justify-center text-red-400 font-bold">✗</span> En retard</span>
+                    </div>
+                    {recTotalPages > 1 && (
+                        <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-500">Page {recPage} / {recTotalPages}</span>
+                            <div className="flex gap-1">
+                                <button disabled={recPage === 1} onClick={() => setRecPage(p => p - 1)}
+                                    className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
+                                    <ChevronLeft size={13} />
+                                </button>
+                                {getPageNumbers(recPage, recTotalPages).map((n, i) =>
+                                    n === '…' ? <span key={`r${i}`} className="w-7 h-7 flex items-center justify-center text-slate-600 text-xs">…</span>
+                                    : <button key={n} onClick={() => setRecPage(n)}
+                                        className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${recPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
+                                        {n}
+                                    </button>
+                                )}
+                                <button disabled={recPage === recTotalPages} onClick={() => setRecPage(p => p + 1)}
+                                    className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
+                                    <ChevronRight size={13} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
