@@ -1027,9 +1027,11 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const [recPayPreset, setRecPayPreset] = useState(null)  // { residentId } pre-fill from recouvrement grid
 
     // Dépenses date-range filter (empty string = no bound)
-    const [expFrom, setExpFrom] = useState('')
-    const [expTo,   setExpTo]   = useState('')
-    function setExpPreset(months) {
+    const [expFrom,      setExpFrom]      = useState('')
+    const [expTo,        setExpTo]        = useState('')
+    const [expActivePill, setExpActivePill] = useState('Tout')   // tracks active preset pill
+    function setExpPreset(months, label) {
+        setExpActivePill(label)
         if (months === null) { setExpFrom(''); setExpTo(''); return }
         const today = new Date()
         const from  = new Date(today); from.setMonth(from.getMonth() - months)
@@ -1241,16 +1243,20 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                     <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-2 flex-1 min-w-0">
                             <span className="text-xs text-slate-400 flex-shrink-0">Du</span>
-                            <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)}
+                            <input type="date" value={expFrom} onChange={e => { setExpFrom(e.target.value); setExpActivePill(null) }}
                                 className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                             <span className="text-xs text-slate-400 flex-shrink-0">au</span>
-                            <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)}
+                            <input type="date" value={expTo} onChange={e => { setExpTo(e.target.value); setExpActivePill(null) }}
                                 className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
                             {[['1M',1],['3M',3],['6M',6],['1an',12],['Tout',null]].map(([lbl,n]) => (
-                                <button key={lbl} onClick={() => setExpPreset(n)}
-                                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-white/8 bg-navy-700 text-slate-400 hover:border-sp/30 hover:text-sp transition-all">
+                                <button key={lbl} onClick={() => setExpPreset(n, lbl)}
+                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                                        expActivePill === lbl
+                                            ? 'bg-sp/20 text-sp border-sp/30'
+                                            : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/30 hover:text-sp'
+                                    }`}>
                                     {lbl}
                                 </button>
                             ))}
@@ -1443,7 +1449,10 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
         return result
     })()
 
-    function setPreset(n) {
+    const [recActivePill, setRecActivePill] = useState('6M')   // tracks active preset pill
+
+    function setPreset(n, lbl) {
+        setRecActivePill(lbl)
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
         let fm = cm - (n - 1); let fy = cy
         while (fm <= 0) { fm += 12; fy-- }
@@ -1494,18 +1503,22 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
             <div className="glass-card p-4 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2 flex-1 min-w-0">
                     <span className="text-xs text-slate-400 flex-shrink-0">De</span>
-                    <input type="month" value={recFrom} onChange={e => setRecFrom(e.target.value)}
+                    <input type="month" value={recFrom} onChange={e => { setRecFrom(e.target.value); setRecActivePill(null) }}
                         max={recTo}
                         className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                     <span className="text-xs text-slate-400 flex-shrink-0">à</span>
-                    <input type="month" value={recTo} onChange={e => setRecTo(e.target.value)}
+                    <input type="month" value={recTo} onChange={e => { setRecTo(e.target.value); setRecActivePill(null) }}
                         min={recFrom}
                         className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
                     {[[3,'3M'],[6,'6M'],[12,'12M'],[24,'24M']].map(([n,lbl]) => (
-                        <button key={lbl} onClick={() => setPreset(n)}
-                            className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border border-white/8 bg-navy-700 text-slate-400 hover:border-sp/30 hover:text-sp transition-all">
+                        <button key={lbl} onClick={() => setPreset(n, lbl)}
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+                                recActivePill === lbl
+                                    ? 'bg-sp/20 text-sp border-sp/30'
+                                    : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/30 hover:text-sp'
+                            }`}>
                             {lbl}
                         </button>
                     ))}
