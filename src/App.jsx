@@ -285,7 +285,7 @@ function Dashboard() {
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
                     {activeTab === 'dashboard'  && <DashboardPage  building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
-                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
+                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'residents'  && <ResidentsPage  building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
                     {activeTab === 'disputes'   && <DisputesPage   building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
                     {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
@@ -1016,7 +1016,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
     win.document.close()
 }
 
-function FinancialsPage({ building, data, residents, setResidents, showToast }) {
+function FinancialsPage({ building, data, residents, setResidents, suppliers = [], showToast }) {
     const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
 
     const [subTab,      setSubTab]      = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
@@ -1268,7 +1268,7 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
             {/* Modals */}
             <AnimatePresence>
                 {showAddExp && (
-                    <AddExpenseModal onClose={() => setShowAddExp(false)} onAdd={handleAddExpense} />
+                    <AddExpenseModal onClose={() => setShowAddExp(false)} onAdd={handleAddExpense} suppliers={suppliers} />
                 )}
                 {showRecPay && (
                     <RecordPaymentModal
@@ -3205,10 +3205,11 @@ function Spinner() {
 /* ══════════════════════════════════════════
    ADD EXPENSE MODAL
 ══════════════════════════════════════════ */
-function AddExpenseModal({ onClose, onAdd }) {
+function AddExpenseModal({ onClose, onAdd, suppliers = [] }) {
     const [form, setForm] = useState({
         category:    EXPENSE_CATEGORIES[0].label,
         amount:      '',
+        vendorId:    suppliers.length > 0 ? '' : 'autre',  // '' = not chosen yet, 'autre' = free text
         vendor:      '',
         date:        new Date().toISOString().slice(0, 10),
         description: '',
@@ -3219,11 +3220,23 @@ function AddExpenseModal({ onClose, onAdd }) {
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
+    function handleVendorSelect(e) {
+        const id = e.target.value
+        if (id === 'autre') {
+            setForm(f => ({ ...f, vendorId: 'autre', vendor: '' }))
+        } else {
+            const sup = suppliers.find(s => s.id === id)
+            setForm(f => ({ ...f, vendorId: id, vendor: sup ? sup.name : '' }))
+        }
+        setErrors(p => ({ ...p, vendor: null }))
+    }
+
     async function handleSubmit(e) {
         e.preventDefault()
         const errs = {}
         if (!form.amount || Number(form.amount) <= 0) errs.amount = 'Montant requis'
         if (!form.vendor.trim())                       errs.vendor = 'Fournisseur requis'
+        if (suppliers.length > 0 && !form.vendorId)   errs.vendor = 'Sélectionnez un fournisseur ou "Autre"'
         if (Object.keys(errs).length) { setErrors(errs); return }
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
@@ -3285,12 +3298,37 @@ function AddExpenseModal({ onClose, onAdd }) {
 
                 <div>
                     <label className="block text-xs font-semibold text-slate-400 mb-1.5">Fournisseur / Prestataire *</label>
-                    <input
-                        type="text" placeholder="ex: Otis Morocco, ProNettoyage SARL…"
-                        value={form.vendor}
-                        onChange={e => { set('vendor', e.target.value); setErrors(p => ({ ...p, vendor: null })) }}
-                        className={`w-full bg-navy-700 border rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-colors ${errors.vendor ? 'border-red-500/50' : 'border-white/10 focus:border-sp/40'}`}
-                    />
+                    {suppliers.length > 0 ? (
+                        <div className="space-y-2">
+                            <select
+                                value={form.vendorId}
+                                onChange={handleVendorSelect}
+                                className={`w-full bg-navy-700 border rounded-xl px-3 py-2.5 text-sm focus:outline-none transition-colors ${errors.vendor ? 'border-red-500/50 text-red-300' : 'border-white/10 focus:border-sp/40 text-slate-200'}`}
+                            >
+                                <option value="" disabled>— Sélectionner un fournisseur —</option>
+                                {suppliers.map(s => (
+                                    <option key={s.id} value={s.id}>{s.name} · {catInfo(s.category).label}</option>
+                                ))}
+                                <option value="autre">— Autre (prestataire non répertorié) —</option>
+                            </select>
+                            {form.vendorId === 'autre' && (
+                                <input
+                                    type="text" placeholder="Nom du prestataire…"
+                                    value={form.vendor}
+                                    onChange={e => { set('vendor', e.target.value); setErrors(p => ({ ...p, vendor: null })) }}
+                                    autoFocus
+                                    className={`w-full bg-navy-700 border rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-colors ${errors.vendor ? 'border-red-500/50' : 'border-white/10 focus:border-sp/40'}`}
+                                />
+                            )}
+                        </div>
+                    ) : (
+                        <input
+                            type="text" placeholder="ex: Otis Morocco, ProNettoyage SARL…"
+                            value={form.vendor}
+                            onChange={e => { set('vendor', e.target.value); setErrors(p => ({ ...p, vendor: null })) }}
+                            className={`w-full bg-navy-700 border rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none transition-colors ${errors.vendor ? 'border-red-500/50' : 'border-white/10 focus:border-sp/40'}`}
+                        />
+                    )}
                     {errors.vendor && <p className="text-[10px] text-red-400 mt-1">{errors.vendor}</p>}
                 </div>
 
