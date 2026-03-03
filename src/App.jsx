@@ -5051,6 +5051,25 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                         </div>
                     </div>
 
+                    {/* ── Sécurité du compte ── */}
+                    <div className="border-t border-white/8 pt-5">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Sécurité du compte</p>
+                        <div className="flex items-center justify-between rounded-xl bg-navy-700/50 border border-white/8 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-slate-600/30 border border-white/8 flex items-center justify-center flex-shrink-0">
+                                    <Key size={15} className="text-slate-500" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-slate-400">Changer le mot de passe</p>
+                                    <p className="text-[10px] text-slate-600 mt-0.5">Modifier le mot de passe de connexion</p>
+                                </div>
+                            </div>
+                            <span className="text-[10px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
+                                Prochainement
+                            </span>
+                        </div>
+                    </div>
+
                     {confirmSave ? (
                         <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 flex items-center justify-between gap-3">
                             <p className="text-sm text-cyan-300 font-medium">Confirmer les modifications ?</p>
