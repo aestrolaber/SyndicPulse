@@ -20,6 +20,7 @@ import {
     CalendarCheck, Users2, ClipboardList, Vote,
     UserCog, Key, Eye, EyeOff, Copy,
     Home, TrendingDown,
+    Truck, Star, Banknote, Paperclip,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -37,6 +38,7 @@ import {
     RESIDENTS_BLD3, TICKETS_BLD3, EXPENSES_BLD3, DISPUTES_BLD3,
     RECENT_PAYMENTS_BLD3, COLLECTION_HISTORY_BLD3,
     MEETINGS_BLD1, MEETINGS_BLD2, MEETINGS_BLD3,
+    SUPPLIERS_BLD1, SUPPLIERS_BLD2, SUPPLIERS_BLD3,
     DEMO_USERS,
 } from './lib/mockData.js'
 
@@ -100,8 +102,9 @@ const NAV = [
     { id: 'residents',  label: 'Résidents',        icon: Users },
     { id: 'disputes',   label: 'Litiges',          icon: MessageSquare },
     { id: 'planning',   label: 'Planning',         icon: Calendar },
-    { id: 'assemblees', label: 'Assemblées',        icon: CalendarCheck },
-    { id: 'users',      label: 'Utilisateurs',     icon: UserCog, adminOnly: true },
+    { id: 'assemblees',   label: 'Assemblées',    icon: CalendarCheck },
+    { id: 'fournisseurs', label: 'Fournisseurs',  icon: Truck },
+    { id: 'users',        label: 'Utilisateurs',  icon: UserCog, adminOnly: true },
 ]
 
 /* ── Expense category options with theme colors ── */
@@ -226,6 +229,19 @@ function Dashboard() {
         }))
     }
 
+    // Shared suppliers state
+    const [suppliersByBldg, setSuppliersByBldg] = useState({})
+    const suppliers = suppliersByBldg[activeBuilding?.id] ?? buildingData.suppliers
+    function setSuppliers(fn) {
+        const bldgId = activeBuilding.id
+        setSuppliersByBldg(prev => ({
+            ...prev,
+            [bldgId]: typeof fn === 'function'
+                ? fn(prev[bldgId] ?? getBuildingData(bldgId).suppliers)
+                : fn,
+        }))
+    }
+
     // Merge user-customized settings (logo, name, manager) on top of base building data
     const activeBuildingMerged = activeBuilding
         ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
@@ -273,8 +289,9 @@ function Dashboard() {
                     {activeTab === 'residents'  && <ResidentsPage  building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
                     {activeTab === 'disputes'   && <DisputesPage   building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
                     {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
-                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
-                    {activeTab === 'users'      && <UsersPage showToast={showToast} />}
+                    {activeTab === 'assemblees'   && <AssembliesPage   building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
+                    {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} showToast={showToast} />}
+                    {activeTab === 'users'        && <UsersPage showToast={showToast} />}
                 </main>
             </div>
 
@@ -339,6 +356,7 @@ function getBuildingData(buildingId) {
         recentPayments:    RECENT_PAYMENTS_BLD1,
         collectionHistory: COLLECTION_HISTORY_BLD1,
         meetings:          MEETINGS_BLD1,
+        suppliers:         SUPPLIERS_BLD1,
     }
     if (buildingId === 'bld-2') return {
         residents:         RESIDENTS_BLD2,
@@ -348,6 +366,7 @@ function getBuildingData(buildingId) {
         recentPayments:    RECENT_PAYMENTS_BLD2,
         collectionHistory: COLLECTION_HISTORY_BLD2,
         meetings:          MEETINGS_BLD2,
+        suppliers:         SUPPLIERS_BLD2,
     }
     if (buildingId === 'bld-3') return {
         residents:         RESIDENTS_BLD3,
@@ -357,10 +376,11 @@ function getBuildingData(buildingId) {
         recentPayments:    RECENT_PAYMENTS_BLD3,
         collectionHistory: COLLECTION_HISTORY_BLD3,
         meetings:          MEETINGS_BLD3,
+        suppliers:         SUPPLIERS_BLD3,
     }
     return {
         residents: [], tickets: [], expenses: [], disputes: [],
-        recentPayments: [], collectionHistory: [], meetings: [],
+        recentPayments: [], collectionHistory: [], meetings: [], suppliers: [],
     }
 }
 
@@ -999,9 +1019,12 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
 function FinancialsPage({ building, data, residents, setResidents, showToast }) {
     const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
 
-    const [expenseLog,  setExpenseLog] = useState(INITIAL_EXPENSE_LOG)
-    const [showAddExp,  setShowAddExp] = useState(false)
-    const [showRecPay,  setShowRecPay] = useState(false)
+    const [subTab,      setSubTab]      = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
+    const [expenseLog,  setExpenseLog]  = useState(INITIAL_EXPENSE_LOG)
+    const [showAddExp,  setShowAddExp]  = useState(false)
+    const [showRecPay,  setShowRecPay]  = useState(false)
+    const [showAppelDF, setShowAppelDF] = useState(false)
+    const [recPayPreset, setRecPayPreset] = useState(null)  // { residentId } pre-fill from recouvrement grid
 
     const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').map(r => ({
         id: r.id, unit: r.unit, name: r.name, months: 2, amount: '1 700 MAD',
@@ -1023,7 +1046,42 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
     const totalExpenseLog = expenseLog.reduce((s, e) => s + e.amount, 0)
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-6">
+            {/* Sub-tab nav */}
+            <div className="flex gap-2 border-b border-white/8 pb-0">
+                {[
+                    { id: 'overview',       label: 'Vue d\'ensemble' },
+                    { id: 'recouvrement',   label: 'Recouvrement'    },
+                    { id: 'depenses',       label: 'Dépenses'        },
+                ].map(t => (
+                    <button key={t.id} onClick={() => setSubTab(t.id)}
+                        className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${
+                            subTab === t.id
+                                ? 'border-sp text-sp'
+                                : 'border-transparent text-slate-500 hover:text-slate-300'
+                        }`}>
+                        {t.label}
+                    </button>
+                ))}
+                {/* Action buttons always visible */}
+                <div className="ml-auto flex items-center gap-2 pb-1">
+                    <button onClick={() => setShowAddExp(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-lg text-xs font-bold transition-all">
+                        <Plus size={13} /> Dépense
+                    </button>
+                    <button onClick={() => setShowRecPay(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all">
+                        <CheckCircle2 size={13} /> Paiement
+                    </button>
+                    <button onClick={() => setShowAppelDF(true)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/25 rounded-lg text-xs font-bold transition-all">
+                        <Banknote size={13} /> Appel de fonds
+                    </button>
+                </div>
+            </div>
+
+            {/* ── Sub-tab: Vue d'ensemble ─────────────────────────────── */}
+            {subTab === 'overview' && <>
             {/* Summary KPIs */}
             <div className="grid grid-cols-4 gap-5">
                 {[
@@ -1045,36 +1103,7 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
                 ))}
             </div>
 
-            {/* Action bar */}
-            <div className="flex items-center gap-3">
-                <button
-                    onClick={() => setShowAddExp(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all shadow-glow-cyan"
-                >
-                    <Plus size={15} /> Ajouter une dépense
-                </button>
-                <button
-                    onClick={() => setShowRecPay(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all"
-                >
-                    <CheckCircle2 size={15} /> Enregistrer un paiement
-                </button>
-                <span className="ml-auto text-xs text-slate-500">
-                    {expenseLog.length} dépenses · {totalExpenseLog.toLocaleString('fr-FR')} MAD total
-                </span>
-                <button
-                    onClick={() => { exportFinancesCSV(building, residents, expenseLog, data); showToast('Export Excel téléchargé') }}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-xl text-xs font-semibold hover:bg-emerald-500/10 transition-all"
-                >
-                    <Download size={13} /> Excel
-                </button>
-                <button
-                    onClick={() => exportFinancesPDF(building, residents, expenseLog, data)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-red-400 border border-red-500/20 rounded-xl text-xs font-semibold hover:bg-red-500/10 transition-all"
-                >
-                    <FileText size={13} /> PDF
-                </button>
-            </div>
+            {/* nothing here — actions moved to tab header */}
 
             <div className="grid grid-cols-3 gap-6">
                 {/* Collection chart */}
@@ -1178,57 +1207,63 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
                 </div>
             )}
 
-            {/* Expense journal */}
-            <div className="glass-card p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <div>
-                        <h3 className="font-bold text-white">Journal des dépenses</h3>
-                        <p className="text-[11px] text-slate-500 mt-0.5">Toutes les transactions — visible aux résidents</p>
+            </>}
+            {/* ── Sub-tab: Recouvrement ──────────────────────────────── */}
+            {subTab === 'recouvrement' && <RecouvrementTab building={building} residents={residents} setResidents={setResidents} onRecordPayment={(residentId) => { setRecPayPreset({ residentId }); setShowRecPay(true) }} showToast={showToast} />}
+
+            {/* ── Sub-tab: Dépenses ─────────────────────────────────── */}
+            {subTab === 'depenses' && (
+                <div className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-5">
+                        <div>
+                            <h3 className="font-bold text-white">Journal des dépenses</h3>
+                            <p className="text-[11px] text-slate-500 mt-0.5">{expenseLog.length} entrées · {totalExpenseLog.toLocaleString('fr-FR')} MAD total</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button onClick={() => { exportFinancesCSV(building, residents, expenseLog, data); showToast('Export Excel téléchargé') }}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-all">
+                                <Download size={12} /> Excel
+                            </button>
+                            <button onClick={() => exportFinancesPDF(building, residents, expenseLog, data)}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/10 transition-all">
+                                <FileText size={12} /> PDF
+                            </button>
+                        </div>
                     </div>
-                    <button
-                        onClick={() => setShowAddExp(true)}
-                        className="flex items-center gap-1.5 text-xs text-sp hover:text-sp-light transition-colors"
-                    >
-                        <Plus size={13} /> Nouvelle dépense
-                    </button>
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
+                                <th className="text-left pb-3 font-semibold">Date</th>
+                                <th className="text-left pb-3 font-semibold">Catégorie</th>
+                                <th className="text-left pb-3 font-semibold">Fournisseur</th>
+                                <th className="text-left pb-3 font-semibold">Description</th>
+                                <th className="text-right pb-3 font-semibold">Montant</th>
+                                <th className="text-left pb-3 font-semibold">Facture</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/4">
+                            {expenseLog.map((e) => (
+                                <motion.tr key={e.id}
+                                    initial={e.isNew ? { opacity: 0, y: -8 } : false}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className={`hover:bg-navy-700/40 transition-colors ${e.isNew ? 'bg-sp/5' : ''}`}
+                                >
+                                    <td className="py-3 text-slate-400 text-xs">{e.date}</td>
+                                    <td className="py-3 text-xs font-medium text-slate-300">{e.category}</td>
+                                    <td className="py-3 text-slate-300 text-xs">{e.vendor}</td>
+                                    <td className="py-3 text-slate-500 text-xs max-w-xs truncate">{e.description}</td>
+                                    <td className="py-3 text-right font-semibold text-white text-xs">{e.amount.toLocaleString('fr-FR')} MAD</td>
+                                    <td className="py-3">
+                                        {e.hasInvoice
+                                            ? <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold"><FileText size={11} /> Jointe</span>
+                                            : <span className="text-[10px] text-slate-600">—</span>}
+                                    </td>
+                                </motion.tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                            <th className="text-left pb-3 font-semibold">Date</th>
-                            <th className="text-left pb-3 font-semibold">Catégorie</th>
-                            <th className="text-left pb-3 font-semibold">Fournisseur</th>
-                            <th className="text-left pb-3 font-semibold">Description</th>
-                            <th className="text-right pb-3 font-semibold">Montant</th>
-                            <th className="text-left pb-3 font-semibold">Facture</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/4">
-                        {expenseLog.map((e) => (
-                            <motion.tr
-                                key={e.id}
-                                initial={e.isNew ? { opacity: 0, y: -8 } : false}
-                                animate={{ opacity: 1, y: 0 }}
-                                className={`hover:bg-navy-700/40 transition-colors ${e.isNew ? 'bg-sp/5' : ''}`}
-                            >
-                                <td className="py-3 text-slate-400 text-xs">{e.date}</td>
-                                <td className="py-3 text-xs font-medium text-slate-300">{e.category}</td>
-                                <td className="py-3 text-slate-300 text-xs">{e.vendor}</td>
-                                <td className="py-3 text-slate-500 text-xs max-w-xs truncate">{e.description}</td>
-                                <td className="py-3 text-right font-semibold text-white text-xs">
-                                    {e.amount.toLocaleString('fr-FR')} MAD
-                                </td>
-                                <td className="py-3">
-                                    {e.hasInvoice
-                                        ? <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold"><FileText size={11} /> Jointe</span>
-                                        : <span className="text-[10px] text-slate-600">—</span>
-                                    }
-                                </td>
-                            </motion.tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+            )}
 
             {/* Modals */}
             <AnimatePresence>
@@ -1236,10 +1271,683 @@ function FinancialsPage({ building, data, residents, setResidents, showToast }) 
                     <AddExpenseModal onClose={() => setShowAddExp(false)} onAdd={handleAddExpense} />
                 )}
                 {showRecPay && (
-                    <RecordPaymentModal building={building} residents={residents} onClose={() => setShowRecPay(false)} onRecord={handleMarkPaid} />
+                    <RecordPaymentModal
+                        building={building} residents={residents}
+                        presetResidentId={recPayPreset?.residentId}
+                        onClose={() => { setShowRecPay(false); setRecPayPreset(null) }}
+                        onRecord={handleMarkPaid}
+                    />
+                )}
+                {showAppelDF && (
+                    <AppelDeFondsModal building={building} residents={residents} onClose={() => setShowAppelDF(false)} showToast={showToast} />
                 )}
             </AnimatePresence>
         </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   RECOUVREMENT TAB
+══════════════════════════════════════════ */
+function exportRecouvrementCSV(building, residents, months) {
+    const BOM = '\uFEFF'
+    const headers = ['Unité', 'Résident', ...months.map(m => formatMonth(m)), 'Total payé'].join(';')
+    const rows = residents.map(r => {
+        const cells = months.map(m => {
+            const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+            const [ry, rm] = m.split('-').map(Number)
+            const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
+            const monthIdx = (ry - cy) * 12 + (rm - cm)
+            const paidIdx  = (py - cy) * 12 + (pm - cm)
+            if (monthIdx < 0) return paidIdx >= monthIdx ? 'Payé' : 'Impayé'
+            if (monthIdx === 0) return paidIdx >= 0 ? 'Payé' : 'En attente'
+            return 'N/A'
+        })
+        const paidCount = cells.filter(c => c === 'Payé').length
+        return [r.unit, r.name, ...cells, `${paidCount}/${months.length}`].join(';')
+    })
+    const csv = BOM + [headers, ...rows].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
+    const url  = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url
+    a.download = `recouvrement_${building.name}_${CURRENT_MONTH}.csv`; a.click()
+    URL.revokeObjectURL(url)
+}
+
+function exportRecouvrementPDF(building, residents, months) {
+    const logoHTML = buildingLogoHTML(building, 48)
+    const rows = residents.map(r => {
+        const cells = months.map(m => {
+            const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+            const [ry, rm] = m.split('-').map(Number)
+            const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
+            const monthIdx = (ry - cy) * 12 + (rm - cm)
+            const paidIdx  = (py - cy) * 12 + (pm - cm)
+            let st, color
+            if (monthIdx < 0)      { st = paidIdx >= monthIdx ? '✓' : '✗'; color = paidIdx >= monthIdx ? '#22c55e' : '#ef4444' }
+            else if (monthIdx===0) { st = paidIdx >= 0 ? '✓' : '⏳'; color = paidIdx >= 0 ? '#22c55e' : '#f59e0b' }
+            else                   { st = '–'; color = '#64748b' }
+            return `<td style="text-align:center;color:${color};font-weight:bold">${st}</td>`
+        }).join('')
+        return `<tr><td style="font-family:monospace;color:#06b6d4">${r.unit}</td><td>${r.name}</td>${cells}</tr>`
+    }).join('')
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Recouvrement</title>
+    <style>body{font-family:Arial,sans-serif;padding:30px;color:#1e293b}
+    table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #e2e8f0;padding:6px 8px}
+    th{background:#f8fafc;font-weight:600;text-align:left}</style></head>
+    <body><div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
+    ${logoHTML}<div><h2 style="margin:0">Tableau de Recouvrement</h2>
+    <p style="margin:4px 0 0;color:#64748b">${building.name} · ${building.city} · ${CURRENT_MONTH}</p></div></div>
+    <table><thead><tr><th>Unité</th><th>Résident</th>${months.map(m=>`<th>${formatMonth(m)}</th>`).join('')}</tr></thead>
+    <tbody>${rows}</tbody></table></body></html>`
+    const win = window.open('','_blank'); win.document.write(html); win.document.close()
+    setTimeout(()=>win.print(), 400)
+}
+
+function RecouvrementTab({ building, residents, setResidents, onRecordPayment, showToast }) {
+    // Last 6 months including current
+    const months = Array.from({ length: 6 }, (_, i) => {
+        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+        let m = cm - 5 + i; let y = cy
+        while (m <= 0) { m += 12; y-- }
+        return `${y}-${String(m).padStart(2, '0')}`
+    })
+
+    const paid    = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const pending = residents.filter(r => computeStatus(r.paidThrough) === 'pending').length
+    const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
+    const rate    = residents.length ? Math.round((paid / residents.length) * 100) : 0
+
+    function cellStatus(r, m) {
+        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+        const [ry, rm] = m.split('-').map(Number)
+        const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
+        const monthIdx = (ry - cy) * 12 + (rm - cm)  // negative = past, 0 = current
+        const paidIdx  = (py - cy) * 12 + (pm - cm)
+        if (monthIdx < 0)       return paidIdx >= monthIdx ? 'paid' : 'overdue'
+        if (monthIdx === 0)     return paidIdx >= 0 ? 'paid' : 'pending'
+        return 'future'
+    }
+
+    return (
+        <div className="space-y-5">
+            {/* Stats */}
+            <div className="grid grid-cols-4 gap-4">
+                {[
+                    { label: 'Taux actuel',      value: `${rate}%`,          color: 'text-sp'          },
+                    { label: 'Unités à jour',     value: paid,                color: 'text-emerald-400' },
+                    { label: 'En attente',        value: pending,             color: 'text-amber-400'   },
+                    { label: 'En retard',         value: overdue,             color: 'text-red-400'     },
+                ].map(s => (
+                    <div key={s.label} className="glass-card p-4">
+                        <p className="text-xs text-slate-400 mb-1">{s.label}</p>
+                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                    </div>
+                ))}
+            </div>
+
+            {/* Export buttons */}
+            <div className="flex gap-2 justify-end">
+                <button onClick={() => { exportRecouvrementCSV(building, residents, months); showToast('Export recouvrement téléchargé') }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-emerald-400 border border-emerald-500/20 rounded-lg text-xs font-semibold hover:bg-emerald-500/10 transition-all">
+                    <Download size={12} /> Excel
+                </button>
+                <button onClick={() => exportRecouvrementPDF(building, residents, months)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold hover:bg-red-500/10 transition-all">
+                    <FileText size={12} /> PDF
+                </button>
+            </div>
+
+            {/* Matrix */}
+            <div className="glass-card overflow-x-auto">
+                <table className="w-full text-xs">
+                    <thead>
+                        <tr className="border-b border-white/5 text-[10px] text-slate-500 uppercase tracking-wider">
+                            <th className="text-left px-4 py-3 font-semibold">Unité</th>
+                            <th className="text-left px-4 py-3 font-semibold">Résident</th>
+                            {months.map(m => (
+                                <th key={m} className="px-3 py-3 font-semibold text-center">{formatMonth(m)}</th>
+                            ))}
+                            <th className="px-4 py-3 font-semibold text-center">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/4">
+                        {residents.map(r => {
+                            const statuses = months.map(m => cellStatus(r, m))
+                            const paidCount = statuses.filter(s => s === 'paid').length
+                            return (
+                                <tr key={r.id} className="hover:bg-navy-700/40 transition-colors">
+                                    <td className="px-4 py-3 font-mono text-sp font-semibold">{r.unit}</td>
+                                    <td className="px-4 py-3 text-slate-200">{r.name}</td>
+                                    {statuses.map((st, i) => (
+                                        <td key={i} className="px-3 py-3 text-center">
+                                            {st === 'future' ? (
+                                                <span className="text-slate-600">—</span>
+                                            ) : (
+                                                <button
+                                                    onClick={() => st !== 'paid' && onRecordPayment(r.id)}
+                                                    title={st !== 'paid' ? 'Cliquer pour enregistrer un paiement' : ''}
+                                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-md font-bold transition-all ${
+                                                        st === 'paid'    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                                                        st === 'pending' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/30 cursor-pointer' :
+                                                                           'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/30 cursor-pointer'
+                                                    }`}
+                                                >
+                                                    {st === 'paid' ? '✓' : st === 'pending' ? '⏳' : '✗'}
+                                                </button>
+                                            )}
+                                        </td>
+                                    ))}
+                                    <td className="px-4 py-3 text-center">
+                                        <span className={`text-xs font-bold ${paidCount === months.length ? 'text-emerald-400' : paidCount === 0 ? 'text-red-400' : 'text-amber-400'}`}>
+                                            {paidCount}/{months.length}
+                                        </span>
+                                    </td>
+                                </tr>
+                            )
+                        })}
+                    </tbody>
+                </table>
+                {residents.length === 0 && (
+                    <div className="text-center py-10 text-slate-500 text-sm">Aucun résident</div>
+                )}
+                <div className="px-4 py-3 border-t border-white/5 flex items-center gap-6 text-[10px] text-slate-500">
+                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-emerald-500/15 border border-emerald-500/20 inline-flex items-center justify-center text-emerald-400 font-bold">✓</span> Payé</span>
+                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-amber-500/15 border border-amber-500/20 inline-flex items-center justify-center text-amber-400">⏳</span> En attente — cliquer pour enregistrer</span>
+                    <span className="flex items-center gap-1.5"><span className="w-4 h-4 rounded bg-red-500/15 border border-red-500/20 inline-flex items-center justify-center text-red-400 font-bold">✗</span> En retard — cliquer pour enregistrer</span>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   APPEL DE FONDS MODAL
+══════════════════════════════════════════ */
+function generateAppelDeFondsDoc(building, residents, period, dueDate) {
+    const logoHTML = buildingLogoHTML(building, 56)
+    const [py, pm] = period.split('-').map(Number)
+    const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const periodLabel = `${monthNames[pm - 1]} ${py}`
+    const rows = residents.map(r => {
+        const st = computeStatus(r.paidThrough)
+        const statusLabel = st === 'paid' ? 'À jour' : st === 'pending' ? 'En attente' : 'En retard'
+        const statusColor = st === 'paid' ? '#22c55e' : st === 'pending' ? '#f59e0b' : '#ef4444'
+        const quota = r.quota ?? '—'
+        return `<tr>
+            <td style="font-family:monospace;color:#0891b2">${r.unit}</td>
+            <td>${r.name}</td>
+            <td style="text-align:right">${typeof quota==='number'?quota.toLocaleString('fr-FR')+' MAD':'—'}</td>
+            <td style="color:${statusColor};font-weight:600">${statusLabel}</td>
+        </tr>`
+    }).join('')
+    const total = residents.reduce((s, r) => s + (r.quota ?? 0), 0)
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+    <title>Appel de fonds — ${building.name}</title>
+    <style>
+        body{font-family:Arial,sans-serif;padding:40px;color:#1e293b;max-width:800px;margin:0 auto}
+        h1{font-size:20px;margin:0}h2{font-size:14px;color:#64748b;font-weight:400;margin:4px 0 0}
+        table{width:100%;border-collapse:collapse;margin-top:20px;font-size:12px}
+        th{background:#f1f5f9;padding:8px 12px;text-align:left;font-weight:600;color:#475569;border-bottom:2px solid #e2e8f0}
+        td{padding:8px 12px;border-bottom:1px solid #e2e8f0}
+        .total{font-weight:700;background:#f8fafc}
+        .footer{margin-top:40px;padding-top:20px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8}
+        .sig{margin-top:60px;display:flex;gap:80px}
+        .sig-block{text-align:center;font-size:11px;color:#64748b}
+        .sig-line{width:160px;border-top:1px solid #1e293b;margin-bottom:8px}
+        @media print{body{padding:20px}.no-print{display:none!important}}
+    </style></head><body>
+    <div style="display:flex;align-items:center;gap:20px;margin-bottom:24px">
+        ${logoHTML}
+        <div>
+            <h1>APPEL DE FONDS</h1>
+            <h2>${building.name} · ${building.city}</h2>
+            <p style="font-size:12px;color:#475569;margin:6px 0 0">
+                Période : <strong>${periodLabel}</strong> · Échéance : <strong>${dueDate || '—'}</strong>
+            </p>
+        </div>
+    </div>
+    <p style="font-size:12px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:10px 14px;color:#0369a1">
+        Conformément aux dispositions de la Loi 18-00, vous êtes priés de régler votre quote-part de charges
+        de copropriété pour la période de <strong>${periodLabel}</strong> avant le <strong>${dueDate || 'la date indiquée'}</strong>.
+    </p>
+    <table>
+        <thead><tr><th>Unité</th><th>Copropriétaire</th><th style="text-align:right">Quote-part</th><th>Statut</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr class="total"><td colspan="2" style="font-weight:700">Total à collecter</td>
+            <td style="text-align:right;font-weight:700">${total.toLocaleString('fr-FR')} MAD</td><td></td></tr></tfoot>
+    </table>
+    <div class="sig">
+        <div class="sig-block"><div class="sig-line"></div>Le Syndic</div>
+    </div>
+    <div class="footer">
+        <span>Généré par SyndicPulse · ${new Date().toLocaleDateString('fr-FR')}</span>
+        <span>${building.name} · ${building.address ?? ''}</span>
+    </div>
+    </body></html>`
+    const win = window.open('', '_blank'); win.document.write(html); win.document.close()
+    setTimeout(() => win.print(), 400)
+}
+
+function AppelDeFondsModal({ building, residents, onClose, showToast }) {
+    const [step, setStep] = useState(1)
+    const [period,  setPeriod]  = useState(CURRENT_MONTH)
+    const [dueDate, setDueDate] = useState(() => {
+        const [y, m] = CURRENT_MONTH.split('-').map(Number)
+        const nd = m === 12 ? `${y+1}-01-15` : `${y}-${String(m+1).padStart(2,'0')}-15`
+        return nd
+    })
+    const [wacopied, setWaCopied] = useState(false)
+
+    const unpaid = residents.filter(r => computeStatus(r.paidThrough) !== 'paid')
+    const total  = residents.reduce((s, r) => s + (r.quota ?? 0), 0)
+
+    function buildWAText() {
+        const [py, pm] = period.split('-').map(Number)
+        const mNames = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc']
+        return `📢 *APPEL DE FONDS — ${building.name}*\n\nPériode : ${mNames[pm-1]}. ${py}\nÉchéance : ${dueDate || '—'}\n\nMerci de régler votre quote-part de charges avant la date limite.\n\n${unpaid.length} unité(s) en attente de règlement.\n\n_Syndic ${building.name}_`
+    }
+
+    function copyWA() {
+        navigator.clipboard.writeText(buildWAText())
+        setWaCopied(true); setTimeout(() => setWaCopied(false), 2500)
+        showToast('Message WhatsApp copié')
+    }
+
+    return (
+        <Modal title="Appel de fonds" subtitle={`${building.name} · générer et envoyer`} onClose={onClose} width="max-w-2xl">
+            {step === 1 && (
+                <div className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Période *</label>
+                            <input type="month" value={period} onChange={e => setPeriod(e.target.value)}
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Date d'échéance</label>
+                            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)}
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                        </div>
+                    </div>
+                    <div className="bg-navy-700 rounded-xl p-4 border border-white/8 space-y-2">
+                        <p className="text-xs font-semibold text-slate-400">Résumé</p>
+                        <div className="grid grid-cols-3 gap-3 text-center">
+                            <div><p className="text-lg font-bold text-white">{residents.length}</p><p className="text-[11px] text-slate-500">Unités</p></div>
+                            <div><p className="text-lg font-bold text-amber-400">{unpaid.length}</p><p className="text-[11px] text-slate-500">En attente</p></div>
+                            <div><p className="text-lg font-bold text-sp">{total.toLocaleString('fr-FR')} MAD</p><p className="text-[11px] text-slate-500">Total attendu</p></div>
+                        </div>
+                    </div>
+                    <button onClick={() => setStep(2)}
+                        className="w-full py-2.5 bg-amber-500 hover:bg-amber-400 text-navy-900 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                        <Banknote size={15} /> Générer l'appel de fonds
+                    </button>
+                </div>
+            )}
+            {step === 2 && (
+                <div className="space-y-5">
+                    <div className="rounded-xl border border-white/8 overflow-hidden max-h-64 overflow-y-auto">
+                        <table className="w-full text-xs">
+                            <thead className="sticky top-0">
+                                <tr className="bg-navy-700 text-[10px] text-slate-500 uppercase tracking-wider">
+                                    {['Unité','Résident','Quote-part','Statut'].map(h=><th key={h} className="px-3 py-2.5 text-left font-semibold">{h}</th>)}
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/5">
+                                {residents.map(r => {
+                                    const st = computeStatus(r.paidThrough)
+                                    return (
+                                        <tr key={r.id} className="hover:bg-navy-700/40">
+                                            <td className="px-3 py-2.5 font-mono text-sp">{r.unit}</td>
+                                            <td className="px-3 py-2.5 text-slate-200">{r.name}</td>
+                                            <td className="px-3 py-2.5 text-slate-300">{r.quota ? `${r.quota.toLocaleString('fr-FR')} MAD` : '—'}</td>
+                                            <td className="px-3 py-2.5">
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                                    st==='paid' ? 'bg-emerald-500/15 text-emerald-400' :
+                                                    st==='pending' ? 'bg-amber-500/15 text-amber-400' :
+                                                    'bg-red-500/15 text-red-400'}`}>
+                                                    {st==='paid'?'À jour':st==='pending'?'En attente':'En retard'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    )
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => generateAppelDeFondsDoc(building, residents, period, dueDate)}
+                            className="flex-1 py-2.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/20 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                            <FileText size={14} /> Imprimer / PDF
+                        </button>
+                        <button onClick={copyWA}
+                            className="flex-1 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
+                            {wacopied ? <><Check size={14}/> Copié !</> : <><MessageCircle size={14}/> Message WhatsApp</>}
+                        </button>
+                    </div>
+                    <button onClick={() => setStep(1)} className="w-full py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors">← Modifier la période</button>
+                </div>
+            )}
+        </Modal>
+    )
+}
+
+/* ══════════════════════════════════════════
+   FOURNISSEURS PAGE
+══════════════════════════════════════════ */
+const SUPPLIER_CATS = [
+    { key: 'ascenseur',    label: 'Ascenseur',     color: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
+    { key: 'nettoyage',    label: 'Nettoyage',     color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20'       },
+    { key: 'electricite',  label: 'Électricité',   color: 'bg-amber-500/15 text-amber-400 border-amber-500/20'    },
+    { key: 'plomberie',    label: 'Plomberie',     color: 'bg-blue-500/15 text-blue-400 border-blue-500/20'       },
+    { key: 'gardiennage',  label: 'Gardiennage',   color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+    { key: 'peinture',     label: 'Peinture',      color: 'bg-pink-500/15 text-pink-400 border-pink-500/20'       },
+    { key: 'espaces_verts',label: 'Espaces verts', color: 'bg-lime-500/15 text-lime-400 border-lime-500/20'       },
+    { key: 'autre',        label: 'Autre',         color: 'bg-slate-500/15 text-slate-400 border-slate-500/20'    },
+]
+function catInfo(key) { return SUPPLIER_CATS.find(c => c.key === key) ?? SUPPLIER_CATS[7] }
+
+function StarRating({ value, onChange, size = 16 }) {
+    const [hover, setHover] = useState(0)
+    return (
+        <div className="flex gap-0.5">
+            {[1,2,3,4,5].map(n => (
+                <button key={n} type="button"
+                    onClick={() => onChange?.(n)}
+                    onMouseEnter={() => onChange && setHover(n)}
+                    onMouseLeave={() => onChange && setHover(0)}
+                    className={`transition-colors ${onChange ? 'cursor-pointer' : 'cursor-default'}`}
+                >
+                    <Star size={size} className={`transition-colors ${
+                        n <= (hover || value) ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                    }`} />
+                </button>
+            ))}
+        </div>
+    )
+}
+
+function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
+    const [search,      setSearch]      = useState('')
+    const [catFilter,   setCatFilter]   = useState('all')
+    const [showAdd,     setShowAdd]     = useState(false)
+    const [editing,     setEditing]     = useState(null)
+
+    const filtered = suppliers.filter(s => {
+        const matchCat  = catFilter === 'all' || s.category === catFilter
+        const matchName = s.name.toLowerCase().includes(search.toLowerCase())
+        return matchCat && matchName
+    })
+
+    const avgRating = suppliers.length
+        ? (suppliers.reduce((a, s) => a + (s.rating || 0), 0) / suppliers.length).toFixed(1)
+        : '—'
+
+    function handleAdd(s) {
+        setSuppliers(prev => [{ ...s, id: `sup-${Date.now()}` }, ...prev])
+        showToast(`${s.name} ajouté`)
+    }
+
+    function handleSave(updated) {
+        setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s))
+        setEditing(null)
+        showToast(`${updated.name} — modifications enregistrées`)
+    }
+
+    function handleDelete(id) {
+        const s = suppliers.find(x => x.id === id)
+        setSuppliers(prev => prev.filter(x => x.id !== id))
+        setEditing(null)
+        showToast(`${s?.name} supprimé`)
+    }
+
+    return (
+        <div className="space-y-6">
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4">
+                <div className="glass-card p-4 flex items-center gap-3">
+                    <Truck size={20} className="text-sp flex-shrink-0" />
+                    <div>
+                        <p className="text-2xl font-bold text-white">{suppliers.length}</p>
+                        <p className="text-xs text-slate-400">Fournisseurs</p>
+                    </div>
+                </div>
+                <div className="glass-card p-4 flex items-center gap-3">
+                    <Star size={20} className="text-amber-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-2xl font-bold text-white">{avgRating}</p>
+                        <p className="text-xs text-slate-400">Note moyenne</p>
+                    </div>
+                </div>
+                <div className="glass-card p-4 flex items-center gap-3">
+                    <CheckCircle2 size={20} className="text-emerald-400 flex-shrink-0" />
+                    <div>
+                        <p className="text-2xl font-bold text-white">{suppliers.filter(s => s.contractRef).length}</p>
+                        <p className="text-xs text-slate-400">Sous contrat</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Action bar */}
+            <div className="flex items-center gap-3 flex-wrap">
+                <button onClick={() => setShowAdd(true)}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all shadow-glow-cyan flex-shrink-0">
+                    <Plus size={15} /> Ajouter un fournisseur
+                </button>
+                <div className="relative flex-1 min-w-[200px]">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)}
+                        className="w-full bg-navy-800 border border-white/8 rounded-xl pl-9 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                {/* Category pills */}
+                <div className="flex gap-1.5 flex-wrap">
+                    <button onClick={() => setCatFilter('all')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter==='all'?'bg-sp/15 border-sp/30 text-sp':'bg-navy-800 border-white/8 text-slate-400 hover:border-sp/20'}`}>
+                        Tous
+                    </button>
+                    {SUPPLIER_CATS.map(c => (
+                        <button key={c.key} onClick={() => setCatFilter(c.key)}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter===c.key?c.color:'bg-navy-800 border-white/8 text-slate-400 hover:border-white/20'}`}>
+                            {c.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Cards grid */}
+            {filtered.length === 0 ? (
+                <div className="text-center py-16 text-slate-500">
+                    <Truck size={36} className="mx-auto mb-3 opacity-20" />
+                    <p className="text-sm">Aucun fournisseur{catFilter !== 'all' ? ' dans cette catégorie' : ''}</p>
+                </div>
+            ) : (
+                <div className="grid grid-cols-2 gap-4">
+                    {filtered.map(s => {
+                        const ci = catInfo(s.category)
+                        return (
+                            <div key={s.id} className="glass-card p-5 space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${ci.color}`}>{ci.label}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <StarRating value={s.rating ?? 0} />
+                                        <button onClick={() => setEditing(s)}
+                                            className="p-1.5 rounded-lg hover:bg-navy-600 text-slate-500 hover:text-slate-200 transition-colors">
+                                            <Pencil size={13} />
+                                        </button>
+                                    </div>
+                                </div>
+                                <p className="font-bold text-white text-base">{s.name}</p>
+                                <div className="space-y-1.5 text-xs text-slate-400">
+                                    {s.phone && <p className="flex items-center gap-2"><Phone size={11} className="flex-shrink-0" />{s.phone}</p>}
+                                    {s.email && <p className="flex items-center gap-2"><Mail size={11} className="flex-shrink-0" />{s.email}</p>}
+                                    {(s.contractRef || s.since) && (
+                                        <p className="flex items-center gap-2">
+                                            <FileText size={11} className="flex-shrink-0" />
+                                            {s.contractRef ? `Réf: ${s.contractRef}` : ''}
+                                            {s.contractRef && s.since ? ' · ' : ''}
+                                            {s.since ? `Depuis ${s.since.slice(0,7).replace('-','/')}` : ''}
+                                        </p>
+                                    )}
+                                </div>
+                                {s.notes && (
+                                    <p className="text-[11px] text-slate-500 bg-navy-700/50 rounded-lg px-3 py-2 border border-white/5 line-clamp-2">{s.notes}</p>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            )}
+
+            <AnimatePresence>
+                {showAdd  && <AddSupplierModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
+                {editing  && <EditSupplierModal supplier={editing} onClose={() => setEditing(null)} onSave={handleSave} onDelete={handleDelete} />}
+            </AnimatePresence>
+        </div>
+    )
+}
+
+/* ── Supplier modals ───────────────────────────────────────────────────────── */
+function SupplierForm({ form, set }) {
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Nom *</label>
+                    <input type="text" value={form.name} onChange={e => set('name', e.target.value)}
+                        placeholder="Ex: TechLift Maroc"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Catégorie</label>
+                    <select value={form.category} onChange={e => set('category', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors">
+                        {SUPPLIER_CATS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Note</label>
+                    <StarRating value={form.rating} onChange={v => set('rating', v)} size={20} />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Téléphone</label>
+                    <input type="text" value={form.phone} onChange={e => set('phone', e.target.value)}
+                        placeholder="+212 6XX XXX XXX"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Email</label>
+                    <input type="email" value={form.email} onChange={e => set('email', e.target.value)}
+                        placeholder="contact@fournisseur.ma"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Réf. contrat</label>
+                    <input type="text" value={form.contractRef} onChange={e => set('contractRef', e.target.value)}
+                        placeholder="CTR-2025-XXX"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Depuis</label>
+                    <input type="month" value={form.since} onChange={e => set('since', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+            </div>
+            <div>
+                <label className="block text-xs font-semibold text-slate-400 mb-1.5">Notes</label>
+                <textarea value={form.notes} onChange={e => set('notes', e.target.value)}
+                    placeholder="Conditions, historique, remarques..." rows={3}
+                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors resize-none" />
+            </div>
+        </div>
+    )
+}
+
+function AddSupplierModal({ onClose, onAdd }) {
+    const EMPTY = { name: '', category: 'autre', phone: '', email: '', contractRef: '', since: '', rating: 0, notes: '' }
+    const [form, setForm] = useState(EMPTY)
+    const [saving, setSaving] = useState(false)
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+    async function handleSubmit(e) {
+        e.preventDefault()
+        if (!form.name.trim()) return
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 600))
+        onAdd({ ...form })
+        setSaving(false)
+        onClose()
+    }
+
+    return (
+        <Modal title="Nouveau fournisseur" onClose={onClose} width="max-w-2xl">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <SupplierForm form={form} set={set} />
+                <div className="flex gap-3 pt-1">
+                    <button type="button" onClick={onClose}
+                        className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">Annuler</button>
+                    <button type="submit" disabled={saving || !form.name.trim()}
+                        className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                        {saving ? <Spinner /> : <><Check size={14}/> Enregistrer</>}
+                    </button>
+                </div>
+            </form>
+        </Modal>
+    )
+}
+
+function EditSupplierModal({ supplier, onClose, onSave, onDelete }) {
+    const [form, setForm]           = useState({ ...supplier })
+    const [confirmDelete, setCD]    = useState(false)
+    const [confirmSave,   setCS]    = useState(false)
+    const [saving, setSaving]       = useState(false)
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })); setCS(false) }
+
+    async function doSave() {
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 600))
+        onSave({ ...form })
+    }
+
+    return (
+        <Modal title="Modifier le fournisseur" subtitle={supplier.name} onClose={onClose} width="max-w-2xl">
+            <div className="space-y-4">
+                <SupplierForm form={form} set={set} />
+                {!confirmSave ? (
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">Annuler</button>
+                        <button type="button" onClick={() => setCS(true)} disabled={!form.name.trim()}
+                            className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
+                            <Check size={14}/> Enregistrer
+                        </button>
+                    </div>
+                ) : (
+                    <div className="bg-sp/8 border border-sp/25 rounded-xl p-3.5">
+                        <p className="text-xs text-slate-300 text-center mb-3">Confirmer les modifications ?</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCS(false)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-navy-700 text-slate-300 border border-white/8 hover:bg-navy-600 transition-colors">Revenir</button>
+                            <button onClick={doSave} disabled={saving}
+                                className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-sp/20 text-sp border border-sp/30 hover:bg-sp/30 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
+                                {saving ? <Spinner /> : <><Check size={12}/> Confirmer</>}
+                            </button>
+                        </div>
+                    </div>
+                )}
+                {!confirmDelete ? (
+                    <button type="button" onClick={() => setCD(true)} className="w-full py-1.5 text-xs text-red-400 hover:text-red-300 transition-colors">Supprimer ce fournisseur</button>
+                ) : (
+                    <div className="bg-red-500/8 border border-red-500/25 rounded-xl p-3.5">
+                        <p className="text-xs text-red-300 text-center mb-3">Supprimer <span className="font-semibold text-white">{supplier.name}</span> définitivement ?</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => setCD(false)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-navy-700 text-slate-300 border border-white/8 hover:bg-navy-600 transition-colors">Annuler</button>
+                            <button onClick={() => onDelete(supplier.id)} className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30 transition-colors">Supprimer</button>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </Modal>
     )
 }
 
@@ -1678,9 +2386,16 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
                         </div>
 
                         <div className="flex items-center justify-between mt-4">
-                            <span className="text-[11px] text-slate-500 flex items-center gap-1">
-                                <Clock size={11} /> {d.date}
-                            </span>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                                    <Clock size={11} /> {d.date}
+                                </span>
+                                {d.attachments?.length > 0 && (
+                                    <span className="text-[11px] text-slate-500 flex items-center gap-1">
+                                        <Paperclip size={11} /> {d.attachments.length}
+                                    </span>
+                                )}
+                            </div>
                             {d.status !== 'closed' && (
                                 <div className="flex gap-2">
                                     {d.status !== 'resolved' && (
@@ -1726,10 +2441,88 @@ const DISPUTE_PRIORITY_BTNS = [
     { key: 'low',    label: 'FAIBLE', cls: 'border-slate-500/40 text-slate-400 bg-slate-500/10' },
 ]
 
+/* ── Pièces jointes — shared by Add/Edit dispute modals ─────────── */
+function AttachmentsField({ attachments, setAttachments }) {
+    const [fileError, setFileError] = useState('')
+    const inputRef = useRef(null)
+    const MAX_FILES = 5
+    const MAX_SIZE  = 5 * 1024 * 1024 // 5 MB
+
+    function handleFiles(e) {
+        setFileError('')
+        const files = Array.from(e.target.files ?? [])
+        if (attachments.length + files.length > MAX_FILES) {
+            setFileError(`Maximum ${MAX_FILES} fichiers autorisés`)
+            e.target.value = ''
+            return
+        }
+        const oversized = files.filter(f => f.size > MAX_SIZE)
+        if (oversized.length) {
+            setFileError('Fichier trop volumineux (max 5 Mo par fichier)')
+            e.target.value = ''
+            return
+        }
+        files.forEach(file => {
+            const reader = new FileReader()
+            reader.onload = ev => {
+                setAttachments(prev => [
+                    ...prev,
+                    { id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name: file.name, type: file.type, dataUrl: ev.target.result, size: file.size },
+                ])
+            }
+            reader.readAsDataURL(file)
+        })
+        e.target.value = ''
+    }
+
+    function remove(id) {
+        setAttachments(prev => prev.filter(a => a.id !== id))
+        setFileError('')
+    }
+
+    return (
+        <div>
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">Pièces jointes</label>
+            {attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-2">
+                    {attachments.map(a => (
+                        <div key={a.id} className="relative group flex flex-col items-center">
+                            {a.type.startsWith('image/') ? (
+                                <img src={a.dataUrl} alt={a.name} className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                            ) : (
+                                <div className="w-16 h-16 flex flex-col items-center justify-center rounded-lg border border-white/10 bg-navy-700 gap-1">
+                                    <FileText size={20} className="text-slate-400" />
+                                    <span className="text-[9px] text-slate-500 uppercase">{a.name.split('.').pop()}</span>
+                                </div>
+                            )}
+                            <button type="button" onClick={() => remove(a.id)}
+                                className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <X size={9} className="text-white" />
+                            </button>
+                            <p className="text-[9px] text-slate-500 mt-0.5 w-16 truncate text-center">{a.name}</p>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {fileError && <p className="text-[11px] text-red-400 mb-2">{fileError}</p>}
+            {attachments.length < MAX_FILES && (
+                <>
+                    <input ref={inputRef} type="file" multiple accept="image/*,.pdf,.doc,.docx" onChange={handleFiles} className="hidden" />
+                    <button type="button" onClick={() => inputRef.current?.click()}
+                        className="flex items-center gap-1.5 text-xs text-slate-400 border border-dashed border-white/15 rounded-lg px-3 py-2 hover:border-sp/40 hover:text-sp transition-colors">
+                        <Paperclip size={12} /> Ajouter un fichier
+                    </button>
+                </>
+            )}
+        </div>
+    )
+}
+
 function AddDisputeModal({ onClose, onAdd }) {
-    const [form, setForm]     = useState({ title: '', parties: ['', ''], priority: 'medium', notes: '' })
-    const [errors, setErrors] = useState({})
-    const [saving, setSaving] = useState(false)
+    const [form, setForm]         = useState({ title: '', parties: ['', ''], priority: 'medium', notes: '' })
+    const [errors, setErrors]     = useState({})
+    const [saving, setSaving]     = useState(false)
+    const [attachments, setAttachments] = useState([])
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
     function setParty(i, v) { setForm(f => { const p = [...f.parties]; p[i] = v; return { ...f, parties: p } }) }
@@ -1744,7 +2537,7 @@ function AddDisputeModal({ onClose, onAdd }) {
         if (Object.keys(errs).length) { setErrors(errs); return }
         setSaving(true)
         await new Promise(r => setTimeout(r, 700))
-        onAdd({ title: form.title.trim(), parties: form.parties.filter(p => p.trim()), priority: form.priority, notes: form.notes.trim(), status: 'open' })
+        onAdd({ title: form.title.trim(), parties: form.parties.filter(p => p.trim()), priority: form.priority, notes: form.notes.trim(), status: 'open', attachments })
         setSaving(false)
         onClose()
     }
@@ -1807,6 +2600,8 @@ function AddDisputeModal({ onClose, onAdd }) {
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors resize-none" />
                 </div>
 
+                <AttachmentsField attachments={attachments} setAttachments={setAttachments} />
+
                 <div className="flex gap-3 pt-1">
                     <button type="button" onClick={onClose}
                         className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">
@@ -1839,6 +2634,7 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
         status:   dispute.status,
         notes:    dispute.notes ?? '',
     })
+    const [attachments, setAttachments]     = useState(dispute.attachments ?? [])
     const [confirmDelete, setConfirmDelete] = useState(false)
     const [confirmSave,   setConfirmSave]   = useState(false)
     const [saving, setSaving]               = useState(false)
@@ -1857,7 +2653,7 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
     async function doSave() {
         setSaving(true)
         await new Promise(r => setTimeout(r, 600))
-        onSave({ ...dispute, ...form, parties: form.parties.filter(p => p.trim()) })
+        onSave({ ...dispute, ...form, parties: form.parties.filter(p => p.trim()), attachments })
     }
 
     return (
@@ -1928,6 +2724,8 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
                         placeholder="Contexte, preuves, détails supplémentaires..." rows={3}
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors resize-none" />
                 </div>
+
+                <AttachmentsField attachments={attachments} setAttachments={setAttachments} />
 
                 {!confirmSave ? (
                     <div className="flex gap-3 pt-1">
@@ -2656,9 +3454,9 @@ function ResidentCombobox({ residents, value, onChange }) {
 /* ══════════════════════════════════════════
    RECORD PAYMENT MODAL
 ══════════════════════════════════════════ */
-function RecordPaymentModal({ building, residents, onClose, onRecord }) {
+function RecordPaymentModal({ building, residents, onClose, onRecord, presetResidentId }) {
     const [form, setForm] = useState({
-        residentId: residents[0]?.id ?? '',
+        residentId: presetResidentId ?? residents[0]?.id ?? '',
         months:     1,
         amount:     '',
         method:     'especes',

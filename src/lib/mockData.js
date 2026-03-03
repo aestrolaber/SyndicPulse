@@ -474,8 +474,29 @@ export const MEETINGS_BLD3 = [
     },
 ]
 
+// ── Suppliers ─────────────────────────────────────────────────────────────────
+export const SUPPLIERS_BLD1 = [
+    { id: 'sup-1-01', name: 'TechLift Maroc',      category: 'ascenseur',    phone: '+212 522 100 200', email: 'contact@techlift.ma',   contractRef: 'CTR-2025-001', since: '2024-01', rating: 4, notes: 'Maintenance préventive mensuelle. Intervention sous 24h.' },
+    { id: 'sup-1-02', name: 'CleanPro Services',   category: 'nettoyage',    phone: '+212 661 200 300', email: 'info@cleanpro.ma',       contractRef: 'CTR-2025-002', since: '2023-06', rating: 5, notes: '3 passages/semaine. Équipe de 2 agents.' },
+    { id: 'sup-1-03', name: 'Électro Bâtiment',    category: 'electricite',  phone: '+212 672 300 400', email: 'elec@batiment.ma',       contractRef: 'CTR-2024-003', since: '2024-03', rating: 3, notes: 'Dépannages électriques. Délai parfois long en semaine.' },
+    { id: 'sup-1-04', name: 'Gardex Sécurité',     category: 'gardiennage',  phone: '+212 655 400 500', email: 'contact@gardex.ma',      contractRef: 'CTR-2025-004', since: '2022-01', rating: 4, notes: 'Gardien 24h/7j. Renouvellement contrat Avr 2026.' },
+    { id: 'sup-1-05', name: 'AquaPlomb Maroc',     category: 'plomberie',    phone: '+212 660 500 600', email: 'aquaplomb@gmail.com',    contractRef: '',             since: '2025-02', rating: 4, notes: 'Interventions ponctuelles. Tarifs corrects.' },
+]
+
+export const SUPPLIERS_BLD2 = [
+    { id: 'sup-2-01', name: 'Atlas Lift',          category: 'ascenseur',    phone: '+212 522 200 300', email: 'info@atlaslift.ma',      contractRef: 'CTR-2025-010', since: '2023-01', rating: 5, notes: 'Contrat full-service. Très réactifs.' },
+    { id: 'sup-2-02', name: 'Brillo Net',          category: 'nettoyage',    phone: '+212 662 300 400', email: 'brillo@net.ma',          contractRef: 'CTR-2025-011', since: '2024-01', rating: 4, notes: 'Nettoyage quotidien parties communes.' },
+    { id: 'sup-2-03', name: 'Verde Espaces',       category: 'espaces_verts', phone: '+212 673 400 500', email: 'verde@espaces.ma',       contractRef: 'CTR-2025-012', since: '2024-04', rating: 4, notes: 'Entretien jardins 2x/mois.' },
+    { id: 'sup-2-04', name: 'SafeGuard Atlas',     category: 'gardiennage',  phone: '+212 656 500 600', email: 'safe@guard.ma',          contractRef: 'CTR-2024-013', since: '2021-06', rating: 3, notes: 'Rotation équipe parfois irrégulière.' },
+]
+
+export const SUPPLIERS_BLD3 = [
+    { id: 'sup-3-01', name: 'Rabat Ascenseurs',    category: 'ascenseur',    phone: '+212 537 100 200', email: 'rabatasc@ma.ma',         contractRef: 'CTR-2025-020', since: '2023-09', rating: 4, notes: 'Maintenance bi-mensuelle. OK.' },
+    { id: 'sup-3-02', name: 'Propre Cité',         category: 'nettoyage',    phone: '+212 663 200 300', email: 'propre@cite.ma',          contractRef: 'CTR-2025-021', since: '2024-02', rating: 5, notes: 'Excellent service. Ponctualité impeccable.' },
+    { id: 'sup-3-03', name: 'Électricité Agdal',   category: 'electricite',  phone: '+212 674 300 400', email: 'elec@agdal.ma',          contractRef: '',             since: '2025-01', rating: 3, notes: 'Prestations ponctuelles uniquement.' },
+]
+
 // ── Resident portal access validation ─────────────────────────────────────────
-// Called from LoginPage to verify building code + unit before granting read-only access.
 export function validateResidentAccess(accessCode, unitInput) {
     const building = BUILDINGS.find(
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
