@@ -74,10 +74,11 @@ function formatMonth(ym) {
     return `${MONTH_LABELS[m - 1]} ${y}`
 }
 
-/* ── WhatsApp helper — opens wa.me link with pre-filled French reminder ── */
-function openWhatsApp(phone, name, unit, buildingName) {
+/* ── WhatsApp helper — opens wa.me link with pre-filled message ── */
+function openWhatsApp(phone, name, unit, buildingName, status) {
     const num = phone.replace(/[^0-9]/g, '')
-    const msg =
+    const msg = status === 'overdue'
+        ?
 `Bonjour ${name},
 
 Nous vous rappelons que votre cotisation de syndic pour ${unit} est actuellement en retard de paiement.
@@ -89,6 +90,11 @@ Merci de régulariser votre situation dans les meilleurs délais par virement ba
 👤 Titulaire : ${buildingName} — Syndic
 
 Pour toute question, n'hésitez pas à nous contacter.
+
+Cordialement,
+— ${buildingName}`
+        :
+`Bonjour ${name},
 
 Cordialement,
 — ${buildingName}`
@@ -2309,11 +2315,14 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                         <ActionBtn
                                             color="green"
                                             icon={<MessageCircle size={12} />}
-                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name)}
+                                            title={computeStatus(r.paidThrough) === 'overdue'
+                                                ? 'Envoyer un rappel de paiement WhatsApp'
+                                                : 'Ouvrir une conversation WhatsApp'}
+                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough))}
                                         />
-                                        <ActionBtn icon={<Phone size={12} />} onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
-                                        <ActionBtn icon={<Mail size={12} />} onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
-                                        <ActionBtn icon={<Pencil size={12} />} onClick={() => setEditingResident(r)} />
+                                        <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
+                                        <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
+                                        <ActionBtn icon={<Pencil size={12} />} title="Modifier le résident" onClick={() => setEditingResident(r)} />
                                     </div>
                                 </td>
                             </motion.tr>
@@ -4804,13 +4813,15 @@ function ProgressRow({ label, value, color }) {
     )
 }
 
-function ActionBtn({ icon, onClick, color = 'sp' }) {
+function ActionBtn({ icon, onClick, color = 'sp', title }) {
     const hoverMap = {
         sp:    'hover:bg-sp/20 hover:text-sp',
         green: 'hover:bg-emerald-500/20 hover:text-emerald-400',
+        blue:  'hover:bg-blue-500/20 hover:text-blue-400',
+        amber: 'hover:bg-amber-500/20 hover:text-amber-400',
     }
     return (
-        <button onClick={onClick}
+        <button onClick={onClick} title={title}
                 className={`p-1.5 rounded-lg bg-navy-600 ${hoverMap[color] ?? hoverMap.sp} text-slate-400 transition-all`}>
             {icon}
         </button>
