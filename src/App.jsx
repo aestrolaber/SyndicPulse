@@ -21,7 +21,7 @@ import {
     UserCog, Key, Eye, EyeOff, Copy,
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
-    Megaphone,
+    Megaphone, Info,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -766,7 +766,8 @@ function TopBar({ activeTab, activeBuilding, showToast }) {
    DASHBOARD PAGE
 ══════════════════════════════════════════ */
 function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab, showToast }) {
-    const [showWAModal, setShowWAModal] = useState(false)
+    const [showWAModal,           setShowWAModal]           = useState(false)
+    const [showTransparenceModal, setShowTransparenceModal] = useState(false)
     const overdueResidents = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
 
     // ── Transparence score (computed from live data) ──
@@ -791,7 +792,7 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
         { label: 'Taux de recouvrement', value: `${building.collection_rate}%`, delta: '+2.1%', up: true,  icon: TrendingUp,  color: 'emerald' },
         { label: 'Charges impayées',     value: '8 200 MAD',  delta: '-12%',      up: false, icon: CreditCard,  color: 'cyan'    },
         { label: 'Tickets ouverts',      value: data.tickets.filter(t => t.status !== 'done').length.toString(), delta: 'Stable', up: null, icon: Wrench, color: 'amber' },
-        { label: 'Transparence',         value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet', tooltip: transBreakdown },
+        { label: 'Transparence',         value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet' },
     ]
 
     const statusDot = {
@@ -820,8 +821,23 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
             </div>
 
             <div className="grid grid-cols-4 gap-5">
-                {kpis.map(k => <KpiCard key={k.label} {...k} />)}
+                {kpis.map(k => (
+                    <KpiCard
+                        key={k.label}
+                        {...k}
+                        onInfo={k.label === 'Transparence' ? () => setShowTransparenceModal(true) : undefined}
+                    />
+                ))}
             </div>
+
+            {showTransparenceModal && (
+                <TransparenceModal
+                    score={transScore}
+                    tier={transTier}
+                    breakdown={transBreakdown}
+                    onClose={() => setShowTransparenceModal(false)}
+                />
+            )}
 
             <div className="grid grid-cols-3 gap-6">
                 <div className="col-span-2 glass-card p-6">
@@ -5232,12 +5248,12 @@ function BuildingAvatar({ building, size = 'sm' }) {
     )
 }
 
-function KpiCard({ label, value, delta, up, icon: Icon, color, tooltip }) {
+function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
     const colorMap = {
-        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', bar: 'bg-emerald-400' },
-        cyan:    { bg: 'bg-sp/10',          border: 'border-sp/20',          text: 'text-sp',          bar: 'bg-sp'          },
-        amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400',   bar: 'bg-amber-400'   },
-        violet:  { bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  text: 'text-violet-400',  bar: 'bg-violet-400'  },
+        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
+        cyan:    { bg: 'bg-sp/10',          border: 'border-sp/20',          text: 'text-sp'          },
+        amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400'   },
+        violet:  { bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  text: 'text-violet-400'  },
     }
     const c = colorMap[color] ?? colorMap.cyan
     return (
@@ -5257,31 +5273,112 @@ function KpiCard({ label, value, delta, up, icon: Icon, color, tooltip }) {
             <p className="text-slate-400 text-xs font-medium mb-1">{label}</p>
             <p className="text-2xl font-bold text-white">{value}</p>
 
-            {/* Breakdown tooltip — shown on hover when tooltip prop is provided */}
-            {tooltip && (
-                <div className="absolute bottom-full left-0 mb-2 w-64 bg-[#0d1629] border border-white/10 rounded-xl p-3.5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-200 z-50 shadow-2xl">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2.5">Détail du score</p>
-                    <div className="space-y-2.5">
-                        {tooltip.map(item => (
-                            <div key={item.label}>
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-[11px] text-slate-400">{item.label}</span>
-                                    <span className={`text-[11px] font-bold ${c.text}`}>
-                                        {item.pts}<span className="text-slate-600 font-normal">/{item.max}</span>
-                                    </span>
-                                </div>
-                                <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
-                                    <div className={`h-full ${c.bar} rounded-full`} style={{ width: `${Math.round((item.pts / item.max) * 100)}%` }} />
-                                </div>
-                            </div>
-                        ))}
+            {/* ⓘ button — only rendered when onInfo is provided */}
+            {onInfo && (
+                <button
+                    onClick={onInfo}
+                    title="Comment ce score est calculé"
+                    className="absolute bottom-3.5 right-3.5 w-6 h-6 rounded-full flex items-center justify-center bg-violet-500/10 border border-violet-500/20 text-violet-400/60 hover:text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/40 transition-all opacity-0 group-hover:opacity-100"
+                >
+                    <Info size={12} />
+                </button>
+            )}
+        </div>
+    )
+}
+
+/* ── Transparence Score Modal ── */
+function TransparenceModal({ score, tier, breakdown, onClose }) {
+    const tierMeta = {
+        'Gold Elite': { emoji: '🥇', cls: 'text-yellow-300',  bg: 'bg-yellow-500/10',  border: 'border-yellow-500/20',  min: 95  },
+        'Silver Pro': { emoji: '🥈', cls: 'text-slate-300',   bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   min: 80  },
+        'Bronze':     { emoji: '🥉', cls: 'text-amber-500',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   min: 60  },
+        'Standard':   { emoji: '📋', cls: 'text-slate-400',   bg: 'bg-slate-600/10',   border: 'border-slate-600/20',   min: 0   },
+    }
+    const descriptions = {
+        'Recouvrement documenté': 'Basé sur le taux de recouvrement actuel de la résidence.',
+        'Dépenses tracées':       'Toutes les dépenses sont enregistrées dans le journal avec catégorie et fournisseur.',
+        'Tickets suivis':         'Proportion de tickets de maintenance clôturés vs. ouverts.',
+        'Résidents renseignés':   'Pourcentage de résidents avec un numéro de téléphone renseigné.',
+        'Assemblée planifiée':    'Au moins une assemblée générale planifiée ou tenue cette année.',
+    }
+    const tm = tierMeta[tier] ?? tierMeta['Standard']
+    const tiers = ['Gold Elite', 'Silver Pro', 'Bronze', 'Standard']
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-md bg-[#0d1629] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                 onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center">
+                            <ShieldCheck size={18} className="text-violet-400" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white">Score de Transparence</p>
+                            <p className="text-[11px] text-slate-500">Comment votre score est calculé</p>
+                        </div>
                     </div>
-                    <div className="mt-3 pt-2.5 border-t border-white/8 flex items-center justify-between">
-                        <span className="text-[10px] text-slate-500">Score total</span>
-                        <span className={`text-xs font-bold ${c.text}`}>{tooltip.reduce((s, b) => s + b.pts, 0)}<span className="text-slate-500 font-normal">/100</span></span>
+                    <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-colors">
+                        <X size={15} />
+                    </button>
+                </div>
+
+                {/* Score hero */}
+                <div className="px-5 py-5 flex items-center gap-4 border-b border-white/8">
+                    <div>
+                        <p className="text-4xl font-bold text-white">{score}<span className="text-slate-600 text-2xl font-normal">/100</span></p>
+                    </div>
+                    <div className={`ml-auto flex items-center gap-2 px-3 py-1.5 rounded-full ${tm.bg} border ${tm.border}`}>
+                        <span className="text-base leading-none">{tm.emoji}</span>
+                        <span className={`text-xs font-bold ${tm.cls}`}>{tier}</span>
                     </div>
                 </div>
-            )}
+
+                {/* Breakdown */}
+                <div className="px-5 py-4 space-y-4">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Détail des critères</p>
+                    {breakdown.map(item => (
+                        <div key={item.label}>
+                            <div className="flex items-center justify-between mb-1">
+                                <div>
+                                    <p className="text-[12px] font-semibold text-slate-300">{item.label}</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">{descriptions[item.label] ?? ''}</p>
+                                </div>
+                                <span className="text-sm font-bold text-violet-300 ml-3 whitespace-nowrap">
+                                    {item.pts}<span className="text-slate-600 font-normal text-xs">/{item.max}</span>
+                                </span>
+                            </div>
+                            <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-violet-400 rounded-full transition-all"
+                                     style={{ width: `${Math.round((item.pts / item.max) * 100)}%` }} />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Tier reference */}
+                <div className="px-5 py-4 border-t border-white/8 bg-white/2">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Paliers de transparence</p>
+                    <div className="grid grid-cols-2 gap-2">
+                        {tiers.map(t => {
+                            const m = tierMeta[t]
+                            const isCurrent = t === tier
+                            return (
+                                <div key={t} className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg ${isCurrent ? `${m.bg} border ${m.border}` : 'opacity-40'}`}>
+                                    <span className="text-sm leading-none">{m.emoji}</span>
+                                    <div>
+                                        <p className={`text-[11px] font-bold ${isCurrent ? m.cls : 'text-slate-400'}`}>{t}</p>
+                                        <p className="text-[9px] text-slate-600">≥ {m.min} pts</p>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
