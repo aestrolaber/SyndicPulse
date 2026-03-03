@@ -75,13 +75,33 @@ function formatMonth(ym) {
 }
 
 /* ── WhatsApp helper — opens wa.me link with pre-filled message ── */
-function openWhatsApp(phone, name, unit, buildingName, status) {
+function openWhatsApp(phone, name, unit, buildingName, status, paidThrough) {
     const num = phone.replace(/[^0-9]/g, '')
-    const msg = status === 'overdue'
-        ?
+    let msg
+    if (status === 'overdue') {
+        // Compute list of unpaid months from (paidThrough + 1) up to CURRENT_MONTH
+        const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+        const unpaidMonths = []
+        let [y, m] = (paidThrough || '2000-01').split('-').map(Number)
+        m++ ; if (m > 12) { m = 1; y++ }           // start one month after last paid
+        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+        while (y < cy || (y === cy && m <= cm)) {
+            unpaidMonths.push(`${MONTH_NAMES_FR[m - 1]} ${y}`)
+            m++; if (m > 12) { m = 1; y++ }
+        }
+        const count  = unpaidMonths.length
+        const plural = count > 1 ? 's' : ''
+        const lastPaidLabel = (() => {
+            const [py, pm] = (paidThrough || '2000-01').split('-').map(Number)
+            return `${MONTH_NAMES_FR[pm - 1]} ${py}`
+        })()
+        msg =
 `Bonjour ${name},
 
-Nous vous rappelons que votre cotisation de syndic pour ${unit} est actuellement en retard de paiement.
+Nous vous rappelons que votre cotisation de syndic pour l'appartement ${unit} présente ${count} mois${plural} d'impayé${plural}.
+
+📅 Dernière cotisation enregistrée : ${lastPaidLabel}
+❌ Mois${plural} en retard (${count}) : ${unpaidMonths.join(', ')}
 
 Merci de régulariser votre situation dans les meilleurs délais par virement bancaire :
 
@@ -93,11 +113,13 @@ Pour toute question, n'hésitez pas à nous contacter.
 
 Cordialement,
 — ${buildingName}`
-        :
+    } else {
+        msg =
 `Bonjour ${name},
 
 Cordialement,
 — ${buildingName}`
+    }
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
@@ -2318,7 +2340,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                             title={computeStatus(r.paidThrough) === 'overdue'
                                                 ? 'Envoyer un rappel de paiement WhatsApp'
                                                 : 'Ouvrir une conversation WhatsApp'}
-                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough))}
+                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough), r.paidThrough)}
                                         />
                                         <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
                                         <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
