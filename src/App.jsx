@@ -689,15 +689,16 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
             <div className="px-3 pb-3 space-y-1 border-t border-white/5 pt-3">
                 <div className="rounded-xl bg-navy-700 border border-sp/10 p-4 mb-2">
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
-                        <span className="text-[10px] font-semibold text-sp uppercase tracking-wider">Agent IA Actif</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Agent IA Vocal</span>
+                        <span className="ml-auto text-[9px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Prochainement</span>
                     </div>
-                    <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
+                    <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">
                         Darija + Français · {activeBuilding.name}
                     </p>
                     <button
-                        onClick={() => setIsVoiceOpen(true)}
-                        className="w-full py-2 bg-sp/10 hover:bg-sp/20 text-sp text-xs font-semibold rounded-lg border border-sp/20 transition-all flex items-center justify-center gap-1.5"
+                        disabled
+                        className="w-full py-2 bg-slate-700/40 text-slate-600 text-xs font-semibold rounded-lg border border-white/5 cursor-not-allowed flex items-center justify-center gap-1.5"
                     >
                         <Mic size={12} /> Ouvrir l'agent vocal
                     </button>
@@ -878,12 +879,10 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
                             <p className="text-xs text-slate-400 mb-4 leading-relaxed italic">
                                 "3andi mochkil f l'ascenseur..."
                             </p>
-                            <button
-                                onClick={() => setIsVoiceOpen(true)}
-                                className="w-full py-2.5 bg-sp hover:bg-sp-dark text-navy-900 text-xs font-bold rounded-xl transition-all shadow-glow-cyan flex items-center justify-center gap-1.5"
-                            >
+                            <div className="w-full py-2.5 bg-slate-700/40 text-slate-600 text-xs font-bold rounded-xl border border-white/5 flex items-center justify-center gap-1.5 cursor-not-allowed select-none">
                                 <Mic size={13} /> Parler à l'IA
-                            </button>
+                                <span className="ml-1 text-[9px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Prochainement</span>
+                            </div>
                         </div>
                     </div>
 
