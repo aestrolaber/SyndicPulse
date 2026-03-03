@@ -59,10 +59,10 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
     }
 
     const statusText = {
-        idle:       'Tap the mic to speak',
+        idle:       'Appuyez sur le micro pour parler',
         listening:  'Kanesme3 lek...',
         processing: 'Kankhdem 3la t-talb dyalek...',
-        done:       'Safi — response ready',
+        done:       'Safi — réponse prête',
     }
 
     if (!isOpen) return null
@@ -92,9 +92,9 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <div className="flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
-                                <span className="text-[10px] text-emerald-400 font-semibold uppercase">Live</span>
+                            <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-lg">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                                <span className="text-[10px] text-amber-400 font-bold uppercase tracking-wider">Simulation</span>
                             </div>
                             <button onClick={handleClose} className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-slate-200 transition-colors">
                                 <X size={17} />
@@ -105,7 +105,16 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                     {/* Body */}
                     <div className="p-6 space-y-5">
 
-                        {/* Demo scenario selector */}
+                        {/* Demo notice */}
+                        <div className="flex items-center gap-2.5 bg-amber-500/8 border border-amber-500/15 rounded-xl px-3.5 py-2.5">
+                            <span className="text-base leading-none">🎭</span>
+                            <div>
+                                <p className="text-[11px] font-bold text-amber-300">Mode démonstration</p>
+                                <p className="text-[10px] text-slate-500">Scénarios pré-enregistrés · Prochainement en production</p>
+                            </div>
+                        </div>
+
+                    {/* Demo scenario selector */}
                         <div className="flex gap-2 overflow-x-auto pb-1">
                             {DEMO_SESSIONS.map((s, i) => (
                                 <button
@@ -186,7 +195,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                                             <User size={13} className="text-slate-400" />
                                         </div>
                                         <div className="flex-1 bg-navy-700 rounded-xl px-4 py-3 border border-white/5">
-                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 font-semibold">You said</p>
+                                            <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-1 font-semibold">Vous avez dit</p>
                                             <p className="text-sm text-slate-200 italic">"{transcript}"</p>
                                         </div>
                                     </div>
@@ -225,7 +234,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                                 onClick={handleReset}
                                 className="w-full py-2.5 text-xs font-semibold text-slate-400 hover:text-white bg-navy-700 hover:bg-navy-600 border border-white/5 rounded-xl transition-all"
                             >
-                                Try another scenario →
+                                Essayer un autre scénario →
                             </motion.button>
                         )}
                     </div>
@@ -233,7 +242,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                     {/* Footer */}
                     <div className="px-6 py-4 border-t text-center" style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                            Powered by SyndicPulse Automation Core · Law 18-00 Compliant
+                            SyndicPulse Automation Core · Prochainement en production
                         </p>
                     </div>
                 </motion.div>
