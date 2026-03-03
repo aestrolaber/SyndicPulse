@@ -4365,11 +4365,12 @@ Cordialement,
 
 function EditResidentModal({ resident, onSave, onDelete, onClose }) {
     const [form, setForm] = useState({
-        name:  resident.name,
-        phone: resident.phone === '—' ? '' : resident.phone,
-        unit:  resident.unit,
-        floor: resident.floor?.toString() ?? '',
-        type:  resident.type ?? 'proprietaire',
+        name:        resident.name,
+        phone:       resident.phone === '—' ? '' : resident.phone,
+        unit:        resident.unit,
+        floor:       resident.floor?.toString() ?? '',
+        type:        resident.type ?? 'proprietaire',
+        paidThrough: resident.paidThrough ?? '',
     })
     const [saving,       setSaving]       = useState(false)
     const [confirmSave,  setConfirmSave]  = useState(false)
@@ -4395,11 +4396,12 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
         await new Promise(r => setTimeout(r, 600))
         onSave({
             ...resident,
-            name:  form.name.trim(),
-            unit:  form.unit.toUpperCase(),
-            phone: form.phone || '—',
-            floor: parseInt(form.floor) || 0,
-            type:  form.type,
+            name:        form.name.trim(),
+            unit:        form.unit.toUpperCase(),
+            phone:       form.phone || '—',
+            floor:       parseInt(form.floor) || 0,
+            type:        form.type,
+            paidThrough: form.paidThrough || resident.paidThrough,
         })
     }
 
@@ -4469,6 +4471,24 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
                             </button>
                         ))}
                     </div>
+                </div>
+
+                {/* ── Correction du paiement ── */}
+                <div className="border-t border-white/8 pt-4">
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        Payé jusqu'au mois
+                        <span className="ml-2 text-[10px] font-normal text-amber-400/80">correction directe</span>
+                    </label>
+                    <input
+                        type="month"
+                        value={form.paidThrough}
+                        onChange={e => set('paidThrough', e.target.value)}
+                        max={CURRENT_MONTH}
+                        className="w-full bg-navy-700 border border-amber-500/25 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-amber-400/50 transition-colors"
+                    />
+                    <p className="text-[10px] text-slate-600 mt-1.5">
+                        Actuellement : <span className="text-slate-400 font-medium">{formatMonth(resident.paidThrough)}</span> — modifiez ici pour corriger une erreur de saisie.
+                    </p>
                 </div>
 
                 {/* Save buttons — step 1: normal, step 2: confirm */}
