@@ -282,6 +282,264 @@ body{font-family:'Times New Roman',serif;background:#fff;color:#1a1a1a;padding:4
     w.document.close()
 }
 
+function generateCustomTemplateGuide() {
+    const w = window.open('', '_blank')
+    w.document.write(`<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<title>Guide — Modèles personnalisés · SyndicPulse</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:#f8fafc;color:#1e293b;padding:0}
+.cover{background:linear-gradient(135deg,#0a0f1e 0%,#0d1629 60%,#111d35 100%);color:#fff;padding:52px 60px 44px;position:relative;overflow:hidden}
+.cover::before{content:'';position:absolute;top:-60px;right:-60px;width:320px;height:320px;border-radius:50%;background:radial-gradient(circle,rgba(6,182,212,.18) 0%,transparent 70%)}
+.cover-logo{display:flex;align-items:center;gap:12px;margin-bottom:36px}
+.cover-logo-dot{width:10px;height:10px;background:#06b6d4;border-radius:50%}
+.cover-brand{font-size:13px;font-weight:700;letter-spacing:.12em;color:#06b6d4;text-transform:uppercase}
+.cover h1{font-size:34px;font-weight:800;line-height:1.15;margin-bottom:10px}
+.cover h1 span{color:#06b6d4}
+.cover p{font-size:15px;color:rgba(255,255,255,.65);max-width:480px;line-height:1.65}
+.cover-badge{display:inline-block;margin-top:22px;padding:6px 14px;background:rgba(6,182,212,.15);border:1px solid rgba(6,182,212,.35);border-radius:20px;font-size:11px;font-weight:600;color:#67e8f9;letter-spacing:.04em}
+.page{max-width:780px;margin:0 auto;padding:44px 60px 60px}
+h2{font-size:20px;font-weight:800;color:#0f172a;margin-bottom:6px;margin-top:40px;display:flex;align-items:center;gap:10px}
+h2 .num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#0e7490;color:#fff;font-size:13px;font-weight:800;flex-shrink:0}
+h3{font-size:14px;font-weight:700;color:#334155;margin:18px 0 8px;text-transform:uppercase;letter-spacing:.06em}
+p,li{font-size:13.5px;line-height:1.75;color:#475569}
+ul{padding-left:20px;margin:6px 0 14px}
+li{margin-bottom:4px}
+.card{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 24px;margin:14px 0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card-cyan{border-left:4px solid #06b6d4}
+.card-violet{border-left:4px solid #8b5cf6}
+.card-green{border-left:4px solid #10b981}
+.card-amber{border-left:4px solid #f59e0b}
+.step-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+.step-box{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.step-box .step-num{font-size:11px;font-weight:700;color:#06b6d4;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.step-box .step-title{font-size:13px;font-weight:700;color:#1e293b;margin-bottom:4px}
+.step-box p{font-size:12.5px;color:#64748b}
+.code{font-family:'Courier New',monospace;background:#f1f5f9;color:#7c3aed;padding:2px 7px;border-radius:5px;font-size:12.5px;border:1px solid #e2e8f0}
+.code-block{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:18px 22px;margin:12px 0;font-family:'Courier New',monospace;font-size:12px;line-height:1.9;overflow-x:auto}
+.code-block .k{color:#67e8f9}.code-block .v{color:#a5f3c9}.code-block .c{color:#64748b}
+.tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.tag-cyan{background:#e0f9ff;color:#0e7490}
+.tag-violet{background:#f5f3ff;color:#6d28d9}
+.tag-green{background:#ecfdf5;color:#047857}
+.tag-amber{background:#fffbeb;color:#92400e}
+.tag-red{background:#fef2f2;color:#b91c1c}
+table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+th{background:#f8fafc;font-weight:700;color:#475569;padding:10px 14px;border:1px solid #e2e8f0;text-align:left}
+td{padding:9px 14px;border:1px solid #e2e8f0;color:#334155;vertical-align:top}
+tr:hover td{background:#f8fafc}
+.tip{background:#fffbeb;border:1px solid #fde68a;border-radius:10px;padding:12px 16px;margin:10px 0;font-size:13px;color:#78350f;display:flex;gap:10px;align-items:flex-start}
+.tip-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.example-form{background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin:14px 0;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.example-form .form-header{background:linear-gradient(90deg,#0e7490,#0891b2);color:#fff;padding:12px 18px;font-size:13px;font-weight:700}
+.example-form .form-body{padding:16px 18px;display:grid;gap:10px}
+.form-field{display:grid;gap:4px}
+.form-label{font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+.form-input{background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:8px 12px;font-size:13px;color:#334155}
+.result-box{background:#0f172a;border-radius:12px;padding:20px 22px;margin:12px 0;font-family:'Courier New',monospace;font-size:12px;line-height:1.85;color:#94a3b8;white-space:pre-wrap}
+.result-box .highlight{color:#a5f3c9}
+.divider{height:1px;background:#e2e8f0;margin:32px 0}
+.footer{background:#0f172a;color:rgba(255,255,255,.45);text-align:center;padding:18px;font-size:11.5px;margin-top:48px}
+.footer span{color:#06b6d4;font-weight:600}
+@media print{
+  body{background:#fff}
+  .cover{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .code-block,.result-box,.footer{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h2{page-break-before:auto}
+  .step-grid{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-logo">
+    <div class="cover-logo-dot"></div>
+    <span class="cover-brand">SyndicPulse</span>
+  </div>
+  <h1>Guide des modèles<br/><span>personnalisés</span></h1>
+  <p>Créez vos propres templates de circulaires avec des champs variables. Réutilisables, adaptés à chaque résidence, prêts en 5 minutes.</p>
+  <div class="cover-badge">📋 Guide d'utilisation — Circulaires</div>
+</div>
+
+<div class="page">
+
+  <!-- INTRO -->
+  <div class="card card-cyan" style="margin-top:28px">
+    <strong style="font-size:14px;color:#0e7490">À quoi servent les modèles personnalisés ?</strong>
+    <p style="margin-top:6px">Les modèles personnalisés vous permettent de créer des <strong>templates réutilisables</strong> pour les avis récurrents propres à votre résidence : réunions de quartier, rappels charges, avis de sécurité… En définissant des <strong>champs variables</strong>, il suffit de remplir un formulaire pour générer automatiquement le message complet.</p>
+  </div>
+
+  <!-- STEP BY STEP -->
+  <h2><span class="num">1</span>Créer un nouveau modèle</h2>
+  <p>Depuis la page <strong>Circulaires &amp; Avis</strong>, cliquez sur le bouton <strong>"Modèles"</strong> en haut à droite, puis <strong>"Nouveau modèle"</strong>.</p>
+
+  <div class="step-grid">
+    <div class="step-box">
+      <div class="step-num">Champ 1</div>
+      <div class="step-title">Nom du modèle</div>
+      <p>Donnez un nom explicite, ex : <em>Réunion de copropriété</em></p>
+    </div>
+    <div class="step-box">
+      <div class="step-num">Champ 2</div>
+      <div class="step-title">Icône &amp; couleur</div>
+      <p>Choisissez parmi les icônes et couleurs proposées pour identifier visuellement le modèle.</p>
+    </div>
+  </div>
+
+  <h2><span class="num">2</span>Définir les champs variables</h2>
+  <p>Chaque champ devient une <strong>variable</strong> que vous remplirez à chaque utilisation du modèle. La clé générée automatiquement (ex : <span class="code">{{date}}</span>) s'insère ensuite dans le corps du message.</p>
+
+  <table>
+    <tr><th>Type de champ</th><th>Usage recommandé</th><th>Exemple de clé</th></tr>
+    <tr><td><span class="tag tag-cyan">Texte court</span></td><td>Lieu, nom, zone, montant</td><td><span class="code">{{lieu}}</span></td></tr>
+    <tr><td><span class="tag tag-violet">Texte long</span></td><td>Ordre du jour, consignes, motif</td><td><span class="code">{{ordre_du_jour}}</span></td></tr>
+    <tr><td><span class="tag tag-green">Date</span></td><td>Date de l'événement</td><td><span class="code">{{date}}</span></td></tr>
+    <tr><td><span class="tag tag-amber">Heure</span></td><td>Heure de début / fin</td><td><span class="code">{{heure}}</span></td></tr>
+    <tr><td><span class="tag tag-red">Nombre</span></td><td>Montant, durée en jours</td><td><span class="code">{{montant}}</span></td></tr>
+  </table>
+
+  <div class="tip"><span class="tip-icon">💡</span><span>Cochez <strong>"Requis"</strong> pour les champs indispensables — un message d'erreur empêchera la sauvegarde si le champ est vide.</span></div>
+
+  <h2><span class="num">3</span>Rédiger le corps du message</h2>
+  <p>Utilisez la syntaxe <span class="code">{'{{clé}}'}</span> pour insérer les variables dans votre message. La variable <span class="code">{'{{building}}'}</span> est toujours disponible et insère automatiquement le nom de la résidence.</p>
+
+  <div class="code-block"><span class="c">// Corps du message avec variables</span>
+<span class="v">Chers résidents de </span><span class="k">{{building}}</span><span class="v">,</span>
+
+<span class="v">Nous vous convoquons à une réunion de copropriété</span>
+<span class="v">le </span><span class="k">{{date}}</span><span class="v"> à </span><span class="k">{{heure}}</span><span class="v">.</span>
+
+<span class="v">Ordre du jour :</span>
+<span class="k">{{ordre_du_jour}}</span>
+
+<span class="v">Votre présence est souhaitée.</span>
+
+<span class="v">Cordialement,</span>
+<span class="v">Le Bureau du Syndic</span></div>
+
+  <div class="tip"><span class="tip-icon">⚠️</span><span>La clé dans <span class="code">{'{{clé}}'}</span> doit correspondre <strong>exactement</strong> à la clé affichée sous chaque champ (en violet). Si la clé ne correspond pas, le texte <code>[clé]</code> apparaîtra à la place.</span></div>
+
+  <div class="divider"></div>
+
+  <!-- FULL EXAMPLE -->
+  <h2><span class="num">4</span>Exemple complet — Réunion de copropriété</h2>
+
+  <h3>Configuration du modèle</h3>
+  <div class="card card-violet">
+    <table style="margin:0">
+      <tr><th>Paramètre</th><th>Valeur saisie</th></tr>
+      <tr><td>Nom du modèle</td><td><strong>Réunion de copropriété</strong></td></tr>
+      <tr><td>Icône</td><td>🏛️</td></tr>
+      <tr><td>Couleur</td><td>Bleu cyan</td></tr>
+    </table>
+  </div>
+
+  <h3>Champs définis</h3>
+  <table>
+    <tr><th>Libellé</th><th>Type</th><th>Requis</th><th>Clé générée</th></tr>
+    <tr><td>Date</td><td><span class="tag tag-green">Date</span></td><td>✅</td><td><span class="code">{{date}}</span></td></tr>
+    <tr><td>Heure</td><td><span class="tag tag-amber">Heure</span></td><td>✅</td><td><span class="code">{{heure}}</span></td></tr>
+    <tr><td>Ordre du jour</td><td><span class="tag tag-violet">Texte long</span></td><td>✅</td><td><span class="code">{{ordre_du_jour}}</span></td></tr>
+  </table>
+
+  <h3>Formulaire généré (à remplir à chaque utilisation)</h3>
+  <div class="example-form">
+    <div class="form-header">🏛️ Réunion de copropriété — Remplir le formulaire</div>
+    <div class="form-body">
+      <div class="form-field">
+        <div class="form-label">Date *</div>
+        <div class="form-input">15/03/2026</div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Heure *</div>
+        <div class="form-input">18:00</div>
+      </div>
+      <div class="form-field">
+        <div class="form-label">Ordre du jour *</div>
+        <div class="form-input">Approbation budget 2026 · Travaux façade · Divers</div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Message généré automatiquement</h3>
+  <div class="result-box"><span class="highlight">Chers résidents de Norwest,</span>
+
+Nous vous convoquons à une réunion de copropriété
+le <span class="highlight">15 Mars 2026</span> à <span class="highlight">18:00</span>.
+
+Ordre du jour :
+<span class="highlight">Approbation budget 2026 · Travaux façade · Divers</span>
+
+Votre présence est souhaitée.
+
+Cordialement,
+Le Bureau du Syndic</div>
+
+  <div class="tip"><span class="tip-icon">📱</span><span>Une fois le message généré, cliquez <strong>"Copier message WA"</strong> pour l'envoyer via WhatsApp Broadcast, ou <strong>"Imprimer / PDF"</strong> pour un affichage papier en salle commune.</span></div>
+
+  <div class="divider"></div>
+
+  <!-- MORE EXAMPLES -->
+  <h2><span class="num">5</span>Autres idées de modèles</h2>
+
+  <table>
+    <tr><th>Modèle</th><th>Champs suggérés</th></tr>
+    <tr>
+      <td>🔑 Changement de gardien</td>
+      <td><span class="code">{{nom_nouveau}}</span> · <span class="code">{{date_prise_poste}}</span> · <span class="code">{{contact}}</span></td>
+    </tr>
+    <tr>
+      <td>💰 Appel de charges exceptionnel</td>
+      <td><span class="code">{{motif}}</span> · <span class="code">{{montant}}</span> · <span class="code">{{date_limite}}</span></td>
+    </tr>
+    <tr>
+      <td>🚗 Règlement parking</td>
+      <td><span class="code">{{infraction}}</span> · <span class="code">{{consequence}}</span></td>
+    </tr>
+    <tr>
+      <td>🎉 Félicitations / Fête</td>
+      <td><span class="code">{{occasion}}</span> · <span class="code">{{date}}</span> · <span class="code">{{lieu}}</span></td>
+    </tr>
+    <tr>
+      <td>🏊 Fermeture piscine / équipement</td>
+      <td><span class="code">{{equipement}}</span> · <span class="code">{{date_debut}}</span> · <span class="code">{{date_fin}}</span> · <span class="code">{{raison}}</span></td>
+    </tr>
+  </table>
+
+  <div class="divider"></div>
+
+  <!-- TIPS -->
+  <h2><span class="num">6</span>Bonnes pratiques</h2>
+
+  <div class="card card-green">
+    <ul style="margin:0;padding-left:18px">
+      <li>Nommez les clés en <strong>minuscules sans accents</strong> — ex : <span class="code">ordre_du_jour</span> plutôt que <em>Ordre du Jour</em></li>
+      <li>Utilisez <span class="code">_</span> (underscore) pour séparer les mots dans les clés</li>
+      <li>Le champ <strong>texte long</strong> est idéal pour les contenus multi-lignes (listes, consignes)</li>
+      <li>Rédigez un <strong>texte indicatif</strong> (placeholder) clair pour guider la saisie</li>
+      <li>Vérifiez l'aperçu avant de sauvegarder pour contrôler le rendu final</li>
+      <li>Les modèles sont <strong>liés à la résidence active</strong> — chaque bâtiment a ses propres modèles</li>
+    </ul>
+  </div>
+
+</div>
+
+<div class="footer">
+  <span>SyndicPulse</span> · Guide des modèles personnalisés · Circulaires &amp; Avis<br/>
+  Généré automatiquement · usage interne
+</div>
+
+<script>window.onload=()=>{window.print();}<\/script>
+</body>
+</html>`)
+    w.document.close()
+}
+
 /* ── Expense category options with theme colors ── */
 const EXPENSE_CATEGORIES = [
     { label: 'Entretien & réparations', color: 'bg-cyan-500' },
@@ -2508,7 +2766,14 @@ function CustomTemplateEditorModal({ tpl, onSave, onDelete, onClose, showToast }
                         </div>
                         <p className="text-sm font-bold text-white">{isEdit ? 'Modifier le modèle' : 'Nouveau modèle personnalisé'}</p>
                     </div>
-                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={generateCustomTemplateGuide}
+                            title="Ouvrir le guide PDF"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-400 hover:bg-violet-500/20 text-xs font-semibold transition-colors">
+                            <FileText size={12} /> Guide
+                        </button>
+                        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                    </div>
                 </div>
                 <div className="p-5 space-y-5">
                     {/* Name + Icon + Color */}
