@@ -28,6 +28,10 @@ export const BUILDINGS = [
         monthly_fee: 850,
         accessCode: 'NRWST-2026',
         shortCode: 'NW',
+        payment_rib: '011 780 0123456789 0100',
+        payment_bank: 'Attijariwafa Bank',
+        payment_account_holder: 'Syndicat Résidence Norwest',
+        payment_whatsapp: '+212661234567',
     },
     {
         id: 'bld-2',
@@ -44,6 +48,10 @@ export const BUILDINGS = [
         monthly_fee: 1200,
         accessCode: 'ATLAS-2026',
         shortCode: 'AT',
+        payment_rib: '022 450 9876543210 0200',
+        payment_bank: 'CIH Bank',
+        payment_account_holder: 'Syndicat Résidence Atlas',
+        payment_whatsapp: '+212522001122',
     },
     {
         id: 'bld-3',
@@ -60,6 +68,10 @@ export const BUILDINGS = [
         monthly_fee: 1000,
         accessCode: 'JARDINS-2026',
         shortCode: 'JR',
+        payment_rib: '007 127 0011223344 0300',
+        payment_bank: 'BMCE Bank of Africa',
+        payment_account_holder: 'Syndicat Jardins du Roi',
+        payment_whatsapp: '+212537334455',
     },
 ]
 

@@ -774,6 +774,16 @@ function Dashboard() {
                             ...prev,
                             [activeBuilding.id]: { ...(prev[activeBuilding.id] ?? {}), ...overrides },
                         }))
+                        // Persist payment info to localStorage so ResidentPortal can read it
+                        try {
+                            const bankFields = {
+                                payment_rib: overrides.payment_rib,
+                                payment_bank: overrides.payment_bank,
+                                payment_account_holder: overrides.payment_account_holder,
+                                payment_whatsapp: overrides.payment_whatsapp,
+                            }
+                            localStorage.setItem(`sp_bank_${activeBuilding.id}`, JSON.stringify(bankFields))
+                        } catch { }
                         setShowBldgSettings(false)
                     }}
                 />
@@ -6105,6 +6115,10 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         logo: building.logo ?? null,
         cachet: building.cachet ?? null,
         reserve_fund_mad: building.reserve_fund_mad ?? '',
+        payment_rib: building.payment_rib ?? '',
+        payment_bank: building.payment_bank ?? '',
+        payment_account_holder: building.payment_account_holder ?? '',
+        payment_whatsapp: building.payment_whatsapp ?? '',
     })
     const [confirmSave, setConfirmSave] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -6238,6 +6252,41 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">MAD</span>
                             </div>
                             <p className="text-[10px] text-slate-600 mt-1">Provision pour travaux et imprévus de la copropriété</p>
+                        </div>
+                    </div>
+
+                    {/* ── Coordonnées de paiement ── */}
+                    <div className="border-t border-white/8 pt-5">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Coordonnées de paiement</p>
+                        <p className="text-[11px] text-slate-500 mb-3 leading-relaxed">Affichées aux résidents en retard dans leur espace portail pour faciliter le règlement de leurs charges.</p>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">RIB</label>
+                                <input value={form.payment_rib} onChange={e => set('payment_rib', e.target.value)}
+                                    placeholder="ex : 011 780 0123456789 0100"
+                                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-sp/50" />
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Banque</label>
+                                    <input value={form.payment_bank} onChange={e => set('payment_bank', e.target.value)}
+                                        placeholder="ex : Attijariwafa Bank"
+                                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Titulaire</label>
+                                    <input value={form.payment_account_holder} onChange={e => set('payment_account_holder', e.target.value)}
+                                        placeholder="ex : Syndicat Résidence X"
+                                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">WhatsApp syndic</label>
+                                <input value={form.payment_whatsapp} onChange={e => set('payment_whatsapp', e.target.value)}
+                                    placeholder="ex : +212661234567"
+                                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-sp/50" />
+                                <p className="text-[10px] text-slate-600 mt-1">Le résident peut vous contacter via un message pré-rempli avec son solde dû</p>
+                            </div>
                         </div>
                     </div>
 
@@ -7620,6 +7669,7 @@ function ResidentPortal({ session, onLogout }) {
     const nextAG = meetings.find(m => m.status === 'upcoming')
 
     const [expandedCirc, setExpandedCirc] = useState(null)
+    const [copiedBankField, setCopiedBankField] = useState(null)
     let recentCircs = []
     try {
         const allCircs = JSON.parse(localStorage.getItem(`sp_circ_${buildingId}`) ?? '[]')
@@ -7745,6 +7795,135 @@ function ResidentPortal({ session, onLogout }) {
                         </div>
                     </div>
                 )}
+
+                {/* ── Régler mes charges (only when not paid) ── */}
+                {status !== 'paid' && (() => {
+                    // Read bank info: localStorage overrides base building data
+                    let bankInfo = {
+                        rib: building.payment_rib ?? '',
+                        bank: building.payment_bank ?? '',
+                        holder: building.payment_account_holder ?? '',
+                        whatsapp: building.payment_whatsapp ?? '',
+                    }
+                    try {
+                        const stored = JSON.parse(localStorage.getItem(`sp_bank_${buildingId}`) ?? '{}')
+                        if (stored.payment_rib)              bankInfo.rib     = stored.payment_rib
+                        if (stored.payment_bank)             bankInfo.bank    = stored.payment_bank
+                        if (stored.payment_account_holder)   bankInfo.holder  = stored.payment_account_holder
+                        if (stored.payment_whatsapp)         bankInfo.whatsapp = stored.payment_whatsapp
+                    } catch { }
+
+                    const fee = resident.monthly_fee ?? building.monthly_fee ?? 850
+                    const monthsOwed = getUnpaidMonthsCount(resident.paidThrough)
+                    const amountOwed = monthsOwed * fee
+
+                    // Build WhatsApp contact message
+                    function buildContactMsg() {
+                        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+                        const [py, pm] = (resident.paidThrough ?? '0000-00').split('-').map(Number)
+                        const months = []
+                        let y = py, m = pm + 1
+                        while (y < cy || (y === cy && m <= cm)) {
+                            months.push(formatMonth(`${y}-${String(m).padStart(2, '0')}`))
+                            m++; if (m > 12) { m = 1; y++ }
+                        }
+                        const monthList = months.map(x => `  • ${x}`).join('\n')
+                        return encodeURIComponent(
+                            `Bonjour,\n\nJe suis ${resident.name}, appartement ${resident.unit} à ${building.name ?? ''}.\n\nJe souhaite régler mes charges impayées pour les mois suivants :\n${monthList}\n\nMontant total dû : ${amountOwed.toLocaleString('fr-FR')} MAD\n\nMerci de m'indiquer la marche à suivre.\n\nCordialement,\n${resident.name}`
+                        )
+                    }
+
+                    function copyField(key, val) {
+                        navigator.clipboard.writeText(val).catch(() => {})
+                        setCopiedBankField(key)
+                        setTimeout(() => setCopiedBankField(null), 2000)
+                    }
+                    const copiedField = copiedBankField
+
+                    const borderCls = status === 'overdue' ? 'border-red-500/25 bg-red-500/5' : 'border-amber-500/25 bg-amber-500/5'
+                    const dividerCls = status === 'overdue' ? 'border-red-500/15' : 'border-amber-500/15'
+                    const accentCls = status === 'overdue' ? 'text-red-400' : 'text-amber-400'
+                    const iconBgCls = status === 'overdue' ? 'bg-red-500/15' : 'bg-amber-500/15'
+
+                    return (
+                        <div className={`rounded-2xl border overflow-hidden ${borderCls}`}>
+                            {/* Header */}
+                            <div className={`flex items-center gap-3 px-5 py-4 border-b ${dividerCls}`}>
+                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBgCls}`}>
+                                    <CreditCard size={16} className={accentCls} />
+                                </div>
+                                <div className="flex-1">
+                                    <p className={`text-sm font-bold ${accentCls}`}>
+                                        {status === 'overdue' ? 'Charges en retard' : 'Charges du mois en attente'}
+                                    </p>
+                                    <p className="text-[11px] text-slate-500">{monthsOwed} mois non réglé{monthsOwed > 1 ? 's' : ''}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`text-xl font-bold ${accentCls}`}>{amountOwed.toLocaleString('fr-FR')} MAD</p>
+                                    <p className="text-[10px] text-slate-500">{monthsOwed} × {fee.toLocaleString('fr-FR')} MAD/mois</p>
+                                </div>
+                            </div>
+
+                            <div className="p-5 space-y-4">
+                                {/* Bank details */}
+                                {(bankInfo.rib || bankInfo.bank) && (
+                                    <div className="rounded-xl bg-navy-800/70 border border-white/8 p-4 space-y-3">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Virement bancaire</p>
+                                        {bankInfo.holder && (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-[11px] text-slate-500 w-20 flex-shrink-0">Titulaire</span>
+                                                <span className="text-[12px] text-slate-200 font-medium flex-1 text-right">{bankInfo.holder}</span>
+                                                <button onClick={() => copyField('holder', bankInfo.holder)} title="Copier"
+                                                    className="flex-shrink-0 text-slate-500 hover:text-sp transition-colors">
+                                                    {copiedField === 'holder' ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                                                </button>
+                                            </div>
+                                        )}
+                                        {bankInfo.bank && (
+                                            <div className="flex items-center justify-between gap-3">
+                                                <span className="text-[11px] text-slate-500 w-20 flex-shrink-0">Banque</span>
+                                                <span className="text-[12px] text-slate-200 font-medium flex-1 text-right">{bankInfo.bank}</span>
+                                                <button onClick={() => copyField('bank', bankInfo.bank)} title="Copier"
+                                                    className="flex-shrink-0 text-slate-500 hover:text-sp transition-colors">
+                                                    {copiedField === 'bank' ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                                                </button>
+                                            </div>
+                                        )}
+                                        {bankInfo.rib && (
+                                            <div className="flex items-center justify-between gap-3 rounded-lg bg-navy-700/50 border border-white/5 px-3 py-2">
+                                                <span className="text-[11px] text-slate-500 w-20 flex-shrink-0 font-semibold">RIB</span>
+                                                <span className="text-[12px] text-slate-100 font-mono font-bold flex-1 text-right tracking-wider">{bankInfo.rib}</span>
+                                                <button onClick={() => copyField('rib', bankInfo.rib)} title="Copier le RIB"
+                                                    className="flex-shrink-0 text-slate-400 hover:text-sp transition-colors ml-2">
+                                                    {copiedField === 'rib' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                                                </button>
+                                            </div>
+                                        )}
+                                        <p className="text-[10px] text-slate-600 pt-1">Indiquez votre nom et appartement dans le libellé du virement.</p>
+                                    </div>
+                                )}
+
+                                {/* Contact buttons */}
+                                <div className="flex gap-3">
+                                    {bankInfo.whatsapp && (
+                                        <a
+                                            href={`https://wa.me/${bankInfo.whatsapp.replace(/\D/g, '')}?text=${buildContactMsg()}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-2 py-3 bg-emerald-500/12 hover:bg-emerald-500/22 text-emerald-400 rounded-xl text-sm font-semibold border border-emerald-500/20 transition-all"
+                                        >
+                                            <MessageCircle size={15} /> Contacter le syndic
+                                        </a>
+                                    )}
+                                    {building.manager && (
+                                        <div className="flex-1 flex items-center justify-center gap-2 py-3 bg-navy-700/60 text-slate-400 rounded-xl text-sm border border-white/8 text-center">
+                                            <span className="text-[11px] leading-tight">Gestionnaire<br/><span className="font-semibold text-slate-300">{building.manager}</span></span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )
+                })()}
 
                 {/* 2-col grid */}
                 <div className="grid lg:grid-cols-2 gap-4">
