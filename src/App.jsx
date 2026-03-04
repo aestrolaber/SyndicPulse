@@ -226,14 +226,20 @@ function buildCirculaireMessage(templateKey, vars, buildingName) {
     }
 }
 
-function generateCirculaireDoc(building, circ) {
+function buildCustomMessage(tpl, vars, buildingName) {
+    let msg = tpl.messageTemplate || ''
+    const allVars = { ...vars, building: buildingName }
+    return msg.replace(/\{\{(\w+)\}\}/g, (_, k) => allVars[k] ?? `[${k}]`)
+}
+
+function generateCirculaireDoc(building, circ, msgOverride) {
     const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     const fmtDate = (d) => {
         if (!d) return new Date().toLocaleDateString('fr-FR')
         const [y, m, day] = d.split('-')
         return `${parseInt(day)} ${MONTHS_FR[parseInt(m) - 1]} ${y}`
     }
-    const msg = buildCirculaireMessage(circ.template, circ.vars, building.name)
+    const msg = msgOverride ?? buildCirculaireMessage(circ.template, circ.vars, building.name)
     const logoHtml = buildingLogoHTML(building, 48)
     const arabicTitles = {
         coupure_eau: 'إعلان هام — انقطاع الماء',
@@ -427,6 +433,22 @@ function Dashboard() {
         })
     }
 
+    // Custom circulaire templates — persisted in localStorage per building
+    const CTPL_KEY = (id) => `sp_ctpls_${id}`
+    const [customTplsByBldg, setCustomTplsByBldg] = useState({})
+    const customTpls = customTplsByBldg[activeBuilding?.id] ?? (() => {
+        try { return JSON.parse(localStorage.getItem(CTPL_KEY(activeBuilding?.id)) ?? '[]') } catch { return [] }
+    })()
+    function setCustomTpls(fn) {
+        const bldgId = activeBuilding.id
+        setCustomTplsByBldg(prev => {
+            const cur = prev[bldgId] ?? (() => { try { return JSON.parse(localStorage.getItem(CTPL_KEY(bldgId)) ?? '[]') } catch { return [] } })()
+            const next = typeof fn === 'function' ? fn(cur) : fn
+            localStorage.setItem(CTPL_KEY(bldgId), JSON.stringify(next))
+            return { ...prev, [bldgId]: next }
+        })
+    }
+
     // Merge user-customized settings (logo, name, manager) on top of base building data
     const activeBuildingMerged = activeBuilding
         ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
@@ -476,7 +498,7 @@ function Dashboard() {
                     {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
                     {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
                     {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} showToast={showToast} />}
-                    {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} showToast={showToast} />}
+                    {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} customTpls={customTpls} setCustomTpls={setCustomTpls} showToast={showToast} />}
                     {activeTab === 'users' && <UsersPage showToast={showToast} />}
                 </main>
             </div>
@@ -2057,8 +2079,11 @@ function StarRating({ value, onChange, size = 16 }) {
 /* ════════════════════════════════════
    CIRCULAIRES PAGE
 ════════════════════════════════════ */
-function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
+function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [], setCustomTpls, showToast }) {
     const [showAdd, setShowAdd] = useState(false)
+    const [showManageTpls, setShowManageTpls] = useState(false)
+
+    const allTemplates = [...CIRCULAIRE_TEMPLATES, ...customTpls]
 
     const MONTHS_S = ['Jan.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
     const fmtDate = (iso) => {
@@ -2080,9 +2105,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
         showToast('Marqué comme diffusé', 'success')
     }
     function handleCopyWA(circ) {
-        const msg = buildCirculaireMessage(circ.template, circ.vars, building.name)
+        const tpl = allTemplates.find(t => t.key === circ.template)
+        const msg = tpl?.isCustom
+            ? buildCustomMessage(tpl, circ.vars, building.name)
+            : buildCirculaireMessage(circ.template, circ.vars, building.name)
         navigator.clipboard.writeText(msg).then(() =>
             showToast('Message copié — collez-le dans WhatsApp Broadcast', 'success'))
+    }
+    function handlePrint(circ) {
+        const tpl = allTemplates.find(t => t.key === circ.template)
+        const msgOverride = tpl?.isCustom ? buildCustomMessage(tpl, circ.vars, building.name) : undefined
+        generateCirculaireDoc(building, circ, msgOverride)
     }
 
     const thisMonth = new Date().toISOString().slice(0, 7)
@@ -2097,10 +2130,16 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
                     <h2 className="text-xl font-bold text-white">Circulaires & Avis</h2>
                     <p className="text-xs text-slate-400 mt-1">Rédigez et diffusez les avis aux résidents en quelques clics</p>
                 </div>
-                <button onClick={() => setShowAdd(true)}
-                    className="flex items-center gap-2 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-                    <Megaphone size={15} /> Nouvel avis
-                </button>
+                <div className="flex items-center gap-2">
+                    <button onClick={() => setShowManageTpls(true)}
+                        className="flex items-center gap-2 bg-navy-700 hover:bg-navy-600 border border-white/10 text-slate-300 px-3 py-2 rounded-xl text-sm font-medium transition-colors">
+                        <Settings size={14} /> Modèles
+                    </button>
+                    <button onClick={() => setShowAdd(true)}
+                        className="flex items-center gap-2 bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-400 px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
+                        <Megaphone size={15} /> Nouvel avis
+                    </button>
+                </div>
             </div>
 
             {/* Stats */}
@@ -2128,6 +2167,14 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
                             <span className="text-sm font-medium text-slate-200 leading-tight">{t.label}</span>
                         </button>
                     ))}
+                    {customTpls.map(t => (
+                        <button key={t.key} onClick={() => setShowAdd({ defaultTemplate: t.key })}
+                            className="flex items-center gap-3 p-3 rounded-xl bg-navy-700/60 border border-white/8 hover:border-white/20 hover:bg-navy-700 transition-all text-left relative">
+                            <span className="text-xl flex-shrink-0">{t.icon}</span>
+                            <span className="text-sm font-medium text-slate-200 leading-tight">{t.label}</span>
+                            <span className="absolute top-1.5 right-1.5 text-[9px] font-bold bg-violet-500/20 text-violet-400 border border-violet-500/20 px-1.5 py-0.5 rounded-full">Custom</span>
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -2145,7 +2192,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
                     </div>
                     <div className="divide-y divide-white/5">
                         {circulaires.map(circ => {
-                            const tmpl = CIRCULAIRE_TEMPLATES.find(t => t.key === circ.template) ?? { icon: '📝', label: 'Avis' }
+                            const tmpl = allTemplates.find(t => t.key === circ.template) ?? { icon: '📝', label: 'Avis' }
                             const summary = circ.vars.titre ?? circ.vars.raison ?? circ.vars.sujet ?? circ.vars.zone ?? circ.vars.contenu?.slice(0, 70) ?? '—'
                             return (
                                 <div key={circ.id} className="flex items-center gap-4 px-5 py-4 hover:bg-navy-700/30 transition-colors">
@@ -2161,7 +2208,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
                                         <p className="text-[10px] text-slate-500 mt-0.5">{fmtDate(circ.createdAt)}</p>
                                     </div>
                                     <div className="flex items-center gap-1.5 flex-shrink-0">
-                                        <button onClick={() => generateCirculaireDoc(building, circ)} title="Imprimer / PDF"
+                                        <button onClick={() => handlePrint(circ)} title="Imprimer / PDF"
                                             className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-navy-600 text-slate-400 hover:text-white border border-white/8 transition-colors">
                                             <FileText size={13} />
                                         </button>
@@ -2191,8 +2238,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
                 <AddCirculaireModal
                     building={building}
                     defaultTemplate={typeof showAdd === 'object' ? showAdd.defaultTemplate : undefined}
+                    customTpls={customTpls}
                     onClose={() => setShowAdd(false)}
                     onAdd={handleAdd}
+                    showToast={showToast}
+                />
+            )}
+            {showManageTpls && (
+                <ManageCustomTemplatesModal
+                    customTpls={customTpls}
+                    setCustomTpls={setCustomTpls}
+                    onClose={() => setShowManageTpls(false)}
                     showToast={showToast}
                 />
             )}
@@ -2200,14 +2256,15 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
     )
 }
 
-function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToast }) {
+function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClose, onAdd, showToast }) {
     const [step, setStep] = useState(defaultTemplate ? 2 : 1)
     const [selectedTemplate, setSelectedTemplate] = useState(defaultTemplate ?? null)
     const [vars, setVars] = useState({})
     const [preview, setPreview] = useState(false)
     const [copied, setCopied] = useState(false)
 
-    const tmpl = CIRCULAIRE_TEMPLATES.find(t => t.key === selectedTemplate)
+    const allTpls = [...CIRCULAIRE_TEMPLATES, ...customTpls]
+    const tmpl = allTpls.find(t => t.key === selectedTemplate)
 
     useEffect(() => {
         if (tmpl) {
@@ -2217,7 +2274,9 @@ function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToa
         }
     }, [selectedTemplate])
 
-    const msgText = selectedTemplate ? buildCirculaireMessage(selectedTemplate, vars, building.name) : ''
+    const msgText = tmpl?.isCustom
+        ? buildCustomMessage(tmpl, vars, building.name)
+        : selectedTemplate ? buildCirculaireMessage(selectedTemplate, vars, building.name) : ''
 
     function handleSave() {
         const missing = tmpl?.fields.filter(f => f.required && !vars[f.key]) ?? []
@@ -2259,18 +2318,38 @@ function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToa
                 <div className="p-5">
                     {/* STEP 1 — Template picker */}
                     {step === 1 && (
-                        <div className="grid grid-cols-2 gap-3">
-                            {CIRCULAIRE_TEMPLATES.map(t => (
-                                <button key={t.key}
-                                    onClick={() => { setSelectedTemplate(t.key); setStep(2) }}
-                                    className="flex items-start gap-4 p-4 rounded-xl bg-navy-700/60 border border-white/8 hover:border-white/25 hover:bg-navy-700 transition-all text-left">
-                                    <span className="text-2xl flex-shrink-0 mt-0.5">{t.icon}</span>
-                                    <div>
-                                        <p className="text-sm font-semibold text-white">{t.label}</p>
-                                        <p className="text-xs text-slate-500 mt-1">{t.fields.map(f => f.label).join(' · ')}</p>
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-3">
+                                {CIRCULAIRE_TEMPLATES.map(t => (
+                                    <button key={t.key}
+                                        onClick={() => { setSelectedTemplate(t.key); setStep(2) }}
+                                        className="flex items-start gap-4 p-4 rounded-xl bg-navy-700/60 border border-white/8 hover:border-white/25 hover:bg-navy-700 transition-all text-left">
+                                        <span className="text-2xl flex-shrink-0 mt-0.5">{t.icon}</span>
+                                        <div>
+                                            <p className="text-sm font-semibold text-white">{t.label}</p>
+                                            <p className="text-xs text-slate-500 mt-1">{t.fields.map(f => f.label).join(' · ')}</p>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                            {customTpls.length > 0 && (
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3">Modèles personnalisés</p>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {customTpls.map(t => (
+                                            <button key={t.key}
+                                                onClick={() => { setSelectedTemplate(t.key); setStep(2) }}
+                                                className="flex items-start gap-4 p-4 rounded-xl bg-violet-500/8 border border-violet-500/20 hover:border-violet-500/40 hover:bg-violet-500/15 transition-all text-left">
+                                                <span className="text-2xl flex-shrink-0 mt-0.5">{t.icon}</span>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-white">{t.label}</p>
+                                                    <p className="text-xs text-slate-500 mt-1">{t.fields.map(f => f.label).join(' · ') || 'Modèle libre'}</p>
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
-                                </button>
-                            ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -2331,7 +2410,7 @@ function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToa
 
                             {/* Action buttons */}
                             <div className="flex gap-3 pt-1">
-                                <button onClick={() => generateCirculaireDoc(building, { template: selectedTemplate, vars, createdAt: new Date().toISOString() })}
+                                <button onClick={() => generateCirculaireDoc(building, { template: selectedTemplate, vars, createdAt: new Date().toISOString() }, tmpl?.isCustom ? msgText : undefined)}
                                     className="flex items-center gap-2 flex-1 justify-center py-2.5 rounded-xl bg-navy-700/60 border border-white/12 text-sm font-semibold text-slate-300 hover:border-white/25 hover:text-white transition-colors">
                                     <FileText size={14} /> Imprimer / PDF
                                 </button>
@@ -2346,6 +2425,297 @@ function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToa
                             </button>
                         </div>
                     )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   CUSTOM TEMPLATE MODALS
+══════════════════════════════════════════════════════════════════════ */
+const CUSTOM_TPL_ICONS = ['📢', '🔔', '📋', '🏛️', '🔧', '💬', '⚠️', '🗓️', '📌', '🏠', '🚿', '⚡', '🧹', '📝', '🔑', '🚗']
+const CUSTOM_TPL_COLORS = ['#06b6d4', '#10b981', '#6366f1', '#f59e0b', '#ec4899', '#8b5cf6', '#ef4444', '#22c55e']
+const FIELD_TYPES = [
+    { value: 'text', label: 'Texte court' },
+    { value: 'textarea', label: 'Texte long' },
+    { value: 'date', label: 'Date' },
+    { value: 'time', label: 'Heure' },
+    { value: 'number', label: 'Nombre' },
+]
+
+function toFieldKey(s) {
+    return s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '').slice(0, 30)
+}
+
+function CustomTemplateEditorModal({ tpl, onSave, onDelete, onClose, showToast }) {
+    const isEdit = !!tpl?.id
+    const [form, setForm] = useState({
+        label:           tpl?.label           ?? '',
+        icon:            tpl?.icon            ?? '📢',
+        color:           tpl?.color           ?? '#06b6d4',
+        messageTemplate: tpl?.messageTemplate ?? 'Chers résidents de {{building}},\n\n{{contenu}}\n\nCordialement,\nLe Bureau du Syndic',
+        fields:          tpl?.fields          ?? [{ key: 'contenu', label: 'Contenu', type: 'textarea', required: true, placeholder: 'Rédigez votre message ici...' }],
+    })
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+
+    function setField(k, v) { setForm(f => ({ ...f, [k]: v })) }
+
+    function addField() {
+        setForm(f => ({ ...f, fields: [...f.fields, { key: '', label: '', type: 'text', required: false, placeholder: '' }] }))
+    }
+    function removeField(i) {
+        setForm(f => ({ ...f, fields: f.fields.filter((_, idx) => idx !== i) }))
+    }
+    function updateField(i, k, v) {
+        setForm(f => {
+            const fields = f.fields.map((fld, idx) => {
+                if (idx !== i) return fld
+                const updated = { ...fld, [k]: v }
+                if (k === 'label' && !fld._keyManual) updated.key = toFieldKey(v)
+                return updated
+            })
+            return { ...f, fields }
+        })
+    }
+    function setFieldKeyManual(i, v) {
+        setForm(f => {
+            const fields = f.fields.map((fld, idx) =>
+                idx === i ? { ...fld, key: v, _keyManual: true } : fld
+            )
+            return { ...f, fields }
+        })
+    }
+
+    function doSave() {
+        if (!form.label.trim()) { showToast('Nom du modèle requis', 'error'); return }
+        const id = tpl?.id ?? `ctpl-${Date.now()}`
+        const cleanFields = form.fields.filter(f => f.key && f.label).map(({ _keyManual, ...rest }) => rest)
+        onSave({ ...form, id, key: id, fields: cleanFields, isCustom: true, createdAt: tpl?.createdAt ?? new Date().toISOString() })
+        onClose()
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-white/8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center">
+                            <Settings size={15} className="text-violet-400" />
+                        </div>
+                        <p className="text-sm font-bold text-white">{isEdit ? 'Modifier le modèle' : 'Nouveau modèle personnalisé'}</p>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+                <div className="p-5 space-y-5">
+                    {/* Name + Icon + Color */}
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="col-span-2">
+                            <label className="block text-xs text-slate-400 mb-1.5">Nom du modèle <span className="text-red-400">*</span></label>
+                            <input value={form.label} onChange={e => setField('label', e.target.value)}
+                                placeholder="Ex: Réunion de quartier"
+                                className="w-full bg-navy-700/60 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50" />
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1.5">Icône</label>
+                            <div className="flex flex-wrap gap-2">
+                                {CUSTOM_TPL_ICONS.map(ic => (
+                                    <button key={ic} onClick={() => setField('icon', ic)}
+                                        className={`w-9 h-9 rounded-xl text-lg flex items-center justify-center border transition-all ${form.icon === ic ? 'bg-cyan-500/20 border-cyan-500/50' : 'bg-navy-700/60 border-white/8 hover:border-white/20'}`}>
+                                        {ic}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-xs text-slate-400 mb-1.5">Couleur</label>
+                            <div className="flex flex-wrap gap-2">
+                                {CUSTOM_TPL_COLORS.map(c => (
+                                    <button key={c} onClick={() => setField('color', c)}
+                                        className={`w-7 h-7 rounded-lg border-2 transition-all ${form.color === c ? 'border-white scale-110' : 'border-transparent hover:border-white/40'}`}
+                                        style={{ background: c }} />
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Fields editor */}
+                    <div>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="text-xs text-slate-400">Champs du formulaire</label>
+                            <button onClick={addField}
+                                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1 transition-colors">
+                                <Plus size={12} /> Ajouter un champ
+                            </button>
+                        </div>
+                        <div className="space-y-2.5">
+                            {form.fields.map((f, i) => (
+                                <div key={i} className="flex items-start gap-2 p-3 rounded-xl bg-navy-700/40 border border-white/6">
+                                    <div className="flex-1 grid grid-cols-2 gap-2">
+                                        <div>
+                                            <input value={f.label} onChange={e => updateField(i, 'label', e.target.value)}
+                                                placeholder="Libellé" className="w-full bg-navy-700/80 border border-white/8 rounded-lg px-2.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40" />
+                                            <p className="text-[10px] text-slate-600 mt-1">Clé : <code className="text-violet-400">{'{{'}{ f.key || '…' }{'}}'}</code></p>
+                                        </div>
+                                        <select value={f.type} onChange={e => updateField(i, 'type', e.target.value)}
+                                            className="bg-navy-700/80 border border-white/8 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-cyan-500/40">
+                                            {FIELD_TYPES.map(ft => <option key={ft.value} value={ft.value}>{ft.label}</option>)}
+                                        </select>
+                                        <input value={f.placeholder ?? ''} onChange={e => updateField(i, 'placeholder', e.target.value)}
+                                            placeholder="Texte indicatif (optionnel)"
+                                            className="col-span-2 bg-navy-700/80 border border-white/8 rounded-lg px-2.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/40" />
+                                    </div>
+                                    <div className="flex flex-col items-center gap-1.5 pt-0.5">
+                                        <label className="flex items-center gap-1 cursor-pointer" title="Requis">
+                                            <input type="checkbox" checked={f.required ?? false} onChange={e => updateField(i, 'required', e.target.checked)}
+                                                className="w-3.5 h-3.5 rounded accent-cyan-500" />
+                                            <span className="text-[10px] text-slate-500">Requis</span>
+                                        </label>
+                                        <button onClick={() => removeField(i)}
+                                            className="p-1 rounded-lg hover:bg-red-500/15 text-slate-600 hover:text-red-400 transition-colors">
+                                            <X size={12} />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            {form.fields.length === 0 && (
+                                <p className="text-xs text-slate-500 text-center py-3">Aucun champ — le formulaire sera vide.</p>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Message template */}
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1.5">
+                            Corps du message
+                            <span className="ml-2 text-[10px] text-slate-500">utilisez <code className="text-violet-400">{'{{clé}}'}</code> pour insérer un champ</span>
+                        </label>
+                        <textarea value={form.messageTemplate} onChange={e => setField('messageTemplate', e.target.value)}
+                            rows={7} className="w-full bg-navy-700/60 border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500/50 resize-none font-mono text-xs leading-relaxed" />
+                        <p className="text-[10px] text-slate-500 mt-1">
+                            Clés disponibles : <code className="text-violet-400">{'{{building}}'}</code>
+                            {form.fields.filter(f => f.key).map(f => (
+                                <code key={f.key} className="text-violet-400 ml-1">{`{{${f.key}}}`}</code>
+                            ))}
+                        </p>
+                    </div>
+
+                    {/* Save / Delete */}
+                    {confirmDelete ? (
+                        <div className="rounded-xl bg-red-500/10 border border-red-500/30 p-3 flex items-center justify-between gap-3">
+                            <p className="text-xs text-red-300">Supprimer ce modèle définitivement ?</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setConfirmDelete(false)} className="text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5">Annuler</button>
+                                <button onClick={() => { onDelete(tpl.id); onClose() }}
+                                    className="text-xs font-bold text-red-400 bg-red-500/15 border border-red-500/30 px-3 py-1.5 rounded-lg hover:bg-red-500/25 transition-colors">Supprimer</button>
+                            </div>
+                        </div>
+                    ) : confirmSave ? (
+                        <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-3 flex items-center justify-between gap-3">
+                            <p className="text-xs text-cyan-300">Confirmer l'enregistrement ?</p>
+                            <div className="flex gap-2">
+                                <button onClick={() => setConfirmSave(false)} className="text-xs text-slate-400 hover:text-white transition-colors px-3 py-1.5">Annuler</button>
+                                <button onClick={doSave}
+                                    className="text-xs font-bold text-cyan-400 bg-cyan-500/15 border border-cyan-500/30 px-3 py-1.5 rounded-lg hover:bg-cyan-500/25 transition-colors">Confirmer</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="flex gap-3">
+                            {isEdit && (
+                                <button onClick={() => setConfirmDelete(true)}
+                                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-500/8 border border-red-500/20 text-red-400 text-sm font-medium hover:bg-red-500/15 transition-colors">
+                                    <Trash2 size={14} /> Supprimer
+                                </button>
+                            )}
+                            <button onClick={() => setConfirmSave(true)}
+                                className="flex-1 py-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/25 transition-colors">
+                                {isEdit ? 'Enregistrer les modifications' : 'Créer le modèle'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function ManageCustomTemplatesModal({ customTpls, setCustomTpls, onClose, showToast }) {
+    const [editing, setEditing] = useState(null)   // null | 'new' | template object
+
+    function handleSave(tpl) {
+        setCustomTpls(prev => {
+            const exists = prev.some(t => t.id === tpl.id)
+            return exists ? prev.map(t => t.id === tpl.id ? tpl : t) : [...prev, tpl]
+        })
+        showToast(`Modèle "${tpl.label}" enregistré`, 'success')
+        setEditing(null)
+    }
+    function handleDelete(id) {
+        setCustomTpls(prev => prev.filter(t => t.id !== id))
+        showToast('Modèle supprimé', 'success')
+    }
+
+    if (editing !== null) {
+        return (
+            <CustomTemplateEditorModal
+                tpl={editing === 'new' ? null : editing}
+                onSave={handleSave}
+                onDelete={handleDelete}
+                onClose={() => setEditing(null)}
+                showToast={showToast}
+            />
+        )
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between p-5 border-b border-white/8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-violet-500/15 border border-violet-500/30 flex items-center justify-center">
+                            <Settings size={15} className="text-violet-400" />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white">Modèles personnalisés</p>
+                            <p className="text-xs text-slate-400">{customTpls.length} modèle{customTpls.length !== 1 ? 's' : ''}</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-navy-700 text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+                <div className="p-5">
+                    {customTpls.length === 0 ? (
+                        <div className="text-center py-10">
+                            <div className="text-4xl mb-3">📋</div>
+                            <p className="text-sm text-slate-400 mb-1">Aucun modèle personnalisé</p>
+                            <p className="text-xs text-slate-500">Créez des templates réutilisables pour vos avis récurrents.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2.5 mb-4">
+                            {customTpls.map(t => (
+                                <div key={t.id} className="flex items-center gap-3 p-3.5 rounded-xl bg-navy-700/40 border border-white/6 hover:border-white/12 transition-colors">
+                                    <span className="text-2xl">{t.icon}</span>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-white">{t.label}</p>
+                                        <p className="text-xs text-slate-500 truncate">
+                                            {t.fields.length > 0 ? t.fields.map(f => f.label).join(' · ') : 'Modèle libre'}
+                                        </p>
+                                    </div>
+                                    <button onClick={() => setEditing(t)}
+                                        className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white px-3 py-1.5 rounded-lg bg-navy-700/60 border border-white/8 hover:border-white/20 transition-colors">
+                                        <Pencil size={12} /> Modifier
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                    <button onClick={() => setEditing('new')}
+                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 text-sm font-semibold hover:bg-cyan-500/25 transition-colors">
+                        <Plus size={15} /> Nouveau modèle
+                    </button>
                 </div>
             </div>
         </div>
