@@ -1160,6 +1160,27 @@ function UserGuideModal({ onClose }) {
                                 </div>
                             </div>
 
+                            {/* Section: Coordonnées de paiement */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Coordonnées de paiement</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField
+                                        label="RIB"
+                                        badge="Portail"
+                                        description="Numéro de compte bancaire (RIB) du syndicat pour les virements. Affiché dans l'espace portail des résidents en retard ou en attente de paiement, avec un bouton de copie en un clic."
+                                    />
+                                    <GuideField
+                                        label="Banque & Titulaire"
+                                        description="Nom de la banque et du titulaire du compte syndical. Présentés au résident à côté du RIB pour confirmer l'exactitude du bénéficiaire avant le virement."
+                                    />
+                                    <GuideField
+                                        label="WhatsApp syndic"
+                                        description="Numéro WhatsApp du gestionnaire. Le résident en retard peut cliquer sur 'Contacter le syndic' pour ouvrir WhatsApp avec un message pré-rempli incluant son nom, son appartement, les mois impayés et le montant total dû."
+                                        tip="Conseil : utilisez un numéro dédié à la gestion (pas votre numéro personnel) pour filtrer facilement les demandes de paiement."
+                                    />
+                                </div>
+                            </div>
+
                             {/* Section: Workflow */}
                             <div>
                                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Workflow recommandé</h4>
@@ -1167,8 +1188,9 @@ function UserGuideModal({ onClose }) {
                                     {[
                                         { step: '1', text: 'Configurer le logo de la syndic — il s\'affiche immédiatement dans tous les nouveaux documents.' },
                                         { step: '2', text: 'Scanner et importer le cachet officiel (PNG transparent) — supprime entièrement la chaîne imprimer → tamponner → scanner → envoyer.' },
-                                        { step: '3', text: 'Vérifier le nom, la ville, le gestionnaire et le fonds de réserve — ces informations sont inscrites dans les documents légaux et le tableau de bord financier.' },
-                                        { step: '4', text: 'Répéter pour chaque immeuble si vous gérez plusieurs propriétés — chaque immeuble a ses propres paramètres indépendants.' },
+                                        { step: '3', text: 'Renseigner les coordonnées de paiement (RIB, banque, WhatsApp) — les résidents en retard pourront payer ou contacter le syndic directement depuis leur portail.' },
+                                        { step: '4', text: 'Vérifier le nom, la ville, le gestionnaire et le fonds de réserve — ces informations sont inscrites dans les documents légaux et le tableau de bord financier.' },
+                                        { step: '5', text: 'Répéter pour chaque immeuble si vous gérez plusieurs propriétés — chaque immeuble a ses propres paramètres indépendants.' },
                                     ].map(({ step, text }) => (
                                         <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
                                             <span className="w-6 h-6 rounded-full bg-sp/20 text-sp text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
@@ -6158,13 +6180,16 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+                {/* Fixed header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 flex-shrink-0">
                     <h2 className="text-base font-bold text-white">Paramètres de la propriété</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+                {/* Scrollable body */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-5">
                     {/* Logo section */}
                     <div>
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Logo de la syndic</label>
@@ -6309,6 +6334,10 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                         </div>
                     </div>
 
+                </div>{/* end scrollable body */}
+
+                {/* Fixed footer */}
+                <div className="flex-shrink-0 px-6 py-4 border-t border-white/8 bg-navy-800">
                     {confirmSave ? (
                         <div className="rounded-xl bg-cyan-500/10 border border-cyan-500/30 p-4 flex items-center justify-between gap-3">
                             <p className="text-sm text-cyan-300 font-medium">Confirmer les modifications ?</p>
@@ -6324,7 +6353,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                             </div>
                         </div>
                     ) : (
-                        <div className="flex justify-end gap-3 pt-1">
+                        <div className="flex justify-end gap-3">
                             <button type="button" onClick={onClose}
                                 className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
                                 Annuler
@@ -6335,6 +6364,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                             </button>
                         </div>
                     )}
+                </div>
                 </form>
             </div>
         </div>
