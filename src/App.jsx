@@ -774,13 +774,14 @@ function Dashboard() {
                             ...prev,
                             [activeBuilding.id]: { ...(prev[activeBuilding.id] ?? {}), ...overrides },
                         }))
-                        // Persist payment info to localStorage so ResidentPortal can read it
+                        // Persist payment info + reserve fund to localStorage so ResidentPortal can read it
                         try {
                             const bankFields = {
                                 payment_rib: overrides.payment_rib,
                                 payment_bank: overrides.payment_bank,
                                 payment_account_holder: overrides.payment_account_holder,
                                 payment_whatsapp: overrides.payment_whatsapp,
+                                reserve_fund_mad: overrides.reserve_fund_mad,
                             }
                             localStorage.setItem(`sp_bank_${activeBuilding.id}`, JSON.stringify(bankFields))
                         } catch { }
@@ -7709,16 +7710,25 @@ function ResidentPortal({ session, onLogout }) {
             bank: building.payment_bank ?? '',
             holder: building.payment_account_holder ?? '',
             whatsapp: building.payment_whatsapp ?? '',
+            reserve_fund_mad: building.reserve_fund_mad ?? null,
         }
         try {
             const stored = JSON.parse(localStorage.getItem(`sp_bank_${buildingId}`) ?? '{}')
-            if (stored.payment_rib)            b.rib     = stored.payment_rib
-            if (stored.payment_bank)           b.bank    = stored.payment_bank
-            if (stored.payment_account_holder) b.holder  = stored.payment_account_holder
-            if (stored.payment_whatsapp)       b.whatsapp = stored.payment_whatsapp
+            if (stored.payment_rib)            b.rib             = stored.payment_rib
+            if (stored.payment_bank)           b.bank            = stored.payment_bank
+            if (stored.payment_account_holder) b.holder          = stored.payment_account_holder
+            if (stored.payment_whatsapp)       b.whatsapp        = stored.payment_whatsapp
+            if (stored.reserve_fund_mad != null) b.reserve_fund_mad = stored.reserve_fund_mad
         } catch { }
         return b
     })()
+
+    // Dynamic collection rate computed from actual resident payment data
+    const portalResidents = bldgData.residents ?? []
+    const portalPaidCount = portalResidents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const portalCollectionRate = portalResidents.length > 0
+        ? Math.round((portalPaidCount / portalResidents.length) * 1000) / 10
+        : 0
     const payFee = resident.monthly_fee ?? building.monthly_fee ?? 850
     const payMonthsOwed = getUnpaidMonthsCount(resident.paidThrough)
     const payAmountOwed = payMonthsOwed * payFee
@@ -8045,15 +8055,17 @@ function ResidentPortal({ session, onLogout }) {
                                     <span className="text-xs text-slate-400">Taux de recouvrement</span>
                                     <div className="flex items-center gap-2">
                                         <div className="w-20 h-1.5 bg-navy-700 rounded-full overflow-hidden">
-                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${building.collection_rate ?? 0}%` }} />
+                                            <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${portalCollectionRate}%` }} />
                                         </div>
-                                        <span className="text-xs font-bold text-emerald-400">{building.collection_rate ?? '—'}%</span>
+                                        <span className="text-xs font-bold text-emerald-400">{portalCollectionRate}%</span>
                                     </div>
                                 </div>
                                 <div className="flex items-center justify-between">
                                     <span className="text-xs text-slate-400">Fonds de réserve</span>
                                     <span className="text-xs font-semibold text-slate-200">
-                                        {building.reserve_fund_mad?.toLocaleString('fr-MA') ?? '—'} MAD
+                                        {bankInfo.reserve_fund_mad != null
+                                            ? Number(bankInfo.reserve_fund_mad).toLocaleString('fr-MA') + ' MAD'
+                                            : '—'}
                                     </span>
                                 </div>
                                 <div className="flex items-center justify-between">
