@@ -277,7 +277,7 @@ body{font-family:'Times New Roman',serif;background:#fff;color:#1a1a1a;padding:4
 <div class="title-ar">${arTitle}</div>
 <div class="title-fr">${frTitle}</div>
 <div class="body">${msg.replace(/\n/g, '<br/>')}</div>
-<div class="sig"><div><div style="font-size:13px;font-weight:bold">Le Bureau du Syndic</div><div style="font-size:12px;color:#555;margin-top:2px">${building.name}</div><div style="margin-top:24px;border-top:1px solid #555;width:160px;padding-top:6px;font-size:11px;color:#888">Signature</div></div><div class="stamp">Cachet<br/>du<br/>Syndic</div></div>
+<div class="sig"><div><div style="font-size:13px;font-weight:bold">Le Bureau du Syndic</div><div style="font-size:12px;color:#555;margin-top:2px">${building.name}</div><div style="margin-top:24px;border-top:1px solid #555;width:160px;padding-top:6px;font-size:11px;color:#888">Signature</div></div>${cachetHTML(building, 88)}</div>
 <script>window.onload=()=>{window.print();}<\/script></body></html>`)
     w.document.close()
 }
@@ -1286,6 +1286,14 @@ function buildingLogoHTML(building, size = 44) {
     return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="${size}" height="${size}" rx="${r}" fill="${color}" opacity="0.18"/><rect width="${size}" height="${size}" rx="${r}" fill="none" stroke="${color}" stroke-width="1.5"/><text x="${size / 2}" y="${size / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fs}" font-weight="bold" fill="${color}">${initials}</text></svg>`
 }
 
+/* Returns cachet img if uploaded, else the placeholder circle */
+function cachetHTML(building, size = 80) {
+    if (building.cachet) {
+        return `<img src="${building.cachet}" style="height:${size}px;width:auto;max-width:${Math.round(size * 1.6)}px;object-fit:contain;opacity:0.88;display:block;" alt="cachet"/>`
+    }
+    return `<div style="width:${size}px;height:${size}px;border:2px dashed #bbb;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;color:#bbb;line-height:1.4;padding:10px">Cachet<br/>du<br/>Syndic</div>`
+}
+
 function generatePaymentReceipt(building, resident, form, coveredThrough) {
     const METHOD_LABELS = { especes: 'Espèces', virement: 'Virement bancaire', cheque: 'Chèque' }
     const dateStr = new Date(form.date).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
@@ -1350,6 +1358,7 @@ ${form.ref ? `<div class="row"><span class="lbl">Référence / N° reçu</span><
 
 <div class="footer">
   <div class="sig">
+    ${building.cachet ? `<img src="${building.cachet}" style="height:72px;width:auto;max-width:110px;object-fit:contain;opacity:0.88;display:block;margin-bottom:4px;" alt="cachet"/>` : ''}
     <div class="line"></div>
     <div class="name">Signature du syndic</div>
   </div>
@@ -2316,7 +2325,7 @@ function generateAppelDeFondsDoc(building, residents, period, dueDate) {
             <td style="text-align:right;font-weight:700">${total.toLocaleString('fr-FR')} MAD</td><td></td></tr></tfoot>
     </table>
     <div class="sig">
-        <div class="sig-block"><div class="sig-line"></div>Le Syndic</div>
+        <div class="sig-block">${building.cachet ? `<img src="${building.cachet}" style="height:70px;width:auto;max-width:110px;object-fit:contain;opacity:0.88;display:block;margin-bottom:6px;" alt="cachet"/>` : ''}<div class="sig-line"></div>Le Syndic</div>
     </div>
     <div class="footer">
         <span>Généré par SyndicPulse · ${new Date().toLocaleDateString('fr-FR')}</span>
@@ -5878,11 +5887,14 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         city: building.city ?? '',
         manager: building.manager ?? '',
         logo: building.logo ?? null,
+        cachet: building.cachet ?? null,
     })
     const [confirmSave, setConfirmSave] = useState(false)
     const [saving, setSaving] = useState(false)
     const [logoPreview, setLogoPreview] = useState(building.logo ?? null)
+    const [cachetPreview, setCachetPreview] = useState(building.cachet ?? null)
     const fileRef = useRef(null)
+    const cachetRef = useRef(null)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
 
@@ -5891,6 +5903,14 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         if (!file) return
         const reader = new FileReader()
         reader.onload = (ev) => { set('logo', ev.target.result); setLogoPreview(ev.target.result) }
+        reader.readAsDataURL(file)
+    }
+
+    function handleCachetChange(e) {
+        const file = e.target.files[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => { set('cachet', ev.target.result); setCachetPreview(ev.target.result) }
         reader.readAsDataURL(file)
     }
 
@@ -5939,6 +5959,34 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                                 <p className="text-[10px] text-slate-500">PNG, JPG — max 2 Mo</p>
                             </div>
                             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+                        </div>
+                    </div>
+
+                    {/* Cachet du Syndic */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Cachet officiel du Syndic</label>
+                        <div className="flex items-center gap-4">
+                            <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-white/20 flex items-center justify-center flex-shrink-0 bg-navy-700/50">
+                                {cachetPreview
+                                    ? <img src={cachetPreview} alt="cachet" className="w-full h-full object-contain p-1" />
+                                    : <span className="text-[9px] text-slate-500 text-center leading-tight px-2">Cachet<br/>du<br/>Syndic</span>
+                                }
+                            </div>
+                            <div className="space-y-2">
+                                <button type="button" onClick={() => cachetRef.current?.click()}
+                                    className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 text-xs font-semibold rounded-lg border border-amber-500/20 transition-all flex items-center gap-1.5">
+                                    <Upload size={12} /> {cachetPreview ? 'Changer le cachet' : 'Importer le cachet'}
+                                </button>
+                                {cachetPreview && (
+                                    <button type="button" onClick={() => { set('cachet', null); setCachetPreview(null) }}
+                                        className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-semibold rounded-lg border border-red-500/20 transition-all">
+                                        Supprimer le cachet
+                                    </button>
+                                )}
+                                <p className="text-[10px] text-slate-500">PNG transparent recommandé — max 2 Mo</p>
+                                <p className="text-[10px] text-slate-500/70">Apposé automatiquement sur les reçus, circulaires et PV</p>
+                            </div>
+                            <input ref={cachetRef} type="file" accept="image/*" className="hidden" onChange={handleCachetChange} />
                         </div>
                     </div>
 
@@ -6441,7 +6489,7 @@ function generateConvocation(building, residents, meeting) {
 </div>
 
 <div class="sig-row">
-  <div class="sig"><div class="line"></div><div class="name">Le Syndic — ${building.name}</div></div>
+  <div class="sig">${building.cachet ? `<img src="${building.cachet}" style="height:70px;width:auto;max-width:110px;object-fit:contain;opacity:0.88;display:block;margin:0 auto 4px;" alt="cachet"/>` : ''}<div class="line"></div><div class="name">Le Syndic — ${building.name}</div></div>
   <div class="sig"><div class="line"></div><div class="name">Date d'envoi</div></div>
 </div>
 
@@ -6500,7 +6548,7 @@ function generateAttendanceSheet(building, residents, meeting) {
 
 <div class="footer">
   <div>Présents : ______ / ${residents.length} &nbsp;&nbsp; Quorum atteint : ☐ Oui &nbsp; ☐ Non</div>
-  <div>Signature du Syndic : _______________________</div>
+  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${building.cachet ? `<img src="${building.cachet}" style="height:52px;width:auto;max-width:80px;object-fit:contain;opacity:0.88;" alt="cachet"/>` : ''}Signature du Syndic : _______________________</div>
 </div>
 <script>window.onload = () => window.print()</script>
 </body>
@@ -6575,7 +6623,7 @@ ${meeting.agenda.map((a, i) => {
 ${meeting.notes ? `<h2>Notes</h2><p style="font-size:12px;color:#374151;line-height:1.6">${meeting.notes}</p>` : ''}
 
 <div class="sig-row">
-  <div class="sig"><div class="line"></div><div class="name">Le Syndic</div></div>
+  <div class="sig">${building.cachet ? `<img src="${building.cachet}" style="height:70px;width:auto;max-width:110px;object-fit:contain;opacity:0.88;display:block;margin:0 auto 4px;" alt="cachet"/>` : ''}<div class="line"></div><div class="name">Le Syndic</div></div>
   <div class="sig"><div class="line"></div><div class="name">Témoin 1</div></div>
   <div class="sig"><div class="line"></div><div class="name">Témoin 2</div></div>
 </div>
