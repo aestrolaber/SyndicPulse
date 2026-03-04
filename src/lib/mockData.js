@@ -584,10 +584,15 @@ export function validateResidentAccess(accessCode, unitInput) {
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
     )
     if (!building) return null
+    const normalizedUnit = unitInput.toLowerCase().trim()
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []
-    const resident = residents.find(
-        r => r.unit.toLowerCase() === unitInput.toLowerCase().trim()
-    )
-    if (!resident) return null
-    return { building, resident }
+    const resident = residents.find(r => r.unit.toLowerCase() === normalizedUnit)
+    if (resident) return { building, resident }
+    // Also check runtime-added residents persisted by handleAddResident
+    try {
+        const extras = JSON.parse(localStorage.getItem(`sp_residents_extra_${building.id}`) ?? '[]')
+        const extra = extras.find(r => r.unit.toLowerCase() === normalizedUnit)
+        if (extra) return { building, resident: extra }
+    } catch { }
+    return null
 }
