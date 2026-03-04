@@ -2725,6 +2725,7 @@ function StarRating({ value, onChange, size = 16 }) {
 function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [], setCustomTpls, showToast }) {
     const [showAdd, setShowAdd] = useState(false)
     const [showManageTpls, setShowManageTpls] = useState(false)
+    const [editingCirc, setEditingCirc] = useState(null)
 
     const allTemplates = [...CIRCULAIRE_TEMPLATES, ...customTpls]
 
@@ -2759,6 +2760,11 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
         const tpl = allTemplates.find(t => t.key === circ.template)
         const msgOverride = tpl?.isCustom ? buildCustomMessage(tpl, circ.vars, building.name) : undefined
         generateCirculaireDoc(building, circ, msgOverride)
+    }
+    function handleEditCirc(updated) {
+        setCirculaires(prev => prev.map(c => c.id === updated.id ? updated : c))
+        showToast('Circulaire modifiée', 'success')
+        setEditingCirc(null)
     }
 
     const thisMonth = new Date().toISOString().slice(0, 7)
@@ -2916,6 +2922,10 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                                 <Check size={13} />
                                             </button>
                                         )}
+                                        <button onClick={() => setEditingCirc(circ)} title="Modifier"
+                                            className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-white/8 transition-colors">
+                                            <Pencil size={13} />
+                                        </button>
                                         <button onClick={() => handleDelete(circ.id)} title="Supprimer"
                                             className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-red-500/20 text-slate-400 hover:text-red-400 border border-white/8 transition-colors">
                                             <Trash2 size={13} />
@@ -2938,6 +2948,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                     showToast={showToast}
                 />
             )}
+            {editingCirc && (
+                <AddCirculaireModal
+                    building={building}
+                    editCirculaire={editingCirc}
+                    customTpls={customTpls}
+                    onClose={() => setEditingCirc(null)}
+                    onAdd={handleAdd}
+                    onEdit={handleEditCirc}
+                    showToast={showToast}
+                />
+            )}
             {showManageTpls && (
                 <ManageCustomTemplatesModal
                     customTpls={customTpls}
@@ -2950,10 +2971,11 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
     )
 }
 
-function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClose, onAdd, showToast }) {
-    const [step, setStep] = useState(defaultTemplate ? 2 : 1)
-    const [selectedTemplate, setSelectedTemplate] = useState(defaultTemplate ?? null)
-    const [vars, setVars] = useState({})
+function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customTpls = [], onClose, onAdd, onEdit, showToast }) {
+    const ec = editCirculaire
+    const [step, setStep] = useState(ec ? 2 : defaultTemplate ? 2 : 1)
+    const [selectedTemplate, setSelectedTemplate] = useState(ec?.template ?? defaultTemplate ?? null)
+    const [vars, setVars] = useState(ec?.vars ?? {})
     const [preview, setPreview] = useState(false)
     const [copied, setCopied] = useState(false)
 
@@ -2961,7 +2983,7 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
     const tmpl = allTpls.find(t => t.key === selectedTemplate)
 
     useEffect(() => {
-        if (tmpl) {
+        if (tmpl && !ec) {
             const defaults = {}
             tmpl.fields.forEach(f => { if (f.default) defaults[f.key] = f.default })
             setVars(defaults)
@@ -2975,13 +2997,17 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
     function handleSave() {
         const missing = tmpl?.fields.filter(f => f.required && !vars[f.key]) ?? []
         if (missing.length > 0) { showToast(`Champ requis : ${missing[0].label}`, 'error'); return }
-        onAdd({
-            id: `circ-${Date.now()}`,
-            template: selectedTemplate,
-            vars,
-            createdAt: new Date().toISOString(),
-            diffuse: false,
-        })
+        if (ec) {
+            onEdit({ ...ec, vars })
+        } else {
+            onAdd({
+                id: `circ-${Date.now()}`,
+                template: selectedTemplate,
+                vars,
+                createdAt: new Date().toISOString(),
+                diffuse: false,
+            })
+        }
         onClose()
     }
 
@@ -3002,7 +3028,7 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
                             <Megaphone size={15} className="text-cyan-400" />
                         </div>
                         <div>
-                            <p className="text-sm font-bold text-white">Nouvel avis</p>
+                            <p className="text-sm font-bold text-white">{ec ? 'Modifier la circulaire' : 'Nouvel avis'}</p>
                             <p className="text-xs text-slate-400">{step === 1 ? 'Choisir un template' : `${tmpl?.icon ?? ''} ${tmpl?.label ?? ''}`}</p>
                         </div>
                     </div>
@@ -3094,7 +3120,7 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
                                     <div className="flex flex-col items-center justify-center gap-2 py-5 opacity-40 cursor-not-allowed select-none">
                                         <Camera size={24} className="text-slate-400" />
                                         <p className="text-xs text-slate-400">Joindre une photo de l'objet trouvé</p>
-                                        <p className="text-[10px] text-slate-500">Disponible dès l'activation du stockage cloud (Supabase Storage)</p>
+                                        <p className="text-[10px] text-slate-500">Inclus dans la mise à niveau vers le module complet</p>
                                     </div>
                                 </div>
                             )}
@@ -3130,7 +3156,7 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
                             </div>
                             <button onClick={handleSave}
                                 className="w-full py-3 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-sm font-semibold text-cyan-400 hover:bg-cyan-500/25 transition-colors">
-                                Enregistrer dans les archives
+                                {ec ? 'Enregistrer les modifications' : 'Enregistrer dans les archives'}
                             </button>
                         </div>
                     )}
