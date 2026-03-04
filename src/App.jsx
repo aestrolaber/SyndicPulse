@@ -1141,6 +1141,11 @@ function UserGuideModal({ onClose }) {
                                         label="Gestionnaire"
                                         description="Nom du gestionnaire syndic responsable de cet immeuble. Affiché dans la barre supérieure de l'application et utilisé comme signataire dans les documents officiels."
                                     />
+                                    <GuideField
+                                        label="Fonds de réserve"
+                                        description="Montant en MAD de la trésorerie de réserve de la copropriété — l'épargne accumulée dédiée aux travaux et imprévus. Affiché dans la carte KPI violette de l'onglet Finances → Vue d'ensemble, et inclus dans les exports CSV et PDF du rapport financier."
+                                        tip="Mettez à jour ce montant régulièrement (ex: après une assemblée générale ou une dépense exceptionnelle) pour que le tableau de bord reflète la situation réelle de la trésorerie."
+                                    />
                                 </div>
                             </div>
 
@@ -1151,7 +1156,7 @@ function UserGuideModal({ onClose }) {
                                     {[
                                         { step: '1', text: 'Configurer le logo de la syndic — il s\'affiche immédiatement dans tous les nouveaux documents.' },
                                         { step: '2', text: 'Scanner et importer le cachet officiel (PNG transparent) — supprime entièrement la chaîne imprimer → tamponner → scanner → envoyer.' },
-                                        { step: '3', text: 'Vérifier le nom, la ville et le gestionnaire — ces informations sont inscrites dans les documents légaux.' },
+                                        { step: '3', text: 'Vérifier le nom, la ville, le gestionnaire et le fonds de réserve — ces informations sont inscrites dans les documents légaux et le tableau de bord financier.' },
                                         { step: '4', text: 'Répéter pour chaque immeuble si vous gérez plusieurs propriétés — chaque immeuble a ses propres paramètres indépendants.' },
                                     ].map(({ step, text }) => (
                                         <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
