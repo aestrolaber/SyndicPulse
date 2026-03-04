@@ -3459,7 +3459,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Actions'].map(h => (
+                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Solde dû', 'Actions'].map(h => (
                                 <th key={h} className="text-left px-6 py-4 font-semibold">{h}</th>
                             ))}
                         </tr>
@@ -3503,6 +3503,25 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                                 <p className="text-[10px] text-slate-500">
                                                     jusqu'à {formatMonth(r.paidThrough)}
                                                 </p>
+                                            </div>
+                                        )
+                                    })()}
+                                </td>
+                                <td className="px-6 py-3.5">
+                                    {(() => {
+                                        const st = computeStatus(r.paidThrough)
+                                        if (st === 'paid') return (
+                                            <span className="text-slate-600 font-bold text-base leading-none">—</span>
+                                        )
+                                        const fee = r.monthly_fee ?? building.monthly_fee ?? 250
+                                        const months = getUnpaidMonthsCount(r.paidThrough)
+                                        const owed = months * fee
+                                        return (
+                                            <div>
+                                                <span className={`text-xs font-bold ${st === 'overdue' ? 'text-red-400' : 'text-amber-400'}`}>
+                                                    {owed.toLocaleString('fr-FR')} MAD
+                                                </span>
+                                                <p className="text-[10px] text-slate-500 mt-0.5">{months} mois × {fee.toLocaleString('fr-FR')} MAD</p>
                                             </div>
                                         )
                                     })()}
@@ -5048,6 +5067,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
         floor: resident.floor?.toString() ?? '',
         type: resident.type ?? 'proprietaire',
         paidThrough: resident.paidThrough ?? '',
+        monthly_fee: resident.monthly_fee?.toString() ?? '',
     })
     const [saving, setSaving] = useState(false)
     const [confirmSave, setConfirmSave] = useState(false)
@@ -5079,6 +5099,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
             floor: parseInt(form.floor) || 0,
             type: form.type,
             paidThrough: form.paidThrough || resident.paidThrough,
+            monthly_fee: form.monthly_fee ? parseInt(form.monthly_fee) : resident.monthly_fee,
         })
     }
 
@@ -5146,6 +5167,23 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
                                 {t.label}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                {/* ── Charge mensuelle fixe ── */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        Charge mensuelle fixe
+                        <span className="ml-1.5 text-[10px] font-normal text-slate-500">— peut différer selon l'appartement</span>
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="number" min={0} placeholder="250"
+                            value={form.monthly_fee}
+                            onChange={e => set('monthly_fee', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 pr-14 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold">MAD/mois</span>
                     </div>
                 </div>
 
@@ -5235,6 +5273,7 @@ function AddResidentModal({ onClose, onAdd }) {
         unit: '',
         floor: '',
         type: 'proprietaire',
+        monthly_fee: '250',
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
@@ -5258,6 +5297,7 @@ function AddResidentModal({ onClose, onAdd }) {
             paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
+            monthly_fee: parseInt(form.monthly_fee) || 250,
             isNew: true,
         })
         setSaving(false)
@@ -5332,6 +5372,22 @@ function AddResidentModal({ onClose, onAdd }) {
                                 {t.label}
                             </button>
                         ))}
+                    </div>
+                </div>
+
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        Charge mensuelle fixe
+                        <span className="ml-1.5 text-[10px] font-normal text-slate-500">— peut différer selon l'appartement</span>
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="number" min={0} placeholder="250"
+                            value={form.monthly_fee}
+                            onChange={e => set('monthly_fee', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 pr-14 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold">MAD/mois</span>
                     </div>
                 </div>
 
