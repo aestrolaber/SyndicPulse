@@ -3343,7 +3343,7 @@ function getPageNumbers(current, total) {
 
 function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const [search, setSearch] = useState('')
-    const [filter, setFilter] = useState('all')
+    const [activeFilters, setActiveFilters] = useState([])
     const [page, setPage] = useState(1)
     const [showAddResident, setShowAddResident] = useState(false)
     const [showImportCSV, setShowImportCSV] = useState(false)
@@ -3363,15 +3363,27 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
         showToast(`${r?.name} supprimé(e)`)
     }
 
+    function handleCardClick(e, status) {
+        if (e.ctrlKey || e.metaKey) {
+            setActiveFilters(prev =>
+                prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+            )
+        } else {
+            setActiveFilters(prev =>
+                prev.length === 1 && prev[0] === status ? [] : [status]
+            )
+        }
+    }
+
     const filtered = residents.filter(r => {
         const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
             r.unit.toLowerCase().includes(search.toLowerCase())
-        const matchFilter = filter === 'all' || computeStatus(r.paidThrough) === filter
+        const matchFilter = activeFilters.length === 0 || activeFilters.includes(computeStatus(r.paidThrough))
         return matchSearch && matchFilter
     })
 
     // Reset to page 1 whenever filter or search changes
-    useEffect(() => { setPage(1) }, [search, filter])
+    useEffect(() => { setPage(1) }, [search, activeFilters])
 
     const totalPages = Math.ceil(filtered.length / RESIDENTS_PAGE_SIZE)
     const paginated = filtered.slice((page - 1) * RESIDENTS_PAGE_SIZE, page * RESIDENTS_PAGE_SIZE)
@@ -3406,57 +3418,58 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 
     return (
         <div className="space-y-6">
-            {/* Stats — clickable filter cards */}
+            {/* Stats — clickable filter cards (Ctrl+clic = multi-select) */}
             <div className="grid grid-cols-4 gap-4">
-                {/* Tous — non-filterable info card */}
+                {/* Tous */}
                 <button
-                    onClick={() => setFilter('all')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'all' ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
+                    onClick={() => setActiveFilters([])}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.length === 0 ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">Tous les résidents</p>
-                        {filter === 'all' && <span className="text-[10px] bg-sp/20 text-sp px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                        {activeFilters.length === 0 && <span className="text-[10px] bg-sp/20 text-sp px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
                     <div className="text-2xl font-bold text-slate-200">{counts.all}</div>
                     <p className="text-[11px] text-slate-500 mt-1">{building.total_units} unités · {building.name}</p>
                 </button>
                 {/* Payés */}
                 <button
-                    onClick={() => setFilter(filter === 'paid' ? 'all' : 'paid')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'paid' ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
+                    onClick={e => handleCardClick(e, 'paid')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('paid') ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">Payés ce mois</p>
-                        {filter === 'paid' && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                        {activeFilters.includes('paid') && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
                     <div className="text-2xl font-bold text-emerald-400">{counts.paid}</div>
                     <p className="text-[11px] text-emerald-500/70 mt-1 font-semibold">{amounts.paid.toLocaleString('fr-FR')} MAD encaissés</p>
                 </button>
                 {/* En attente */}
                 <button
-                    onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'pending' ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
+                    onClick={e => handleCardClick(e, 'pending')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('pending') ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">En attente</p>
-                        {filter === 'pending' && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                        {activeFilters.includes('pending') && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
                     <div className="text-2xl font-bold text-amber-400">{counts.pending}</div>
                     <p className="text-[11px] text-amber-500/70 mt-1 font-semibold">{amounts.pending.toLocaleString('fr-FR')} MAD dus</p>
                 </button>
                 {/* En retard */}
                 <button
-                    onClick={() => setFilter(filter === 'overdue' ? 'all' : 'overdue')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'overdue' ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
+                    onClick={e => handleCardClick(e, 'overdue')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('overdue') ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">En retard</p>
-                        {filter === 'overdue' && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                        {activeFilters.includes('overdue') && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
                     <div className="text-2xl font-bold text-red-400">{counts.overdue}</div>
                     <p className="text-[11px] text-red-500/70 mt-1 font-semibold">{amounts.overdue.toLocaleString('fr-FR')} MAD dus</p>
                 </button>
             </div>
+            <p className="text-[10px] text-slate-600 -mt-3">Ctrl+clic pour sélectionner plusieurs statuts</p>
 
             {/* Action bar + Search + Filters */}
             <div className="flex items-center gap-3 flex-wrap">
@@ -3490,9 +3503,9 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                         className="w-full bg-navy-800 border border-white/8 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sp/40 transition-colors"
                     />
                 </div>
-                {filter !== 'all' && (
+                {activeFilters.length > 0 && (
                     <button
-                        onClick={() => setFilter('all')}
+                        onClick={() => setActiveFilters([])}
                         className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-semibold border border-white/8 hover:border-white/20 transition-all flex-shrink-0"
                     >
                         <X size={12} /> Réinitialiser filtre
