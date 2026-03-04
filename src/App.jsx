@@ -43,6 +43,7 @@ import {
     SUPPLIERS_BLD1, SUPPLIERS_BLD2, SUPPLIERS_BLD3,
     DEMO_USERS,
     generateResidentCode,
+    generatePortalCode,
 } from './lib/mockData.js'
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
@@ -4006,7 +4007,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
             {/* Modals */}
             <AnimatePresence>
                 {showAddResident && (
-                    <AddResidentModal onClose={() => setShowAddResident(false)} onAdd={handleAddResident} />
+                    <AddResidentModal onClose={() => setShowAddResident(false)} onAdd={handleAddResident} building={building} />
                 )}
                 {showImportCSV && (
                     <ImportCSVModal onClose={() => setShowImportCSV(false)} onImport={handleImport} />
@@ -5683,7 +5684,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
     )
 }
 
-function AddResidentModal({ onClose, onAdd }) {
+function AddResidentModal({ onClose, onAdd, building }) {
     const [form, setForm] = useState({
         name: '',
         phone: '',
@@ -5715,6 +5716,7 @@ function AddResidentModal({ onClose, onAdd }) {
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
             monthly_fee: parseInt(form.monthly_fee) || 250,
+            portalCode: generatePortalCode(building?.shortCode ?? 'XX'),
             isNew: true,
         })
         setSaving(false)

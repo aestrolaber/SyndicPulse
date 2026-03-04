@@ -115,18 +115,18 @@ export const DEMO_USERS = [
 
 // ── Residents (Norwest · bld-1) ───────────────────────────────────────────────
 export const RESIDENTS_BLD1 = [
-    { id: 'r01', unit: 'Apt 1A', name: 'Ahmed Benjelloun', phone: '+212661234567', paidThrough: '2026-02', floor: 1, since: '2019', quota: 2.08 },
-    { id: 'r02', unit: 'Apt 1B', name: 'Khadija Moussaoui', phone: '+212662345678', paidThrough: '2026-02', floor: 1, since: '2021', quota: 2.08 },
-    { id: 'r03', unit: 'Apt 1C', name: 'Omar Chraibi', phone: '+212663456789', paidThrough: '2026-02', floor: 1, since: '2020', quota: 2.08 },
-    { id: 'r04', unit: 'Apt 1D', name: 'Nadia El Fassi', phone: '+212664567890', paidThrough: '2025-11', floor: 1, since: '2022', quota: 2.08 },
-    { id: 'r05', unit: 'Apt 2A', name: 'Youssef Alami', phone: '+212665678901', paidThrough: '2026-04', floor: 2, since: '2018', quota: 2.08 },
-    { id: 'r06', unit: 'Apt 2B', name: 'Sanae Bouazza', phone: '+212666789012', paidThrough: '2026-02', floor: 2, since: '2023', quota: 2.08 },
-    { id: 'r07', unit: 'Apt 4B', name: 'Hassan Idrissi', phone: '+212667890123', paidThrough: '2026-02', floor: 4, since: '2020', quota: 2.08 },
-    { id: 'r08', unit: 'Apt 6B', name: 'Mehdi Chraibi', phone: '+212668901234', paidThrough: '2026-01', floor: 6, since: '2021', quota: 2.08 },
-    { id: 'r09', unit: 'Apt 7C', name: 'Rachid Bouazza', phone: '+212669012345', paidThrough: '2026-01', floor: 7, since: '2022', quota: 2.08 },
-    { id: 'r10', unit: 'Apt 9A', name: 'Lamia Bensouda', phone: '+212661123456', paidThrough: '2026-02', floor: 9, since: '2019', quota: 2.08 },
-    { id: 'r11', unit: 'Apt 11C', name: 'Lamia Tazi', phone: '+212662234567', paidThrough: '2025-11', floor: 11, since: '2023', quota: 2.08 },
-    { id: 'r12', unit: 'Apt 12A', name: 'Fatima Zouheir', phone: '+212663345678', paidThrough: '2026-02', floor: 12, since: '2020', quota: 2.08 },
+    { id: 'r01', unit: 'Apt 1A',  name: 'Ahmed Benjelloun',  phone: '+212661234567', paidThrough: '2026-02', floor: 1,  since: '2019', quota: 2.08, portalCode: 'NW-4K8MRX' },
+    { id: 'r02', unit: 'Apt 1B',  name: 'Khadija Moussaoui', phone: '+212662345678', paidThrough: '2026-02', floor: 1,  since: '2021', quota: 2.08, portalCode: 'NW-B3TPZQ' },
+    { id: 'r03', unit: 'Apt 1C',  name: 'Omar Chraibi',      phone: '+212663456789', paidThrough: '2026-02', floor: 1,  since: '2020', quota: 2.08, portalCode: 'NW-7YCNV2' },
+    { id: 'r04', unit: 'Apt 1D',  name: 'Nadia El Fassi',    phone: '+212664567890', paidThrough: '2025-11', floor: 1,  since: '2022', quota: 2.08, portalCode: 'NW-P6HJRW' },
+    { id: 'r05', unit: 'Apt 2A',  name: 'Youssef Alami',     phone: '+212665678901', paidThrough: '2026-04', floor: 2,  since: '2018', quota: 2.08, portalCode: 'NW-M9KXQB' },
+    { id: 'r06', unit: 'Apt 2B',  name: 'Sanae Bouazza',     phone: '+212666789012', paidThrough: '2026-02', floor: 2,  since: '2023', quota: 2.08, portalCode: 'NW-X2RNFG' },
+    { id: 'r07', unit: 'Apt 4B',  name: 'Hassan Idrissi',    phone: '+212667890123', paidThrough: '2026-02', floor: 4,  since: '2020', quota: 2.08, portalCode: 'NW-5VZMKY' },
+    { id: 'r08', unit: 'Apt 6B',  name: 'Mehdi Chraibi',     phone: '+212668901234', paidThrough: '2026-01', floor: 6,  since: '2021', quota: 2.08, portalCode: 'NW-C8BWPJ' },
+    { id: 'r09', unit: 'Apt 7C',  name: 'Rachid Bouazza',    phone: '+212669012345', paidThrough: '2026-01', floor: 7,  since: '2022', quota: 2.08, portalCode: 'NW-Q4TXNR' },
+    { id: 'r10', unit: 'Apt 9A',  name: 'Lamia Bensouda',    phone: '+212661123456', paidThrough: '2026-02', floor: 9,  since: '2019', quota: 2.08, portalCode: 'NW-E7GZCA' },
+    { id: 'r11', unit: 'Apt 11C', name: 'Lamia Tazi',        phone: '+212662234567', paidThrough: '2025-11', floor: 11, since: '2023', quota: 2.08, portalCode: 'NW-H3RVMX' },
+    { id: 'r12', unit: 'Apt 12A', name: 'Fatima Zouheir',    phone: '+212663345678', paidThrough: '2026-02', floor: 12, since: '2020', quota: 2.08, portalCode: 'NW-W6YBNP' },
 ]
 
 // ── Maintenance tickets (Norwest · bld-1) ─────────────────────────────────────
@@ -207,22 +207,22 @@ export const COLLECTION_HISTORY_BLD1 = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const RESIDENTS_BLD2 = [
-    { id: 'a01', unit: 'Apt A-02', name: 'Rachid Berrada', phone: '+212661100001', paidThrough: '2026-02', floor: 1, since: '2018', quota: 0.83 },
-    { id: 'a02', unit: 'Apt A-05', name: 'Houda Cherkaoui', phone: '+212661100002', paidThrough: '2026-02', floor: 1, since: '2020', quota: 0.83 },
-    { id: 'a03', unit: 'Apt B-01', name: 'Karim Lahlou', phone: '+212661100003', paidThrough: '2026-02', floor: 2, since: '2019', quota: 0.83 },
-    { id: 'a04', unit: 'Apt B-04', name: 'Zineb Kettani', phone: '+212661100004', paidThrough: '2025-11', floor: 2, since: '2021', quota: 0.83 },
-    { id: 'a05', unit: 'Apt C-02', name: 'Brahim Sabiri', phone: '+212661100005', paidThrough: '2026-05', floor: 3, since: '2017', quota: 0.83 },
-    { id: 'a06', unit: 'Apt C-07', name: 'Amina El Alami', phone: '+212661100006', paidThrough: '2026-01', floor: 3, since: '2022', quota: 0.83 },
-    { id: 'a07', unit: 'Apt D-03', name: 'Yassine Benkirane', phone: '+212661100007', paidThrough: '2026-02', floor: 4, since: '2020', quota: 0.83 },
-    { id: 'a08', unit: 'Apt D-09', name: 'Salma Fikri', phone: '+212661100008', paidThrough: '2026-02', floor: 4, since: '2021', quota: 0.83 },
-    { id: 'a09', unit: 'Apt E-01', name: 'Amine Ennaji', phone: '+212661100009', paidThrough: '2025-10', floor: 5, since: '2023', quota: 0.83 },
-    { id: 'a10', unit: 'Apt E-06', name: 'Dounia Kabbaj', phone: '+212661100010', paidThrough: '2026-02', floor: 5, since: '2019', quota: 0.83 },
-    { id: 'a11', unit: 'Apt F-02', name: 'Mehdi Tahiri', phone: '+212661100011', paidThrough: '2026-01', floor: 6, since: '2022', quota: 0.83 },
-    { id: 'a12', unit: 'Apt F-08', name: 'Nora Bensouda', phone: '+212661100012', paidThrough: '2026-02', floor: 6, since: '2020', quota: 0.83 },
-    { id: 'a13', unit: 'Apt G-04', name: 'Khalid Tazi', phone: '+212661100013', paidThrough: '2026-02', floor: 7, since: '2018', quota: 0.83 },
-    { id: 'a14', unit: 'Apt G-10', name: 'Leila El Fassi', phone: '+212661100014', paidThrough: '2025-11', floor: 7, since: '2023', quota: 0.83 },
-    { id: 'a15', unit: 'Apt H-03', name: 'Saad Alaoui', phone: '+212661100015', paidThrough: '2026-02', floor: 8, since: '2019', quota: 0.83 },
-    { id: 'a16', unit: 'Apt H-07', name: 'Meryem Chraibi', phone: '+212661100016', paidThrough: '2026-02', floor: 8, since: '2021', quota: 0.83 },
+    { id: 'a01', unit: 'Apt A-02', name: 'Rachid Berrada',    phone: '+212661100001', paidThrough: '2026-02', floor: 1, since: '2018', quota: 0.83, portalCode: 'AT-K5MJWQ' },
+    { id: 'a02', unit: 'Apt A-05', name: 'Houda Cherkaoui',   phone: '+212661100002', paidThrough: '2026-02', floor: 1, since: '2020', quota: 0.83, portalCode: 'AT-R9XBZN' },
+    { id: 'a03', unit: 'Apt B-01', name: 'Karim Lahlou',      phone: '+212661100003', paidThrough: '2026-02', floor: 2, since: '2019', quota: 0.83, portalCode: 'AT-2GYPVC' },
+    { id: 'a04', unit: 'Apt B-04', name: 'Zineb Kettani',     phone: '+212661100004', paidThrough: '2025-11', floor: 2, since: '2021', quota: 0.83, portalCode: 'AT-N7HKXM' },
+    { id: 'a05', unit: 'Apt C-02', name: 'Brahim Sabiri',     phone: '+212661100005', paidThrough: '2026-05', floor: 3, since: '2017', quota: 0.83, portalCode: 'AT-T4QWRB' },
+    { id: 'a06', unit: 'Apt C-07', name: 'Amina El Alami',    phone: '+212661100006', paidThrough: '2026-01', floor: 3, since: '2022', quota: 0.83, portalCode: 'AT-6CNFJZ' },
+    { id: 'a07', unit: 'Apt D-03', name: 'Yassine Benkirane', phone: '+212661100007', paidThrough: '2026-02', floor: 4, since: '2020', quota: 0.83, portalCode: 'AT-8VMKYP' },
+    { id: 'a08', unit: 'Apt D-09', name: 'Salma Fikri',       phone: '+212661100008', paidThrough: '2026-02', floor: 4, since: '2021', quota: 0.83, portalCode: 'AT-J3BXRW' },
+    { id: 'a09', unit: 'Apt E-01', name: 'Amine Ennaji',      phone: '+212661100009', paidThrough: '2025-10', floor: 5, since: '2023', quota: 0.83, portalCode: 'AT-D5TZNQ' },
+    { id: 'a10', unit: 'Apt E-06', name: 'Dounia Kabbaj',     phone: '+212661100010', paidThrough: '2026-02', floor: 5, since: '2019', quota: 0.83, portalCode: 'AT-P8GRXH' },
+    { id: 'a11', unit: 'Apt F-02', name: 'Mehdi Tahiri',      phone: '+212661100011', paidThrough: '2026-01', floor: 6, since: '2022', quota: 0.83, portalCode: 'AT-Y2WCVN' },
+    { id: 'a12', unit: 'Apt F-08', name: 'Nora Bensouda',     phone: '+212661100012', paidThrough: '2026-02', floor: 6, since: '2020', quota: 0.83, portalCode: 'AT-M7KBZJ' },
+    { id: 'a13', unit: 'Apt G-04', name: 'Khalid Tazi',       phone: '+212661100013', paidThrough: '2026-02', floor: 7, since: '2018', quota: 0.83, portalCode: 'AT-X4NRQP' },
+    { id: 'a14', unit: 'Apt G-10', name: 'Leila El Fassi',    phone: '+212661100014', paidThrough: '2025-11', floor: 7, since: '2023', quota: 0.83, portalCode: 'AT-3FHWYT' },
+    { id: 'a15', unit: 'Apt H-03', name: 'Saad Alaoui',       phone: '+212661100015', paidThrough: '2026-02', floor: 8, since: '2019', quota: 0.83, portalCode: 'AT-9VZXKM' },
+    { id: 'a16', unit: 'Apt H-07', name: 'Meryem Chraibi',    phone: '+212661100016', paidThrough: '2026-02', floor: 8, since: '2021', quota: 0.83, portalCode: 'AT-B6JCGR' },
 ]
 
 export const TICKETS_BLD2 = [
@@ -307,18 +307,18 @@ export const COLLECTION_HISTORY_BLD2 = [
 // ═══════════════════════════════════════════════════════════════════════════════
 
 export const RESIDENTS_BLD3 = [
-    { id: 'j01', unit: 'Villa V-01', name: 'Abdellah Benali', phone: '+212662200001', paidThrough: '2026-02', floor: 0, since: '2017', quota: 1.56 },
-    { id: 'j02', unit: 'Villa V-02', name: 'Fatima Zhra Idrissi', phone: '+212662200002', paidThrough: '2026-02', floor: 0, since: '2018', quota: 1.56 },
-    { id: 'j03', unit: 'Apt T-01', name: 'Mohammed Lahlou', phone: '+212662200003', paidThrough: '2026-02', floor: 1, since: '2020', quota: 1.56 },
-    { id: 'j04', unit: 'Apt T-02', name: 'Hind Fikri', phone: '+212662200004', paidThrough: '2026-01', floor: 1, since: '2021', quota: 1.56 },
-    { id: 'j05', unit: 'Apt T-05', name: 'Hamid El Mansouri', phone: '+212662200005', paidThrough: '2026-02', floor: 1, since: '2019', quota: 1.56 },
-    { id: 'j06', unit: 'Apt T-08', name: 'Souad Cherkaoui', phone: '+212662200006', paidThrough: '2026-02', floor: 1, since: '2022', quota: 1.56 },
-    { id: 'j07', unit: 'Apt R-02', name: 'Tarik Benkirane', phone: '+212662200007', paidThrough: '2025-11', floor: 2, since: '2023', quota: 1.56 },
-    { id: 'j08', unit: 'Apt R-04', name: 'Siham Kabbaj', phone: '+212662200008', paidThrough: '2026-02', floor: 2, since: '2020', quota: 1.56 },
-    { id: 'j09', unit: 'Apt R-07', name: 'Nabil Berrada', phone: '+212662200009', paidThrough: '2026-02', floor: 2, since: '2019', quota: 1.56 },
-    { id: 'j10', unit: 'Apt S-01', name: 'Loubna Alaoui', phone: '+212662200010', paidThrough: '2026-02', floor: 3, since: '2021', quota: 1.56 },
-    { id: 'j11', unit: 'Apt S-03', name: 'Youssef Sabiri', phone: '+212662200011', paidThrough: '2026-01', floor: 3, since: '2022', quota: 1.56 },
-    { id: 'j12', unit: 'Apt S-06', name: 'Rim Tazi', phone: '+212662200012', paidThrough: '2026-02', floor: 3, since: '2018', quota: 1.56 },
+    { id: 'j01', unit: 'Villa V-01', name: 'Abdellah Benali',     phone: '+212662200001', paidThrough: '2026-02', floor: 0, since: '2017', quota: 1.56, portalCode: 'JR-5KMWXB' },
+    { id: 'j02', unit: 'Villa V-02', name: 'Fatima Zhra Idrissi', phone: '+212662200002', paidThrough: '2026-02', floor: 0, since: '2018', quota: 1.56, portalCode: 'JR-T8PZNQ' },
+    { id: 'j03', unit: 'Apt T-01',   name: 'Mohammed Lahlou',     phone: '+212662200003', paidThrough: '2026-02', floor: 1, since: '2020', quota: 1.56, portalCode: 'JR-2RYCVG' },
+    { id: 'j04', unit: 'Apt T-02',   name: 'Hind Fikri',          phone: '+212662200004', paidThrough: '2026-01', floor: 1, since: '2021', quota: 1.56, portalCode: 'JR-N6XHJW' },
+    { id: 'j05', unit: 'Apt T-05',   name: 'Hamid El Mansouri',   phone: '+212662200005', paidThrough: '2026-02', floor: 1, since: '2019', quota: 1.56, portalCode: 'JR-Q3BKRM' },
+    { id: 'j06', unit: 'Apt T-08',   name: 'Souad Cherkaoui',     phone: '+212662200006', paidThrough: '2026-02', floor: 1, since: '2022', quota: 1.56, portalCode: 'JR-7WGFZP' },
+    { id: 'j07', unit: 'Apt R-02',   name: 'Tarik Benkirane',     phone: '+212662200007', paidThrough: '2025-11', floor: 2, since: '2023', quota: 1.56, portalCode: 'JR-C4YXVN' },
+    { id: 'j08', unit: 'Apt R-04',   name: 'Siham Kabbaj',        phone: '+212662200008', paidThrough: '2026-02', floor: 2, since: '2020', quota: 1.56, portalCode: 'JR-M9JQRB' },
+    { id: 'j09', unit: 'Apt R-07',   name: 'Nabil Berrada',       phone: '+212662200009', paidThrough: '2026-02', floor: 2, since: '2019', quota: 1.56, portalCode: 'JR-H5WKZX' },
+    { id: 'j10', unit: 'Apt S-01',   name: 'Loubna Alaoui',       phone: '+212662200010', paidThrough: '2026-02', floor: 3, since: '2021', quota: 1.56, portalCode: 'JR-R8CNPT' },
+    { id: 'j11', unit: 'Apt S-03',   name: 'Youssef Sabiri',      phone: '+212662200011', paidThrough: '2026-01', floor: 3, since: '2022', quota: 1.56, portalCode: 'JR-6BMJWY' },
+    { id: 'j12', unit: 'Apt S-06',   name: 'Rim Tazi',            phone: '+212662200012', paidThrough: '2026-02', floor: 3, since: '2018', quota: 1.56, portalCode: 'JR-D2VXQK' },
 ]
 
 export const TICKETS_BLD3 = [
@@ -523,11 +523,26 @@ const RESIDENTS_BY_BLDG = {
 }
 
 /**
- * Generate a unique portal access code for a resident.
- * Format: [NameInitials]-[BldgShort]-[Last4PhoneDigits]
- * Example: Ahmed Benjelloun · Norwest · +212661234567 → AB-NW-4567
+ * Generate a random opaque portal code for a new resident.
+ * Format: [BldgShort]-[6 random chars] — e.g. NW-4K8MRX
+ * Character set excludes 0, O, 1, I to avoid visual confusion.
+ */
+export function generatePortalCode(shortCode) {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+    const rand = Array.from({ length: 6 }, () =>
+        chars[Math.floor(Math.random() * chars.length)]
+    ).join('')
+    return `${(shortCode ?? 'XX').toUpperCase()}-${rand}`
+}
+
+/**
+ * Return a resident's portal code.
+ * Prefers the stored `portalCode` field; falls back to the legacy
+ * initials+phone pattern for any resident that doesn't have one yet.
  */
 export function generateResidentCode(resident, building) {
+    if (resident.portalCode) return resident.portalCode
+    // Legacy fallback for residents without a stored code
     const parts = resident.name.trim().split(/\s+/)
     const n1 = (parts[0]?.[0] ?? 'X').toUpperCase()
     const n2 = (parts[1]?.[0] ?? parts[0]?.[1] ?? 'X').toUpperCase()
@@ -541,13 +556,15 @@ export function generateResidentCode(resident, building) {
 
 /**
  * Validate a resident's individual portal code (no unit field needed).
- * Scans all buildings to find a match.
+ * Matches on the stored portalCode field first.
  */
 export function validateResidentCodeDirect(code) {
     const normalized = code.trim().toUpperCase()
     for (const building of BUILDINGS) {
         const residents = RESIDENTS_BY_BLDG[building.id] ?? []
-        const resident = residents.find(r => generateResidentCode(r, building) === normalized)
+        const resident = residents.find(r =>
+            (r.portalCode ?? generateResidentCode(r, building)).toUpperCase() === normalized
+        )
         if (resident) return { building, resident }
     }
     return null
