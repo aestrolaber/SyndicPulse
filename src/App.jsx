@@ -58,6 +58,13 @@ function computeStatus(paidThrough) {
     return 'overdue'
 }
 
+function getUnpaidMonthsCount(paidThrough) {
+    if (!paidThrough) return 0
+    const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+    const [py, pm] = paidThrough.split('-').map(Number)
+    return Math.max(0, (cy - py) * 12 + (cm - pm))
+}
+
 // Advance a YYYY-MM date by N months
 function advancePaidThrough(paidThrough, months) {
     const [y, m] = (paidThrough || CURRENT_MONTH).split('-').map(Number)
@@ -68,7 +75,7 @@ function advancePaidThrough(paidThrough, months) {
 }
 
 // Format YYYY-MM → "Fév. 2026"
-const MONTH_LABELS = ['Jan.','Fév.','Mar.','Avr.','Mai','Jun.','Jul.','Aoû.','Sep.','Oct.','Nov.','Déc.']
+const MONTH_LABELS = ['Jan.', 'Fév.', 'Mar.', 'Avr.', 'Mai', 'Jun.', 'Jul.', 'Aoû.', 'Sep.', 'Oct.', 'Nov.', 'Déc.']
 function formatMonth(ym) {
     if (!ym) return '—'
     const [y, m] = ym.split('-').map(Number)
@@ -81,23 +88,23 @@ function openWhatsApp(phone, name, unit, buildingName, status, paidThrough) {
     let msg
     if (status === 'overdue') {
         // Compute list of unpaid months from (paidThrough + 1) up to CURRENT_MONTH
-        const MONTH_NAMES_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+        const MONTH_NAMES_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
         const unpaidMonths = []
         let [y, m] = (paidThrough || '2000-01').split('-').map(Number)
-        m++ ; if (m > 12) { m = 1; y++ }           // start one month after last paid
+        m++; if (m > 12) { m = 1; y++ }           // start one month after last paid
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
         while (y < cy || (y === cy && m <= cm)) {
             unpaidMonths.push(`${MONTH_NAMES_FR[m - 1]} ${y}`)
             m++; if (m > 12) { m = 1; y++ }
         }
-        const count  = unpaidMonths.length
+        const count = unpaidMonths.length
         const plural = count > 1 ? 's' : ''
         const lastPaidLabel = (() => {
             const [py, pm] = (paidThrough || '2000-01').split('-').map(Number)
             return `${MONTH_NAMES_FR[pm - 1]} ${py}`
         })()
         msg =
-`Bonjour ${name},
+            `Bonjour ${name},
 
 Nous vous rappelons que votre cotisation de syndic pour l'appartement ${unit} présente ${count} mois${plural} d'impayé${plural}.
 
@@ -116,7 +123,7 @@ Cordialement,
 — ${buildingName}`
     } else {
         msg =
-`Bonjour ${name},
+            `Bonjour ${name},
 
 Cordialement,
 — ${buildingName}`
@@ -126,15 +133,15 @@ Cordialement,
 
 /* ── Nav items ── */
 const NAV = [
-    { id: 'dashboard',  label: 'Tableau de bord', icon: LayoutDashboard },
-    { id: 'financials', label: 'Finances',         icon: BarChart3 },
-    { id: 'residents',  label: 'Résidents',        icon: Users },
-    { id: 'disputes',   label: 'Litiges',          icon: MessageSquare },
-    { id: 'planning',   label: 'Planning',         icon: Calendar },
-    { id: 'assemblees',   label: 'Assemblées',    icon: CalendarCheck },
-    { id: 'fournisseurs', label: 'Fournisseurs',  icon: Truck },
-    { id: 'circulaires',  label: 'Circulaires',   icon: Megaphone },
-    { id: 'users',        label: 'Utilisateurs',  icon: UserCog, adminOnly: true },
+    { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
+    { id: 'financials', label: 'Finances', icon: BarChart3 },
+    { id: 'residents', label: 'Résidents', icon: Users },
+    { id: 'disputes', label: 'Litiges', icon: MessageSquare },
+    { id: 'planning', label: 'Planning', icon: Calendar },
+    { id: 'assemblees', label: 'Assemblées', icon: CalendarCheck },
+    { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck },
+    { id: 'circulaires', label: 'Circulaires', icon: Megaphone },
+    { id: 'users', label: 'Utilisateurs', icon: UserCog, adminOnly: true },
 ]
 
 /* ── Circulaire templates ── */
@@ -142,60 +149,60 @@ const CIRCULAIRE_TEMPLATES = [
     {
         key: 'coupure_eau', label: "Coupure d'eau", icon: '💧', color: '#06b6d4',
         fields: [
-            { key: 'date',        label: 'Date',                   type: 'date', required: true },
-            { key: 'heure_debut', label: 'Heure début',            type: 'time', required: true, default: '08:00' },
-            { key: 'heure_fin',   label: 'Heure fin',              type: 'time', required: true, default: '14:00' },
-            { key: 'tranches',    label: 'Tranches / zones',       type: 'text', placeholder: 'Ex: Tranches 2, 3 et 4' },
-            { key: 'raison',      label: 'Raison',                 type: 'text', required: true, placeholder: 'Ex: Réparation de la pompe principale' },
+            { key: 'date', label: 'Date', type: 'date', required: true },
+            { key: 'heure_debut', label: 'Heure début', type: 'time', required: true, default: '08:00' },
+            { key: 'heure_fin', label: 'Heure fin', type: 'time', required: true, default: '14:00' },
+            { key: 'tranches', label: 'Tranches / zones', type: 'text', placeholder: 'Ex: Tranches 2, 3 et 4' },
+            { key: 'raison', label: 'Raison', type: 'text', required: true, placeholder: 'Ex: Réparation de la pompe principale' },
         ],
     },
     {
         key: 'coupure_elec', label: "Coupure d'électricité", icon: '⚡', color: '#f59e0b',
         fields: [
-            { key: 'date',        label: 'Date',            type: 'date', required: true },
-            { key: 'heure_debut', label: 'Heure début',     type: 'time', required: true, default: '09:00' },
-            { key: 'heure_fin',   label: 'Heure fin',       type: 'time', required: true, default: '13:00' },
-            { key: 'zones',       label: 'Zones concernées',type: 'text', placeholder: 'Ex: Bâtiment A et B' },
-            { key: 'raison',      label: 'Raison',          type: 'text', required: true, placeholder: 'Ex: Travaux ONEE' },
+            { key: 'date', label: 'Date', type: 'date', required: true },
+            { key: 'heure_debut', label: 'Heure début', type: 'time', required: true, default: '09:00' },
+            { key: 'heure_fin', label: 'Heure fin', type: 'time', required: true, default: '13:00' },
+            { key: 'zones', label: 'Zones concernées', type: 'text', placeholder: 'Ex: Bâtiment A et B' },
+            { key: 'raison', label: 'Raison', type: 'text', required: true, placeholder: 'Ex: Travaux ONEE' },
         ],
     },
     {
         key: 'travaux', label: 'Travaux / Maintenance', icon: '🔧', color: '#8b5cf6',
         fields: [
-            { key: 'date',  label: 'Date de début',      type: 'date', required: true },
-            { key: 'zone',  label: 'Équipement / zone',  type: 'text', required: true, placeholder: 'Ex: Ascenseur – Hall principal' },
-            { key: 'duree', label: 'Durée estimée',      type: 'text', placeholder: 'Ex: 2 à 3 jours' },
-            { key: 'raison',label: 'Nature des travaux', type: 'text', required: true, placeholder: 'Ex: Remplacement câblage ascenseur' },
+            { key: 'date', label: 'Date de début', type: 'date', required: true },
+            { key: 'zone', label: 'Équipement / zone', type: 'text', required: true, placeholder: 'Ex: Ascenseur – Hall principal' },
+            { key: 'duree', label: 'Durée estimée', type: 'text', placeholder: 'Ex: 2 à 3 jours' },
+            { key: 'raison', label: 'Nature des travaux', type: 'text', required: true, placeholder: 'Ex: Remplacement câblage ascenseur' },
         ],
     },
     {
         key: 'rappel_ag', label: 'Rappel Assemblée', icon: '🏛️', color: '#10b981',
         fields: [
-            { key: 'date',  label: "Date de l'AG", type: 'date', required: true },
-            { key: 'heure', label: 'Heure',         type: 'time', required: true, default: '18:00' },
-            { key: 'lieu',  label: 'Lieu',          type: 'text', required: true, placeholder: 'Ex: Salle commune – RDC' },
-            { key: 'odj',   label: "Ordre du jour", type: 'textarea', placeholder: 'Ex: Approbation comptes, budget 2026, travaux...' },
+            { key: 'date', label: "Date de l'AG", type: 'date', required: true },
+            { key: 'heure', label: 'Heure', type: 'time', required: true, default: '18:00' },
+            { key: 'lieu', label: 'Lieu', type: 'text', required: true, placeholder: 'Ex: Salle commune – RDC' },
+            { key: 'odj', label: "Ordre du jour", type: 'textarea', placeholder: 'Ex: Approbation comptes, budget 2026, travaux...' },
         ],
     },
     {
         key: 'proprete', label: 'Propreté & Règlement', icon: '🧹', color: '#ec4899',
         fields: [
-            { key: 'sujet',    label: 'Sujet',               type: 'text',     required: true, placeholder: 'Ex: Dépôt sauvage dans le hall' },
-            { key: 'rappel',   label: 'Rappel réglementaire',type: 'textarea', placeholder: 'Rappeler les règles applicables...' },
-            { key: 'sanction', label: 'Sanction prévue',     type: 'text',     placeholder: 'Ex: Mise en demeure' },
+            { key: 'sujet', label: 'Sujet', type: 'text', required: true, placeholder: 'Ex: Dépôt sauvage dans le hall' },
+            { key: 'rappel', label: 'Rappel réglementaire', type: 'textarea', placeholder: 'Rappeler les règles applicables...' },
+            { key: 'sanction', label: 'Sanction prévue', type: 'text', placeholder: 'Ex: Mise en demeure' },
         ],
     },
     {
         key: 'avis_libre', label: 'Avis personnalisé', icon: '📝', color: '#6366f1',
         fields: [
-            { key: 'titre',   label: "Titre",   type: 'text',     required: true, placeholder: 'Ex: Information importante' },
+            { key: 'titre', label: "Titre", type: 'text', required: true, placeholder: 'Ex: Information importante' },
             { key: 'contenu', label: 'Contenu', type: 'textarea', required: true, placeholder: 'Rédigez votre message ici...' },
         ],
     },
 ]
 
 function buildCirculaireMessage(templateKey, vars, buildingName) {
-    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     const fmtDate = (d) => {
         if (!d) return '—'
         const [y, m, day] = d.split('-')
@@ -220,7 +227,7 @@ function buildCirculaireMessage(templateKey, vars, buildingName) {
 }
 
 function generateCirculaireDoc(building, circ) {
-    const MONTHS_FR = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const MONTHS_FR = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     const fmtDate = (d) => {
         if (!d) return new Date().toLocaleDateString('fr-FR')
         const [y, m, day] = d.split('-')
@@ -229,20 +236,20 @@ function generateCirculaireDoc(building, circ) {
     const msg = buildCirculaireMessage(circ.template, circ.vars, building.name)
     const logoHtml = buildingLogoHTML(building, 48)
     const arabicTitles = {
-        coupure_eau:  'إعلان هام — انقطاع الماء',
+        coupure_eau: 'إعلان هام — انقطاع الماء',
         coupure_elec: 'إعلان هام — انقطاع الكهرباء',
-        travaux:      'إعلان — أشغال الصيانة',
-        rappel_ag:    'تذكير — اجتماع الجمع العام',
-        proprete:     'إعلان — النظافة والنظام الداخلي',
-        avis_libre:   'إعلان هام',
+        travaux: 'إعلان — أشغال الصيانة',
+        rappel_ag: 'تذكير — اجتماع الجمع العام',
+        proprete: 'إعلان — النظافة والنظام الداخلي',
+        avis_libre: 'إعلان هام',
     }
     const frTitles = {
-        coupure_eau:  "Avis Important — Coupure d'eau",
+        coupure_eau: "Avis Important — Coupure d'eau",
         coupure_elec: "Avis Important — Coupure d'électricité",
-        travaux:      "Avis — Travaux / Maintenance",
-        rappel_ag:    "Rappel — Assemblée Générale",
-        proprete:     "Avis — Propreté & Règlement intérieur",
-        avis_libre:   circ.vars.titre ?? "Avis Important",
+        travaux: "Avis — Travaux / Maintenance",
+        rappel_ag: "Rappel — Assemblée Générale",
+        proprete: "Avis — Propreté & Règlement intérieur",
+        avis_libre: circ.vars.titre ?? "Avis Important",
     }
     const arTitle = arabicTitles[circ.template] ?? 'إعلان هام'
     const frTitle = frTitles[circ.template] ?? 'Avis Important'
@@ -271,28 +278,28 @@ body{font-family:'Times New Roman',serif;background:#fff;color:#1a1a1a;padding:4
 
 /* ── Expense category options with theme colors ── */
 const EXPENSE_CATEGORIES = [
-    { label: 'Entretien & réparations', color: 'bg-cyan-500'    },
-    { label: 'Gardiennage',             color: 'bg-violet-500'  },
-    { label: 'Nettoyage',               color: 'bg-emerald-500' },
-    { label: 'Eau & Électricité',       color: 'bg-amber-500'   },
-    { label: 'Administration',          color: 'bg-slate-500'   },
-    { label: 'Ascenseur',               color: 'bg-pink-500'    },
-    { label: 'Espaces verts',           color: 'bg-lime-500'    },
-    { label: 'Autre',                   color: 'bg-navy-500'    },
+    { label: 'Entretien & réparations', color: 'bg-cyan-500' },
+    { label: 'Gardiennage', color: 'bg-violet-500' },
+    { label: 'Nettoyage', color: 'bg-emerald-500' },
+    { label: 'Eau & Électricité', color: 'bg-amber-500' },
+    { label: 'Administration', color: 'bg-slate-500' },
+    { label: 'Ascenseur', color: 'bg-pink-500' },
+    { label: 'Espaces verts', color: 'bg-lime-500' },
+    { label: 'Autre', color: 'bg-navy-500' },
 ]
 
 /* ── Initial expense journal (individual transactions) ── */
 const INITIAL_EXPENSE_LOG = [
-    { id: 'el1', date: '2026-02-18', category: 'Entretien & réparations', vendor: 'Otis Morocco',  amount: 8400, description: 'Révision complète ascenseur Bloc B',        hasInvoice: true  },
-    { id: 'el2', date: '2026-02-15', category: 'Nettoyage',               vendor: 'ProNet SARL',   amount: 3200, description: 'Nettoyage parties communes — quinzaine',     hasInvoice: true  },
-    { id: 'el3', date: '2026-02-10', category: 'Eau & Électricité',       vendor: 'Redal',         amount: 1850, description: 'Facture eau communes — Janvier 2026',         hasInvoice: true  },
-    { id: 'el4', date: '2026-02-08', category: 'Entretien & réparations', vendor: 'IBS Plomberie', amount: 3600, description: 'Réparation fuite parking sous-sol',          hasInvoice: false },
+    { id: 'el1', date: '2026-02-18', category: 'Entretien & réparations', vendor: 'Otis Morocco', amount: 8400, description: 'Révision complète ascenseur Bloc B', hasInvoice: true },
+    { id: 'el2', date: '2026-02-15', category: 'Nettoyage', vendor: 'ProNet SARL', amount: 3200, description: 'Nettoyage parties communes — quinzaine', hasInvoice: true },
+    { id: 'el3', date: '2026-02-10', category: 'Eau & Électricité', vendor: 'Redal', amount: 1850, description: 'Facture eau communes — Janvier 2026', hasInvoice: true },
+    { id: 'el4', date: '2026-02-08', category: 'Entretien & réparations', vendor: 'IBS Plomberie', amount: 3600, description: 'Réparation fuite parking sous-sol', hasInvoice: false },
 ]
 
 /* ── CSV sample data shown in the import wizard preview ── */
 const CSV_SAMPLE = [
-    { nom: 'Rachid Benkirane',    telephone: '+212 661 234 567', unite: 'C-03', etage: '2', type: 'Propriétaire' },
-    { nom: 'Fatima Zahra Alami',  telephone: '+212 672 345 678', unite: 'C-04', etage: '2', type: 'Locataire'    },
+    { nom: 'Rachid Benkirane', telephone: '+212 661 234 567', unite: 'C-03', etage: '2', type: 'Propriétaire' },
+    { nom: 'Fatima Zahra Alami', telephone: '+212 672 345 678', unite: 'C-04', etage: '2', type: 'Locataire' },
     { nom: 'Youssef El Mansouri', telephone: '+212 655 456 789', unite: 'D-01', etage: '3', type: 'Propriétaire' },
 ]
 
@@ -318,7 +325,7 @@ export default function App() {
 
     if (residentSession) return <ResidentPortal session={residentSession} onLogout={handleResidentLogout} />
     if (loading) return <LoadingScreen />
-    if (!user)   return <LoginPage onResidentLogin={handleResidentLogin} />
+    if (!user) return <LoginPage onResidentLogin={handleResidentLogin} />
     return <Dashboard />
 }
 
@@ -341,17 +348,17 @@ function LoadingScreen() {
 ══════════════════════════════════════════ */
 function Dashboard() {
     const { activeBuilding, setActiveBuilding, accessibleBuildings, canSwitchBuildings } = useAuth()
-    const [activeTab,        setActiveTab]       = useState('dashboard')
-    const [isVoiceOpen,      setIsVoiceOpen]     = useState(false)
+    const [activeTab, setActiveTab] = useState('dashboard')
+    const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const [showBuildingMenu, setShowBuildingMenu] = useState(false)
-    const [toast,            setToast]           = useState(null) // { message, type }
-    const [residentsByBldg,  setResidentsByBldg] = useState({})  // shared across tabs
-    const [disputesByBldg,   setDisputesByBldg]  = useState({})  // shared across tabs
-    const [meetingsByBldg,   setMeetingsByBldg]  = useState({})  // shared across tabs
+    const [toast, setToast] = useState(null) // { message, type }
+    const [residentsByBldg, setResidentsByBldg] = useState({})  // shared across tabs
+    const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
+    const [meetingsByBldg, setMeetingsByBldg] = useState({})  // shared across tabs
     const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState({})  // logo + name overrides per building
-    const [extraBuildings,   setExtraBuildings]  = useState([])  // user-added buildings
+    const [extraBuildings, setExtraBuildings] = useState([])  // user-added buildings
     const [showBldgSettings, setShowBldgSettings] = useState(false)
-    const [showAddBuilding,  setShowAddBuilding]  = useState(false)
+    const [showAddBuilding, setShowAddBuilding] = useState(false)
 
     const buildingData = getBuildingData(activeBuilding?.id)
 
@@ -462,15 +469,15 @@ function Dashboard() {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
-                    {activeTab === 'dashboard'  && <DashboardPage  building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
+                    {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} suppliers={suppliers} showToast={showToast} />}
-                    {activeTab === 'residents'  && <ResidentsPage  building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
-                    {activeTab === 'disputes'   && <DisputesPage   building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
-                    {activeTab === 'planning'   && <PlanningPage   building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
-                    {activeTab === 'assemblees'   && <AssembliesPage   building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
+                    {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
+                    {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
+                    {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
+                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
                     {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} showToast={showToast} />}
                     {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} showToast={showToast} />}
-                    {activeTab === 'users'        && <UsersPage showToast={showToast} />}
+                    {activeTab === 'users' && <UsersPage showToast={showToast} />}
                 </main>
             </div>
 
@@ -509,11 +516,10 @@ function Dashboard() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 20 }}
-                        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border text-sm font-semibold whitespace-nowrap ${
-                            toast.type === 'error'
+                        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] flex items-center gap-3 px-5 py-3 rounded-2xl shadow-2xl border text-sm font-semibold whitespace-nowrap ${toast.type === 'error'
                                 ? 'bg-red-950 border-red-500/30 text-red-300'
                                 : 'bg-emerald-950 border-emerald-500/30 text-emerald-300'
-                        }`}
+                            }`}
                     >
                         {toast.type === 'error' ? <X size={15} /> : <Check size={15} />}
                         {toast.message}
@@ -528,34 +534,34 @@ function Dashboard() {
    In production: replaced by Supabase queries per page component. */
 function getBuildingData(buildingId) {
     if (buildingId === 'bld-1') return {
-        residents:         RESIDENTS_BLD1,
-        tickets:           TICKETS_BLD1,
-        expenses:          EXPENSES_BLD1,
-        disputes:          DISPUTES_BLD1,
-        recentPayments:    RECENT_PAYMENTS_BLD1,
+        residents: RESIDENTS_BLD1,
+        tickets: TICKETS_BLD1,
+        expenses: EXPENSES_BLD1,
+        disputes: DISPUTES_BLD1,
+        recentPayments: RECENT_PAYMENTS_BLD1,
         collectionHistory: COLLECTION_HISTORY_BLD1,
-        meetings:          MEETINGS_BLD1,
-        suppliers:         SUPPLIERS_BLD1,
+        meetings: MEETINGS_BLD1,
+        suppliers: SUPPLIERS_BLD1,
     }
     if (buildingId === 'bld-2') return {
-        residents:         RESIDENTS_BLD2,
-        tickets:           TICKETS_BLD2,
-        expenses:          EXPENSES_BLD2,
-        disputes:          DISPUTES_BLD2,
-        recentPayments:    RECENT_PAYMENTS_BLD2,
+        residents: RESIDENTS_BLD2,
+        tickets: TICKETS_BLD2,
+        expenses: EXPENSES_BLD2,
+        disputes: DISPUTES_BLD2,
+        recentPayments: RECENT_PAYMENTS_BLD2,
         collectionHistory: COLLECTION_HISTORY_BLD2,
-        meetings:          MEETINGS_BLD2,
-        suppliers:         SUPPLIERS_BLD2,
+        meetings: MEETINGS_BLD2,
+        suppliers: SUPPLIERS_BLD2,
     }
     if (buildingId === 'bld-3') return {
-        residents:         RESIDENTS_BLD3,
-        tickets:           TICKETS_BLD3,
-        expenses:          EXPENSES_BLD3,
-        disputes:          DISPUTES_BLD3,
-        recentPayments:    RECENT_PAYMENTS_BLD3,
+        residents: RESIDENTS_BLD3,
+        tickets: TICKETS_BLD3,
+        expenses: EXPENSES_BLD3,
+        disputes: DISPUTES_BLD3,
+        recentPayments: RECENT_PAYMENTS_BLD3,
         collectionHistory: COLLECTION_HISTORY_BLD3,
-        meetings:          MEETINGS_BLD3,
-        suppliers:         SUPPLIERS_BLD3,
+        meetings: MEETINGS_BLD3,
+        suppliers: SUPPLIERS_BLD3,
     }
     return {
         residents: [], tickets: [], expenses: [], disputes: [],
@@ -667,11 +673,10 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                         <button
                             key={item.id}
                             onClick={() => setActiveTab(item.id)}
-                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                                active
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${active
                                     ? 'nav-active text-sp'
                                     : 'text-slate-400 hover:text-white hover:bg-navy-700'
-                            }`}
+                                }`}
                         >
                             <Icon size={18} strokeWidth={active ? 2 : 1.5} />
                             {item.label}
@@ -767,206 +772,212 @@ function TopBar({ activeTab, activeBuilding, showToast }) {
    DASHBOARD PAGE
 ══════════════════════════════════════════ */
 function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab, showToast }) {
-    const [showWAModal,           setShowWAModal]           = useState(false)
+    const [showWAModal, setShowWAModal] = useState(false)
     const [showTransparenceModal, setShowTransparenceModal] = useState(false)
     const overdueResidents = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
 
     // ── Transparence score (computed from live data) ──
-    const totalRes     = residents.length || 1
+    const totalRes = residents.length || 1
     const resWithPhone = residents.filter(r => r.phone).length
-    const ticketsDone  = data.tickets.filter(t => t.status === 'done').length
+    const ticketsDone = data.tickets.filter(t => t.status === 'done').length
     const ticketsTotal = data.tickets.length || 1
-    const hasExpenses  = data.expenses.length > 0
-    const hasAG        = data.meetings.some(m => ['upcoming', 'held'].includes(m.status))
+    const hasExpenses = data.expenses.length > 0
+    const hasAG = data.meetings.some(m => ['upcoming', 'held'].includes(m.status))
+
+    const monthlyFee = building.monthly_fee || 850
+    const totalImpayees = residents.reduce((sum, r) => sum + getUnpaidMonthsCount(r.paidThrough) * monthlyFee, 0)
+    const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const tauxRecouvrement = totalRes > 0 ? Math.round((paidCount / totalRes) * 100) : 100
 
     const transBreakdown = [
-        { label: 'Recouvrement documenté', pts: Math.round((building.collection_rate / 100) * 30), max: 30 },
-        { label: 'Dépenses tracées',       pts: hasExpenses ? (data.expenses.length >= 5 ? 25 : 15) : 0,  max: 25 },
-        { label: 'Tickets suivis',         pts: Math.round((ticketsDone / ticketsTotal) * 20),             max: 20 },
-        { label: 'Résidents renseignés',   pts: Math.round((resWithPhone / totalRes) * 15),                max: 15 },
-        { label: 'Assemblée planifiée',    pts: hasAG ? 10 : 0,                                            max: 10 },
+        { label: 'Recouvrement documenté', pts: Math.round((tauxRecouvrement / 100) * 30), max: 30 },
+        { label: 'Dépenses tracées', pts: hasExpenses ? (data.expenses.length >= 5 ? 25 : 15) : 0, max: 25 },
+        { label: 'Tickets suivis', pts: Math.round((ticketsDone / ticketsTotal) * 20), max: 20 },
+        { label: 'Résidents renseignés', pts: Math.round((resWithPhone / totalRes) * 15), max: 15 },
+        { label: 'Assemblée planifiée', pts: hasAG ? 10 : 0, max: 10 },
     ]
     const transScore = transBreakdown.reduce((s, b) => s + b.pts, 0)
-    const transTier  = transScore >= 95 ? 'Gold Elite' : transScore >= 80 ? 'Silver Pro' : transScore >= 60 ? 'Bronze' : 'Standard'
+    const transTier = transScore >= 95 ? 'Gold Elite' : transScore >= 80 ? 'Silver Pro' : transScore >= 60 ? 'Bronze' : 'Standard'
 
+    const overdueCount = overdueResidents.length
     const kpis = [
-        { label: 'Taux de recouvrement', value: `${building.collection_rate}%`, delta: '+2.1%', up: true,  icon: TrendingUp,  color: 'emerald' },
-        { label: 'Charges impayées',     value: '8 200 MAD',  delta: '-12%',      up: false, icon: CreditCard,  color: 'cyan'    },
-        { label: 'Tickets ouverts',      value: data.tickets.filter(t => t.status !== 'done').length.toString(), delta: 'Stable', up: null, icon: Wrench, color: 'amber' },
-        { label: 'Transparence',         value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet' },
+        { label: 'Taux de recouvrement', value: `${tauxRecouvrement}%`, delta: `${paidCount}/${residents.length} rés.`, up: true, icon: TrendingUp, color: 'emerald' },
+        { label: 'Charges impayées', value: `${totalImpayees.toLocaleString('fr-FR')} MAD`, delta: `${overdueCount} en retard`, up: overdueCount === 0, icon: CreditCard, color: 'cyan' },
+        { label: 'Tickets ouverts', value: data.tickets.filter(t => t.status !== 'done').length.toString(), delta: 'Stable', up: null, icon: Wrench, color: 'amber' },
+        { label: 'Transparence', value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet' },
     ]
 
     const statusDot = {
         in_progress: 'bg-sp',
-        scheduled:   'bg-slate-500',
-        done:        'bg-emerald-500',
+        scheduled: 'bg-slate-500',
+        done: 'bg-emerald-500',
     }
 
     return (
-    <>
-        <div className="space-y-8">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-white">
-                        Bonjour, <span className="text-sp">{building.manager.split(' ')[0]}</span> 👋
-                    </h2>
-                    <p className="text-slate-400 mt-0.5 text-sm">
-                        Gestion de <span className="font-semibold" style={{ color: building.color }}>{building.name} · {building.city}</span>
-                        {' '}— {building.total_units} unités résidentielles
-                    </p>
+        <>
+            <div className="space-y-8">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-white">
+                            Bonjour, <span className="text-sp">{building.manager.split(' ')[0]}</span> 👋
+                        </h2>
+                        <p className="text-slate-400 mt-0.5 text-sm">
+                            Gestion de <span className="font-semibold" style={{ color: building.color }}>{building.name} · {building.city}</span>
+                            {' '}— {building.total_units} unités résidentielles
+                        </p>
+                    </div>
+                    <div className="text-right text-xs text-slate-500">
+                        <p className="font-medium text-slate-300">Février 2026</p>
+                        <p>T1 · Semaine 8</p>
+                    </div>
                 </div>
-                <div className="text-right text-xs text-slate-500">
-                    <p className="font-medium text-slate-300">Février 2026</p>
-                    <p>T1 · Semaine 8</p>
-                </div>
-            </div>
 
-            <div className="grid grid-cols-4 gap-5">
-                {kpis.map(k => (
-                    <KpiCard
-                        key={k.label}
-                        {...k}
-                        onInfo={k.label === 'Transparence' ? () => setShowTransparenceModal(true) : undefined}
+                <div className="grid grid-cols-4 gap-5">
+                    {kpis.map(k => (
+                        <KpiCard
+                            key={k.label}
+                            {...k}
+                            onInfo={k.label === 'Transparence' ? () => setShowTransparenceModal(true) : undefined}
+                        />
+                    ))}
+                </div>
+
+                {showTransparenceModal && (
+                    <TransparenceModal
+                        score={transScore}
+                        tier={transTier}
+                        breakdown={transBreakdown}
+                        onClose={() => setShowTransparenceModal(false)}
                     />
-                ))}
-            </div>
+                )}
 
-            {showTransparenceModal && (
-                <TransparenceModal
-                    score={transScore}
-                    tier={transTier}
-                    breakdown={transBreakdown}
-                    onClose={() => setShowTransparenceModal(false)}
-                />
-            )}
+                <div className="grid grid-cols-3 gap-6">
+                    <div className="col-span-2 glass-card p-6">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="font-bold text-white">Activité maintenance</h3>
+                            <button onClick={() => setActiveTab('planning')} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
+                                Voir planning <ChevronRight size={13} />
+                            </button>
+                        </div>
+                        <div className="space-y-1">
+                            {data.tickets.slice(0, 4).map(t => (
+                                <div key={t.id} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-navy-700/60 transition-colors group">
+                                    <div className={`w-2.5 h-2.5 rounded-full ${statusDot[t.status] ?? 'bg-slate-500'} flex-shrink-0`} />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-slate-100 truncate">{t.title}</p>
+                                        <p className="text-[11px] text-slate-500 mt-0.5">{t.agent} · {t.time}</p>
+                                    </div>
+                                    <StatusBadge status={t.status} />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
 
-            <div className="grid grid-cols-3 gap-6">
-                <div className="col-span-2 glass-card p-6">
+                    <div className="flex flex-col gap-5">
+                        <div className="glass-card p-6 relative overflow-hidden border-sp/15"
+                            style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(17,29,53,0.9))' }}>
+                            <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-sp/10 blur-2xl pointer-events-none" />
+                            <div className="relative">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <div className="w-8 h-8 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center">
+                                        <Mic size={16} className="text-sp" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-bold text-white">Agent Vocal IA</p>
+                                        <p className="text-[10px] text-slate-400">Darija · Français</p>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-400 mb-4 leading-relaxed italic">
+                                    "3andi mochkil f l'ascenseur..."
+                                </p>
+                                <button
+                                    onClick={() => setIsVoiceOpen(true)}
+                                    className="w-full py-2.5 bg-sp hover:bg-sp-dark text-navy-900 text-xs font-bold rounded-xl transition-all shadow-glow-cyan flex items-center justify-center gap-1.5"
+                                >
+                                    <Mic size={13} /> Parler à l'IA
+                                    <span className="text-[9px] font-bold bg-navy-900/25 px-1.5 py-0.5 rounded-full">Démo</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="glass-card p-4">
+                            <p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold mb-3">Progression mensuelle</p>
+                            <div className="space-y-3">
+                                <ProgressRow label="Charges encaissées" value={97} color="bg-emerald-500" />
+                                <ProgressRow label="SLA maintenance" value={82} color="bg-sp" />
+                                <ProgressRow label="Budget utilisé" value={61} color="bg-violet-500" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-5">
-                        <h3 className="font-bold text-white">Activité maintenance</h3>
-                        <button onClick={() => setActiveTab('planning')} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
-                            Voir planning <ChevronRight size={13} />
+                        <h3 className="font-bold text-white">Paiements récents</h3>
+                        <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
+                            Voir tout <ChevronRight size={13} />
                         </button>
                     </div>
-                    <div className="space-y-1">
-                        {data.tickets.slice(0, 4).map(t => (
-                            <div key={t.id} className="flex items-center gap-4 px-3 py-3 rounded-xl hover:bg-navy-700/60 transition-colors group">
-                                <div className={`w-2.5 h-2.5 rounded-full ${statusDot[t.status] ?? 'bg-slate-500'} flex-shrink-0`} />
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-medium text-slate-100 truncate">{t.title}</p>
-                                    <p className="text-[11px] text-slate-500 mt-0.5">{t.agent} · {t.time}</p>
-                                </div>
-                                <StatusBadge status={t.status} />
-                            </div>
-                        ))}
-                    </div>
+                    <table className="w-full text-sm">
+                        <thead>
+                            <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
+                                <th className="text-left pb-3 font-semibold">Unité</th>
+                                <th className="text-left pb-3 font-semibold">Résident</th>
+                                <th className="text-left pb-3 font-semibold">Montant</th>
+                                <th className="text-left pb-3 font-semibold">Date</th>
+                                <th className="text-left pb-3 font-semibold">Statut</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/4">
+                            {data.recentPayments.map((p, i) => (
+                                <tr key={i} className="hover:bg-navy-700/40 transition-colors">
+                                    <td className="py-3 font-mono text-xs text-sp">{p.unit}</td>
+                                    <td className="py-3 text-slate-200">{p.name}</td>
+                                    <td className="py-3 text-white font-semibold">{p.amount}</td>
+                                    <td className="py-3 text-slate-400">{p.date}</td>
+                                    <td className="py-3"><PaymentBadge status={p.status} /></td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
 
-                <div className="flex flex-col gap-5">
-                    <div className="glass-card p-6 relative overflow-hidden border-sp/15"
-                         style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(17,29,53,0.9))' }}>
-                        <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-sp/10 blur-2xl pointer-events-none" />
-                        <div className="relative">
-                            <div className="flex items-center gap-2 mb-3">
-                                <div className="w-8 h-8 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center">
-                                    <Mic size={16} className="text-sp" />
+                {overdueResidents.length > 0 && (
+                    <div className="glass-card p-6" style={{ borderColor: 'rgba(245,158,11,0.2)' }}>
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                    <MessageCircle size={16} className="text-amber-400" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-white">Agent Vocal IA</p>
-                                    <p className="text-[10px] text-slate-400">Darija · Français</p>
+                                    <p className="font-bold text-white">Résidents en retard</p>
+                                    <p className="text-xs text-slate-400 mt-0.5">
+                                        <span className="text-amber-400 font-semibold">{overdueResidents.length} résident{overdueResidents.length > 1 ? 's' : ''}</span> — cotisation en attente de règlement
+                                    </p>
                                 </div>
                             </div>
-                            <p className="text-xs text-slate-400 mb-4 leading-relaxed italic">
-                                "3andi mochkil f l'ascenseur..."
-                            </p>
                             <button
-                                onClick={() => setIsVoiceOpen(true)}
-                                className="w-full py-2.5 bg-sp hover:bg-sp-dark text-navy-900 text-xs font-bold rounded-xl transition-all shadow-glow-cyan flex items-center justify-center gap-1.5"
+                                onClick={() => setShowWAModal(true)}
+                                className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors flex-shrink-0"
                             >
-                                <Mic size={13} /> Parler à l'IA
-                                <span className="text-[9px] font-bold bg-navy-900/25 px-1.5 py-0.5 rounded-full">Démo</span>
+                                <MessageCircle size={14} /> Envoyer rappel groupé
                             </button>
                         </div>
                     </div>
+                )}
 
-                    <div className="glass-card p-4">
-                        <p className="text-[11px] text-slate-400 uppercase tracking-widest font-semibold mb-3">Progression mensuelle</p>
-                        <div className="space-y-3">
-                            <ProgressRow label="Charges encaissées" value={97} color="bg-emerald-500" />
-                            <ProgressRow label="SLA maintenance"    value={82} color="bg-sp" />
-                            <ProgressRow label="Budget utilisé"     value={61} color="bg-violet-500" />
-                        </div>
-                    </div>
-                </div>
             </div>
 
-            <div className="glass-card p-6">
-                <div className="flex items-center justify-between mb-5">
-                    <h3 className="font-bold text-white">Paiements récents</h3>
-                    <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
-                        Voir tout <ChevronRight size={13} />
-                    </button>
-                </div>
-                <table className="w-full text-sm">
-                    <thead>
-                        <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                            <th className="text-left pb-3 font-semibold">Unité</th>
-                            <th className="text-left pb-3 font-semibold">Résident</th>
-                            <th className="text-left pb-3 font-semibold">Montant</th>
-                            <th className="text-left pb-3 font-semibold">Date</th>
-                            <th className="text-left pb-3 font-semibold">Statut</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/4">
-                        {data.recentPayments.map((p, i) => (
-                            <tr key={i} className="hover:bg-navy-700/40 transition-colors">
-                                <td className="py-3 font-mono text-xs text-sp">{p.unit}</td>
-                                <td className="py-3 text-slate-200">{p.name}</td>
-                                <td className="py-3 text-white font-semibold">{p.amount}</td>
-                                <td className="py-3 text-slate-400">{p.date}</td>
-                                <td className="py-3"><PaymentBadge status={p.status} /></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {overdueResidents.length > 0 && (
-                <div className="glass-card p-6" style={{ borderColor: 'rgba(245,158,11,0.2)' }}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
-                                <MessageCircle size={16} className="text-amber-400" />
-                            </div>
-                            <div>
-                                <p className="font-bold text-white">Résidents en retard</p>
-                                <p className="text-xs text-slate-400 mt-0.5">
-                                    <span className="text-amber-400 font-semibold">{overdueResidents.length} résident{overdueResidents.length > 1 ? 's' : ''}</span> — cotisation en attente de règlement
-                                </p>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => setShowWAModal(true)}
-                            className="flex items-center gap-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-emerald-500/20 transition-colors flex-shrink-0"
-                        >
-                            <MessageCircle size={14} /> Envoyer rappel groupé
-                        </button>
-                    </div>
-                </div>
-            )}
-
-        </div>
-
-        <AnimatePresence>
-            {showWAModal && (
-                <WhatsAppGroupModal
-                    overdueResidents={overdueResidents}
-                    building={building}
-                    onClose={() => setShowWAModal(false)}
-                />
-            )}
-        </AnimatePresence>
-    </>
+            <AnimatePresence>
+                {showWAModal && (
+                    <WhatsAppGroupModal
+                        overdueResidents={overdueResidents}
+                        building={building}
+                        onClose={() => setShowWAModal(false)}
+                    />
+                )}
+            </AnimatePresence>
+        </>
     )
 }
 
@@ -978,14 +989,14 @@ function buildingLogoHTML(building, size = 44) {
     if (building.logo) {
         return `<img src="${building.logo}" style="height:${size}px;width:auto;max-width:${size * 3}px;border-radius:6px;object-fit:contain;flex-shrink:0;" alt="logo"/>`
     }
-    const words    = (building.name ?? '').trim().split(/\s+/)
+    const words = (building.name ?? '').trim().split(/\s+/)
     const initials = words.length >= 2
         ? (words[0][0] + words[1][0]).toUpperCase()
         : (building.name ?? '??').slice(0, 2).toUpperCase()
     const color = building.color ?? '#06b6d4'
     const r = Math.round(size / 5)
     const fs = Math.round(size * 0.38)
-    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="${size}" height="${size}" rx="${r}" fill="${color}" opacity="0.18"/><rect width="${size}" height="${size}" rx="${r}" fill="none" stroke="${color}" stroke-width="1.5"/><text x="${size/2}" y="${size/2}" dominant-baseline="central" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fs}" font-weight="bold" fill="${color}">${initials}</text></svg>`
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0"><rect width="${size}" height="${size}" rx="${r}" fill="${color}" opacity="0.18"/><rect width="${size}" height="${size}" rx="${r}" fill="none" stroke="${color}" stroke-width="1.5"/><text x="${size / 2}" y="${size / 2}" dominant-baseline="central" text-anchor="middle" font-family="Arial,sans-serif" font-size="${fs}" font-weight="bold" fill="${color}">${initials}</text></svg>`
 }
 
 function generatePaymentReceipt(building, resident, form, coveredThrough) {
@@ -1081,7 +1092,7 @@ function exportFinancesCSV(building, residents, expenseLog, data) {
     ]
 
     // ── Section 2: Résumé ──────────────────────────────────────────────────────
-    const paidCount    = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const overdueCount = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
     const summary = [
         ['RÉSUMÉ', '', '', '', '', ''],
@@ -1092,25 +1103,25 @@ function exportFinancesCSV(building, residents, expenseLog, data) {
 
     // ── Section 3: Journal des dépenses ────────────────────────────────────────
     const expHeader = [['JOURNAL DES DÉPENSES', '', '', '', '', '']]
-    const expCols   = [['Date', 'Catégorie', 'Fournisseur', 'Description', 'Montant (MAD)', 'Facture']]
-    const expRows   = expenseLog.map(e => [
+    const expCols = [['Date', 'Catégorie', 'Fournisseur', 'Description', 'Montant (MAD)', 'Facture']]
+    const expRows = expenseLog.map(e => [
         e.date, e.category, e.vendor, e.description,
         e.amount, e.hasInvoice ? 'Oui' : 'Non',
     ])
-    const expTotal  = [['', '', '', 'TOTAL', expenseLog.reduce((s, e) => s + e.amount, 0), '']]
+    const expTotal = [['', '', '', 'TOTAL', expenseLog.reduce((s, e) => s + e.amount, 0), '']]
 
     // ── Section 4: Statut paiements résidents ──────────────────────────────────
     const resHeader = [['STATUT PAIEMENTS RÉSIDENTS', '', '', '', '', '']]
-    const resCols   = [['Unité', 'Résident', 'Téléphone', 'Statut', 'Payé jusqu\'à', 'Depuis']]
-    const resRows   = residents.map(r => {
+    const resCols = [['Unité', 'Résident', 'Téléphone', 'Statut', 'Payé jusqu\'à', 'Depuis']]
+    const resRows = residents.map(r => {
         const st = computeStatus(r.paidThrough)
         return [r.unit, r.name, r.phone, st === 'paid' ? 'Payé' : st === 'pending' ? 'En attente' : 'En retard', formatMonth(r.paidThrough), r.since]
     })
 
     // ── Section 5: Répartition dépenses ───────────────────────────────────────
     const repHeader = [['RÉPARTITION DES DÉPENSES', '', '', '', '', '']]
-    const repCols   = [['Catégorie', 'Montant (MAD)', '% Budget', '', '', '']]
-    const repRows   = data.expenses.map(e => [e.category, e.amount, `${e.pct}%`, '', '', ''])
+    const repCols = [['Catégorie', 'Montant (MAD)', '% Budget', '', '', '']]
+    const repRows = data.expenses.map(e => [e.category, e.amount, `${e.pct}%`, '', '', ''])
 
     const allRows = [
         ...header,
@@ -1127,19 +1138,19 @@ function exportFinancesCSV(building, residents, expenseLog, data) {
     ).join('\r\n')
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-    const url  = URL.createObjectURL(blob)
-    const a    = document.createElement('a')
-    a.href     = url
-    a.download = `${building.name.replace(/\s+/g, '_')}_Rapport_${new Date().toISOString().slice(0,10)}.csv`
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${building.name.replace(/\s+/g, '_')}_Rapport_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(url)
 }
 
 function exportFinancesPDF(building, residents, expenseLog, data) {
-    const paidCount    = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
-    const overdueList  = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
-    const totalExp     = expenseLog.reduce((s, e) => s + e.amount, 0)
-    const dateStr      = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+    const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const overdueList = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
+    const totalExp = expenseLog.reduce((s, e) => s + e.amount, 0)
+    const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
     const html = `<!DOCTYPE html>
 <html lang="fr">
@@ -1234,29 +1245,36 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
 function FinancialsPage({ building, data, residents, setResidents, suppliers = [], showToast }) {
     const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
 
-    const [subTab,      setSubTab]      = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
-    const [expenseLog,  setExpenseLog]  = useState(INITIAL_EXPENSE_LOG)
-    const [showAddExp,  setShowAddExp]  = useState(false)
-    const [showRecPay,  setShowRecPay]  = useState(false)
+    const [subTab, setSubTab] = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
+    const [expenseLog, setExpenseLog] = useState(INITIAL_EXPENSE_LOG)
+    const [showAddExp, setShowAddExp] = useState(false)
+    const [showRecPay, setShowRecPay] = useState(false)
     const [showAppelDF, setShowAppelDF] = useState(false)
     const [recPayPreset, setRecPayPreset] = useState(null)  // { residentId } pre-fill from recouvrement grid
 
     // Dépenses date-range filter (empty string = no bound)
-    const [expFrom,      setExpFrom]      = useState('')
-    const [expTo,        setExpTo]        = useState('')
+    const [expFrom, setExpFrom] = useState('')
+    const [expTo, setExpTo] = useState('')
     const [expActivePill, setExpActivePill] = useState('Tout')   // tracks active preset pill
     function setExpPreset(months, label) {
         setExpActivePill(label)
         if (months === null) { setExpFrom(''); setExpTo(''); return }
         const today = new Date()
-        const from  = new Date(today); from.setMonth(from.getMonth() - months)
+        const from = new Date(today); from.setMonth(from.getMonth() - months)
         setExpFrom(from.toISOString().slice(0, 10))
         setExpTo(today.toISOString().slice(0, 10))
     }
 
-    const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').map(r => ({
-        id: r.id, unit: r.unit, name: r.name, months: 2, amount: '1 700 MAD',
-    }))
+    const monthlyFee = building.monthly_fee || 850
+    const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').map(r => {
+        const months = getUnpaidMonthsCount(r.paidThrough)
+        return {
+            id: r.id, unit: r.unit, name: r.name, months, amount: `${(months * monthlyFee).toLocaleString('fr-FR')} MAD`,
+        }
+    })
+    const totalImpayeesMAD = residents.reduce((sum, r) => sum + getUnpaidMonthsCount(r.paidThrough) * monthlyFee, 0)
+    const paidResi = residents.filter(r => computeStatus(r.paidThrough) === 'paid')
+    const totalEncaisseMAD = paidResi.length * monthlyFee
 
     function handleAddExpense(entry) {
         setExpenseLog(prev => [{ ...entry, id: `el-${Date.now()}` }, ...prev])
@@ -1273,7 +1291,7 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
 
     const filteredLog = expenseLog.filter(e =>
         (!expFrom || e.date >= expFrom) &&
-        (!expTo   || e.date <= expTo)
+        (!expTo || e.date <= expTo)
     )
     const totalExpenseLog = filteredLog.reduce((s, e) => s + e.amount, 0)
 
@@ -1281,7 +1299,7 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const [expPage, setExpPage] = useState(1)
     const EXP_PER_PAGE = 15
     const expTotalPages = Math.max(1, Math.ceil(filteredLog.length / EXP_PER_PAGE))
-    const paginatedLog  = filteredLog.slice((expPage - 1) * EXP_PER_PAGE, expPage * EXP_PER_PAGE)
+    const paginatedLog = filteredLog.slice((expPage - 1) * EXP_PER_PAGE, expPage * EXP_PER_PAGE)
     // Reset page when filter changes
     useEffect(() => setExpPage(1), [expFrom, expTo])
 
@@ -1290,16 +1308,15 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
             {/* Sub-tab nav */}
             <div className="flex gap-2 border-b border-white/8 pb-0">
                 {[
-                    { id: 'overview',       label: 'Vue d\'ensemble' },
-                    { id: 'recouvrement',   label: 'Recouvrement'    },
-                    { id: 'depenses',       label: 'Dépenses'        },
+                    { id: 'overview', label: 'Vue d\'ensemble' },
+                    { id: 'recouvrement', label: 'Recouvrement' },
+                    { id: 'depenses', label: 'Dépenses' },
                 ].map(t => (
                     <button key={t.id} onClick={() => setSubTab(t.id)}
-                        className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${
-                            subTab === t.id
+                        className={`px-4 py-2.5 text-sm font-semibold border-b-2 transition-all -mb-px ${subTab === t.id
                                 ? 'border-sp text-sp'
                                 : 'border-transparent text-slate-500 hover:text-slate-300'
-                        }`}>
+                            }`}>
                         {t.label}
                     </button>
                 ))}
@@ -1322,130 +1339,129 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
 
             {/* ── Sub-tab: Vue d'ensemble ─────────────────────────────── */}
             {subTab === 'overview' && <>
-            {/* Summary KPIs */}
-            <div className="grid grid-cols-4 gap-5">
-                {[
-                    { label: 'Total encaissé (Fév.)', value: '39 100 MAD', sub: `${residents.filter(r => computeStatus(r.paidThrough) === 'paid').length} / ${building.total_units} unités payées`, color: 'emerald' },
-                    { label: 'Charges impayées',      value: '5 100 MAD',  sub: `${overdue.length} unités en retard`,     color: 'red'    },
-                    { label: 'Budget mensuel',        value: '32 800 MAD', sub: '61% utilisé',                            color: 'cyan'   },
-                    { label: 'Fonds de réserve',      value: `${(building.reserve_fund_mad / 1000).toFixed(0)} 000 MAD`, sub: '+3 200 ce mois', color: 'violet' },
-                ].map(s => (
-                    <div key={s.label} className="glass-card p-5">
-                        <p className="text-xs text-slate-400 mb-2 font-medium">{s.label}</p>
-                        <p className={`text-xl font-bold ${
-                            s.color === 'emerald' ? 'text-emerald-400' :
-                            s.color === 'red'     ? 'text-red-400'     :
-                            s.color === 'cyan'    ? 'text-sp'          :
-                                                    'text-violet-400'
-                        }`}>{s.value}</p>
-                        <p className="text-[11px] text-slate-500 mt-1">{s.sub}</p>
-                    </div>
-                ))}
-            </div>
+                {/* Summary KPIs */}
+                <div className="grid grid-cols-4 gap-5">
+                    {[
+                        { label: 'Total encaissé (Fév.)', value: `${totalEncaisseMAD.toLocaleString('fr-FR')} MAD`, sub: `${paidResi.length} / ${building.total_units} unités payées`, color: 'emerald' },
+                        { label: 'Charges impayées', value: `${totalImpayeesMAD.toLocaleString('fr-FR')} MAD`, sub: `${overdue.length} unités en retard`, color: 'red' },
+                        { label: 'Budget mensuel', value: '32 800 MAD', sub: '61% utilisé', color: 'cyan' },
+                        { label: 'Fonds de réserve', value: `${(building.reserve_fund_mad / 1000).toFixed(0)} 000 MAD`, sub: '+3 200 ce mois', color: 'violet' },
+                    ].map(s => (
+                        <div key={s.label} className="glass-card p-5">
+                            <p className="text-xs text-slate-400 mb-2 font-medium">{s.label}</p>
+                            <p className={`text-xl font-bold ${s.color === 'emerald' ? 'text-emerald-400' :
+                                    s.color === 'red' ? 'text-red-400' :
+                                        s.color === 'cyan' ? 'text-sp' :
+                                            'text-violet-400'
+                                }`}>{s.value}</p>
+                            <p className="text-[11px] text-slate-500 mt-1">{s.sub}</p>
+                        </div>
+                    ))}
+                </div>
 
-            {/* nothing here — actions moved to tab header */}
+                {/* nothing here — actions moved to tab header */}
 
-            <div className="grid grid-cols-3 gap-6">
-                {/* Collection chart */}
-                <div className="col-span-2 glass-card p-6">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="font-bold text-white">Taux de recouvrement — 7 derniers mois</h3>
-                        <span className="text-xs text-slate-400 bg-navy-700 px-3 py-1 rounded-full border border-white/5">% unités payées</span>
-                    </div>
-                    {/*
+                <div className="grid grid-cols-3 gap-6">
+                    {/* Collection chart */}
+                    <div className="col-span-2 glass-card p-6">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="font-bold text-white">Taux de recouvrement — 7 derniers mois</h3>
+                            <span className="text-xs text-slate-400 bg-navy-700 px-3 py-1 rounded-full border border-white/5">% unités payées</span>
+                        </div>
+                        {/*
                         Layout math:
                         - Chart width ≈ 690px (col-span-2 minus card padding)
                         - 7 flex-1 columns → ~92px each
                         - Bar fixed at 32px (w-8) = 35% of column, column acts as gap
                         - Container 140px: labels ~38px → usable bar height = 80px max
                     */}
-                    <div className="flex items-end justify-between" style={{ height: '140px' }}>
-                        {data.collectionHistory.map((h, i) => {
-                            const BAR_MAX_PX = 80
-                            const barPx = Math.max(4, Math.round((h.value / maxBar) * BAR_MAX_PX))
-                            const isLast = i === data.collectionHistory.length - 1
-                            return (
-                                <div key={h.month} className="flex-1 flex flex-col items-center gap-1.5 justify-end">
-                                    <span className="text-[10px] font-bold text-slate-300">{h.value}%</span>
-                                    <div className="w-8 rounded-t-md" style={{
-                                        height: `${barPx}px`,
-                                        background: isLast
-                                            ? 'linear-gradient(180deg, #22d3ee, #0891b2)'
-                                            : 'rgba(6,182,212,0.25)'
-                                    }} />
-                                    <span className="text-[10px] text-slate-500">{h.month}</span>
-                                </div>
-                            )
-                        })}
+                        <div className="flex items-end justify-between" style={{ height: '140px' }}>
+                            {data.collectionHistory.map((h, i) => {
+                                const BAR_MAX_PX = 80
+                                const barPx = Math.max(4, Math.round((h.value / maxBar) * BAR_MAX_PX))
+                                const isLast = i === data.collectionHistory.length - 1
+                                return (
+                                    <div key={h.month} className="flex-1 flex flex-col items-center gap-1.5 justify-end">
+                                        <span className="text-[10px] font-bold text-slate-300">{h.value}%</span>
+                                        <div className="w-8 rounded-t-md" style={{
+                                            height: `${barPx}px`,
+                                            background: isLast
+                                                ? 'linear-gradient(180deg, #22d3ee, #0891b2)'
+                                                : 'rgba(6,182,212,0.25)'
+                                        }} />
+                                        <span className="text-[10px] text-slate-500">{h.month}</span>
+                                    </div>
+                                )
+                            })}
+                        </div>
                     </div>
-                </div>
 
-                {/* Expense breakdown */}
-                <div className="glass-card p-6">
-                    <h3 className="font-bold text-white mb-5">Répartition des dépenses</h3>
-                    <div className="space-y-4">
-                        {data.expenses.map(e => (
-                            <div key={e.category}>
-                                <div className="flex justify-between text-xs mb-1.5">
-                                    <span className="text-slate-300 font-medium">{e.category}</span>
-                                    <span className="text-slate-400">{e.pct}%</span>
+                    {/* Expense breakdown */}
+                    <div className="glass-card p-6">
+                        <h3 className="font-bold text-white mb-5">Répartition des dépenses</h3>
+                        <div className="space-y-4">
+                            {data.expenses.map(e => (
+                                <div key={e.category}>
+                                    <div className="flex justify-between text-xs mb-1.5">
+                                        <span className="text-slate-300 font-medium">{e.category}</span>
+                                        <span className="text-slate-400">{e.pct}%</span>
+                                    </div>
+                                    <div className="h-1.5 bg-navy-600 rounded-full overflow-hidden">
+                                        <div className={`h-full ${e.color} rounded-full`} style={{ width: `${e.pct}%` }} />
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 mt-1">{e.amount.toLocaleString('fr-FR')} MAD</p>
                                 </div>
-                                <div className="h-1.5 bg-navy-600 rounded-full overflow-hidden">
-                                    <div className={`h-full ${e.color} rounded-full`} style={{ width: `${e.pct}%` }} />
-                                </div>
-                                <p className="text-[11px] text-slate-500 mt-1">{e.amount.toLocaleString('fr-FR')} MAD</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {/* Overdue table */}
-            {overdue.length > 0 && (
-                <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-5">
-                        <h3 className="font-bold text-white">Charges en retard</h3>
-                        <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition-colors flex items-center gap-1.5">
-                            <Phone size={12} /> Envoyer rappels WhatsApp
-                        </button>
-                    </div>
-                    <table className="w-full text-sm">
-                        <thead>
-                            <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                                <th className="text-left pb-3 font-semibold">Unité</th>
-                                <th className="text-left pb-3 font-semibold">Résident</th>
-                                <th className="text-left pb-3 font-semibold">Mois dus</th>
-                                <th className="text-left pb-3 font-semibold">Montant</th>
-                                <th className="text-left pb-3 font-semibold">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-white/4">
-                            {overdue.map((o) => (
-                                <tr key={o.id} className="hover:bg-navy-700/40 transition-colors">
-                                    <td className="py-3 font-mono text-xs text-sp">{o.unit}</td>
-                                    <td className="py-3 text-slate-200">{o.name}</td>
-                                    <td className="py-3 text-slate-300">{o.months} mois</td>
-                                    <td className="py-3 text-red-400 font-semibold">{o.amount}</td>
-                                    <td className="py-3">
-                                        <div className="flex items-center gap-3">
-                                            <button
-                                                onClick={() => handleMarkPaid(o.id)}
-                                                className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
-                                            >
-                                                <CheckCircle2 size={11} /> Marquer payé
-                                            </button>
-                                            <span className="text-slate-700">·</span>
-                                            <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
-                                                <Mic size={11} /> Appel IA
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
                             ))}
-                        </tbody>
-                    </table>
+                        </div>
+                    </div>
                 </div>
-            )}
+
+                {/* Overdue table */}
+                {overdue.length > 0 && (
+                    <div className="glass-card p-6">
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="font-bold text-white">Charges en retard</h3>
+                            <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition-colors flex items-center gap-1.5">
+                                <Phone size={12} /> Envoyer rappels WhatsApp
+                            </button>
+                        </div>
+                        <table className="w-full text-sm">
+                            <thead>
+                                <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
+                                    <th className="text-left pb-3 font-semibold">Unité</th>
+                                    <th className="text-left pb-3 font-semibold">Résident</th>
+                                    <th className="text-left pb-3 font-semibold">Mois dus</th>
+                                    <th className="text-left pb-3 font-semibold">Montant</th>
+                                    <th className="text-left pb-3 font-semibold">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/4">
+                                {overdue.map((o) => (
+                                    <tr key={o.id} className="hover:bg-navy-700/40 transition-colors">
+                                        <td className="py-3 font-mono text-xs text-sp">{o.unit}</td>
+                                        <td className="py-3 text-slate-200">{o.name}</td>
+                                        <td className="py-3 text-slate-300">{o.months} mois</td>
+                                        <td className="py-3 text-red-400 font-semibold">{o.amount}</td>
+                                        <td className="py-3">
+                                            <div className="flex items-center gap-3">
+                                                <button
+                                                    onClick={() => handleMarkPaid(o.id)}
+                                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1"
+                                                >
+                                                    <CheckCircle2 size={11} /> Marquer payé
+                                                </button>
+                                                <span className="text-slate-700">·</span>
+                                                <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
+                                                    <Mic size={11} /> Appel IA
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
 
             </>}
             {/* ── Sub-tab: Recouvrement ──────────────────────────────── */}
@@ -1465,13 +1481,12 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                                 className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                         </div>
                         <div className="flex gap-1 flex-shrink-0">
-                            {[['1M',1],['3M',3],['6M',6],['1an',12],['Tout',null]].map(([lbl,n]) => (
+                            {[['1M', 1], ['3M', 3], ['6M', 6], ['1an', 12], ['Tout', null]].map(([lbl, n]) => (
                                 <button key={lbl} onClick={() => setExpPreset(n, lbl)}
-                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
-                                        expActivePill === lbl
+                                    className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${expActivePill === lbl
                                             ? 'bg-sp/20 text-sp border-sp/30'
                                             : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/30 hover:text-sp'
-                                    }`}>
+                                        }`}>
                                     {lbl}
                                 </button>
                             ))}
@@ -1548,10 +1563,10 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                                 </button>
                                 {getPageNumbers(expPage, expTotalPages).map((n, i) =>
                                     n === '…' ? <span key={`e${i}`} className="w-7 h-7 flex items-center justify-center text-slate-600 text-xs">…</span>
-                                    : <button key={n} onClick={() => setExpPage(n)}
-                                        className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${expPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
-                                        {n}
-                                    </button>
+                                        : <button key={n} onClick={() => setExpPage(n)}
+                                            className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${expPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
+                                            {n}
+                                        </button>
                                 )}
                                 <button disabled={expPage === expTotalPages} onClick={() => setExpPage(p => p + 1)}
                                     className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
@@ -1596,7 +1611,7 @@ function exportRecouvrementCSV(building, residents, months) {
             const [ry, rm] = m.split('-').map(Number)
             const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
             const monthIdx = (ry - cy) * 12 + (rm - cm)
-            const paidIdx  = (py - cy) * 12 + (pm - cm)
+            const paidIdx = (py - cy) * 12 + (pm - cm)
             if (monthIdx < 0) return paidIdx >= monthIdx ? 'Payé' : 'Impayé'
             if (monthIdx === 0) return paidIdx >= 0 ? 'Payé' : 'En attente'
             return 'N/A'
@@ -1606,7 +1621,7 @@ function exportRecouvrementCSV(building, residents, months) {
     })
     const csv = BOM + [headers, ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-    const url  = URL.createObjectURL(blob)
+    const url = URL.createObjectURL(blob)
     const a = document.createElement('a'); a.href = url
     a.download = `recouvrement_${building.name}_${CURRENT_MONTH}.csv`; a.click()
     URL.revokeObjectURL(url)
@@ -1620,11 +1635,11 @@ function exportRecouvrementPDF(building, residents, months) {
             const [ry, rm] = m.split('-').map(Number)
             const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
             const monthIdx = (ry - cy) * 12 + (rm - cm)
-            const paidIdx  = (py - cy) * 12 + (pm - cm)
+            const paidIdx = (py - cy) * 12 + (pm - cm)
             let st, color
-            if (monthIdx < 0)      { st = paidIdx >= monthIdx ? '✓' : '✗'; color = paidIdx >= monthIdx ? '#22c55e' : '#ef4444' }
-            else if (monthIdx===0) { st = paidIdx >= 0 ? '✓' : '⏳'; color = paidIdx >= 0 ? '#22c55e' : '#f59e0b' }
-            else                   { st = '–'; color = '#64748b' }
+            if (monthIdx < 0) { st = paidIdx >= monthIdx ? '✓' : '✗'; color = paidIdx >= monthIdx ? '#22c55e' : '#ef4444' }
+            else if (monthIdx === 0) { st = paidIdx >= 0 ? '✓' : '⏳'; color = paidIdx >= 0 ? '#22c55e' : '#f59e0b' }
+            else { st = '–'; color = '#64748b' }
             return `<td style="text-align:center;color:${color};font-weight:bold">${st}</td>`
         }).join('')
         return `<tr><td style="font-family:monospace;color:#06b6d4">${r.unit}</td><td>${r.name}</td>${cells}</tr>`
@@ -1636,10 +1651,10 @@ function exportRecouvrementPDF(building, residents, months) {
     <body><div style="display:flex;align-items:center;gap:16px;margin-bottom:24px">
     ${logoHTML}<div><h2 style="margin:0">Tableau de Recouvrement</h2>
     <p style="margin:4px 0 0;color:#64748b">${building.name} · ${building.city} · ${CURRENT_MONTH}</p></div></div>
-    <table><thead><tr><th>Unité</th><th>Résident</th>${months.map(m=>`<th>${formatMonth(m)}</th>`).join('')}</tr></thead>
+    <table><thead><tr><th>Unité</th><th>Résident</th>${months.map(m => `<th>${formatMonth(m)}</th>`).join('')}</tr></thead>
     <tbody>${rows}</tbody></table></body></html>`
-    const win = window.open('','_blank'); win.document.write(html); win.document.close()
-    setTimeout(()=>win.print(), 400)
+    const win = window.open('', '_blank'); win.document.write(html); win.document.close()
+    setTimeout(() => win.print(), 400)
 }
 
 function RecouvrementTab({ building, residents, setResidents, onRecordPayment, showToast }) {
@@ -1675,19 +1690,19 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
         setRecTo(CURRENT_MONTH)
     }
 
-    const paid    = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
+    const paid = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const pending = residents.filter(r => computeStatus(r.paidThrough) === 'pending').length
     const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
-    const rate    = residents.length ? Math.round((paid / residents.length) * 100) : 0
+    const rate = residents.length ? Math.round((paid / residents.length) * 100) : 0
 
     function cellStatus(r, m) {
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
         const [ry, rm] = m.split('-').map(Number)
         const [py, pm] = (r.paidThrough || '2000-01').split('-').map(Number)
         const monthIdx = (ry - cy) * 12 + (rm - cm)
-        const paidIdx  = (py - cy) * 12 + (pm - cm)
-        if (monthIdx < 0)       return paidIdx >= monthIdx ? 'paid' : 'overdue'
-        if (monthIdx === 0)     return paidIdx >= 0 ? 'paid' : 'pending'
+        const paidIdx = (py - cy) * 12 + (pm - cm)
+        if (monthIdx < 0) return paidIdx >= monthIdx ? 'paid' : 'overdue'
+        if (monthIdx === 0) return paidIdx >= 0 ? 'paid' : 'pending'
         return 'future'
     }
 
@@ -1702,10 +1717,10 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4">
                 {[
-                    { label: 'Taux actuel',      value: `${rate}%`,          color: 'text-sp'          },
-                    { label: 'Unités à jour',     value: paid,                color: 'text-emerald-400' },
-                    { label: 'En attente',        value: pending,             color: 'text-amber-400'   },
-                    { label: 'En retard',         value: overdue,             color: 'text-red-400'     },
+                    { label: 'Taux actuel', value: `${rate}%`, color: 'text-sp' },
+                    { label: 'Unités à jour', value: paid, color: 'text-emerald-400' },
+                    { label: 'En attente', value: pending, color: 'text-amber-400' },
+                    { label: 'En retard', value: overdue, color: 'text-red-400' },
                 ].map(s => (
                     <div key={s.label} className="glass-card p-4">
                         <p className="text-xs text-slate-400 mb-1">{s.label}</p>
@@ -1727,13 +1742,12 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                         className="flex-1 min-w-0 bg-navy-700 border border-white/10 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
                 </div>
                 <div className="flex gap-1 flex-shrink-0">
-                    {[[3,'3M'],[6,'6M'],[12,'12M'],[24,'24M']].map(([n,lbl]) => (
+                    {[[3, '3M'], [6, '6M'], [12, '12M'], [24, '24M']].map(([n, lbl]) => (
                         <button key={lbl} onClick={() => setPreset(n, lbl)}
-                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
-                                recActivePill === lbl
+                            className={`px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${recActivePill === lbl
                                     ? 'bg-sp/20 text-sp border-sp/30'
                                     : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/30 hover:text-sp'
-                            }`}>
+                                }`}>
                             {lbl}
                         </button>
                     ))}
@@ -1779,11 +1793,10 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                                                 <button
                                                     onClick={() => st !== 'paid' && onRecordPayment(r.id)}
                                                     title={st !== 'paid' ? 'Cliquer pour enregistrer un paiement' : ''}
-                                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-md font-bold transition-all ${
-                                                        st === 'paid'    ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
-                                                        st === 'pending' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/30 cursor-pointer' :
-                                                                           'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/30 cursor-pointer'
-                                                    }`}
+                                                    className={`inline-flex items-center justify-center w-6 h-6 rounded-md font-bold transition-all ${st === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' :
+                                                            st === 'pending' ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20 hover:bg-amber-500/30 cursor-pointer' :
+                                                                'bg-red-500/15 text-red-400 border border-red-500/20 hover:bg-red-500/30 cursor-pointer'
+                                                        }`}
                                                 >
                                                     {st === 'paid' ? '✓' : st === 'pending' ? '⏳' : '✗'}
                                                 </button>
@@ -1819,10 +1832,10 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                                 </button>
                                 {getPageNumbers(recPage, recTotalPages).map((n, i) =>
                                     n === '…' ? <span key={`r${i}`} className="w-7 h-7 flex items-center justify-center text-slate-600 text-xs">…</span>
-                                    : <button key={n} onClick={() => setRecPage(n)}
-                                        className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${recPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
-                                        {n}
-                                    </button>
+                                        : <button key={n} onClick={() => setRecPage(n)}
+                                            className={`w-7 h-7 rounded-lg text-xs font-semibold border transition-all ${recPage === n ? 'bg-sp/20 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:text-slate-200'}`}>
+                                            {n}
+                                        </button>
                                 )}
                                 <button disabled={recPage === recTotalPages} onClick={() => setRecPage(p => p + 1)}
                                     className="w-7 h-7 rounded-lg bg-navy-700 border border-white/8 text-slate-400 hover:text-slate-200 disabled:opacity-30 flex items-center justify-center transition-colors">
@@ -1843,7 +1856,7 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
 function generateAppelDeFondsDoc(building, residents, period, dueDate) {
     const logoHTML = buildingLogoHTML(building, 56)
     const [py, pm] = period.split('-').map(Number)
-    const monthNames = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre']
+    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
     const periodLabel = `${monthNames[pm - 1]} ${py}`
     const rows = residents.map(r => {
         const st = computeStatus(r.paidThrough)
@@ -1853,7 +1866,7 @@ function generateAppelDeFondsDoc(building, residents, period, dueDate) {
         return `<tr>
             <td style="font-family:monospace;color:#0891b2">${r.unit}</td>
             <td>${r.name}</td>
-            <td style="text-align:right">${typeof quota==='number'?quota.toLocaleString('fr-FR')+' MAD':'—'}</td>
+            <td style="text-align:right">${typeof quota === 'number' ? quota.toLocaleString('fr-FR') + ' MAD' : '—'}</td>
             <td style="color:${statusColor};font-weight:600">${statusLabel}</td>
         </tr>`
     }).join('')
@@ -1907,21 +1920,21 @@ function generateAppelDeFondsDoc(building, residents, period, dueDate) {
 
 function AppelDeFondsModal({ building, residents, onClose, showToast }) {
     const [step, setStep] = useState(1)
-    const [period,  setPeriod]  = useState(CURRENT_MONTH)
+    const [period, setPeriod] = useState(CURRENT_MONTH)
     const [dueDate, setDueDate] = useState(() => {
         const [y, m] = CURRENT_MONTH.split('-').map(Number)
-        const nd = m === 12 ? `${y+1}-01-15` : `${y}-${String(m+1).padStart(2,'0')}-15`
+        const nd = m === 12 ? `${y + 1}-01-15` : `${y}-${String(m + 1).padStart(2, '0')}-15`
         return nd
     })
     const [wacopied, setWaCopied] = useState(false)
 
     const unpaid = residents.filter(r => computeStatus(r.paidThrough) !== 'paid')
-    const total  = residents.reduce((s, r) => s + (r.quota ?? 0), 0)
+    const total = residents.reduce((s, r) => s + (r.quota ?? 0), 0)
 
     function buildWAText() {
         const [py, pm] = period.split('-').map(Number)
-        const mNames = ['Jan','Fév','Mar','Avr','Mai','Juin','Juil','Aoû','Sep','Oct','Nov','Déc']
-        return `📢 *APPEL DE FONDS — ${building.name}*\n\nPériode : ${mNames[pm-1]}. ${py}\nÉchéance : ${dueDate || '—'}\n\nMerci de régler votre quote-part de charges avant la date limite.\n\n${unpaid.length} unité(s) en attente de règlement.\n\n_Syndic ${building.name}_`
+        const mNames = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
+        return `📢 *APPEL DE FONDS — ${building.name}*\n\nPériode : ${mNames[pm - 1]}. ${py}\nÉchéance : ${dueDate || '—'}\n\nMerci de régler votre quote-part de charges avant la date limite.\n\n${unpaid.length} unité(s) en attente de règlement.\n\n_Syndic ${building.name}_`
     }
 
     function copyWA() {
@@ -1966,7 +1979,7 @@ function AppelDeFondsModal({ building, residents, onClose, showToast }) {
                         <table className="w-full text-xs">
                             <thead className="sticky top-0">
                                 <tr className="bg-navy-700 text-[10px] text-slate-500 uppercase tracking-wider">
-                                    {['Unité','Résident','Quote-part','Statut'].map(h=><th key={h} className="px-3 py-2.5 text-left font-semibold">{h}</th>)}
+                                    {['Unité', 'Résident', 'Quote-part', 'Statut'].map(h => <th key={h} className="px-3 py-2.5 text-left font-semibold">{h}</th>)}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
@@ -1978,11 +1991,10 @@ function AppelDeFondsModal({ building, residents, onClose, showToast }) {
                                             <td className="px-3 py-2.5 text-slate-200">{r.name}</td>
                                             <td className="px-3 py-2.5 text-slate-300">{r.quota ? `${r.quota.toLocaleString('fr-FR')} MAD` : '—'}</td>
                                             <td className="px-3 py-2.5">
-                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                    st==='paid' ? 'bg-emerald-500/15 text-emerald-400' :
-                                                    st==='pending' ? 'bg-amber-500/15 text-amber-400' :
-                                                    'bg-red-500/15 text-red-400'}`}>
-                                                    {st==='paid'?'À jour':st==='pending'?'En attente':'En retard'}
+                                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${st === 'paid' ? 'bg-emerald-500/15 text-emerald-400' :
+                                                        st === 'pending' ? 'bg-amber-500/15 text-amber-400' :
+                                                            'bg-red-500/15 text-red-400'}`}>
+                                                    {st === 'paid' ? 'À jour' : st === 'pending' ? 'En attente' : 'En retard'}
                                                 </span>
                                             </td>
                                         </tr>
@@ -1998,7 +2010,7 @@ function AppelDeFondsModal({ building, residents, onClose, showToast }) {
                         </button>
                         <button onClick={copyWA}
                             className="flex-1 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/20 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
-                            {wacopied ? <><Check size={14}/> Copié !</> : <><MessageCircle size={14}/> Message WhatsApp</>}
+                            {wacopied ? <><Check size={14} /> Copié !</> : <><MessageCircle size={14} /> Message WhatsApp</>}
                         </button>
                     </div>
                     <button onClick={() => setStep(1)} className="w-full py-2 text-xs text-slate-500 hover:text-slate-300 transition-colors">← Modifier la période</button>
@@ -2012,14 +2024,14 @@ function AppelDeFondsModal({ building, residents, onClose, showToast }) {
    FOURNISSEURS PAGE
 ══════════════════════════════════════════ */
 const SUPPLIER_CATS = [
-    { key: 'ascenseur',    label: 'Ascenseur',     color: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
-    { key: 'nettoyage',    label: 'Nettoyage',     color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20'       },
-    { key: 'electricite',  label: 'Électricité',   color: 'bg-amber-500/15 text-amber-400 border-amber-500/20'    },
-    { key: 'plomberie',    label: 'Plomberie',     color: 'bg-blue-500/15 text-blue-400 border-blue-500/20'       },
-    { key: 'gardiennage',  label: 'Gardiennage',   color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-    { key: 'peinture',     label: 'Peinture',      color: 'bg-pink-500/15 text-pink-400 border-pink-500/20'       },
-    { key: 'espaces_verts',label: 'Espaces verts', color: 'bg-lime-500/15 text-lime-400 border-lime-500/20'       },
-    { key: 'autre',        label: 'Autre',         color: 'bg-slate-500/15 text-slate-400 border-slate-500/20'    },
+    { key: 'ascenseur', label: 'Ascenseur', color: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
+    { key: 'nettoyage', label: 'Nettoyage', color: 'bg-cyan-500/15 text-cyan-400 border-cyan-500/20' },
+    { key: 'electricite', label: 'Électricité', color: 'bg-amber-500/15 text-amber-400 border-amber-500/20' },
+    { key: 'plomberie', label: 'Plomberie', color: 'bg-blue-500/15 text-blue-400 border-blue-500/20' },
+    { key: 'gardiennage', label: 'Gardiennage', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+    { key: 'peinture', label: 'Peinture', color: 'bg-pink-500/15 text-pink-400 border-pink-500/20' },
+    { key: 'espaces_verts', label: 'Espaces verts', color: 'bg-lime-500/15 text-lime-400 border-lime-500/20' },
+    { key: 'autre', label: 'Autre', color: 'bg-slate-500/15 text-slate-400 border-slate-500/20' },
 ]
 function catInfo(key) { return SUPPLIER_CATS.find(c => c.key === key) ?? SUPPLIER_CATS[7] }
 
@@ -2027,16 +2039,15 @@ function StarRating({ value, onChange, size = 16 }) {
     const [hover, setHover] = useState(0)
     return (
         <div className="flex gap-0.5">
-            {[1,2,3,4,5].map(n => (
+            {[1, 2, 3, 4, 5].map(n => (
                 <button key={n} type="button"
                     onClick={() => onChange?.(n)}
                     onMouseEnter={() => onChange && setHover(n)}
                     onMouseLeave={() => onChange && setHover(0)}
                     className={`transition-colors ${onChange ? 'cursor-pointer' : 'cursor-default'}`}
                 >
-                    <Star size={size} className={`transition-colors ${
-                        n <= (hover || value) ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
-                    }`} />
+                    <Star size={size} className={`transition-colors ${n <= (hover || value) ? 'text-amber-400 fill-amber-400' : 'text-slate-600'
+                        }`} />
                 </button>
             ))}
         </div>
@@ -2049,7 +2060,7 @@ function StarRating({ value, onChange, size = 16 }) {
 function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
     const [showAdd, setShowAdd] = useState(false)
 
-    const MONTHS_S = ['Jan.','Fév.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.']
+    const MONTHS_S = ['Jan.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
     const fmtDate = (iso) => {
         if (!iso) return '—'
         const d = new Date(iso)
@@ -2076,7 +2087,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
 
     const thisMonth = new Date().toISOString().slice(0, 7)
     const countThisMonth = circulaires.filter(c => c.createdAt?.startsWith(thisMonth)).length
-    const countDiffuses  = circulaires.filter(c => c.diffuse).length
+    const countDiffuses = circulaires.filter(c => c.diffuse).length
 
     return (
         <div className="p-6 space-y-5">
@@ -2095,9 +2106,9 @@ function CirculairesPage({ building, circulaires, setCirculaires, showToast }) {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'Ce mois-ci',   val: countThisMonth, color: 'text-cyan-400' },
-                    { label: 'Diffusés',      val: countDiffuses,  color: 'text-emerald-400' },
-                    { label: 'Total archivés',val: circulaires.length, color: 'text-slate-300' },
+                    { label: 'Ce mois-ci', val: countThisMonth, color: 'text-cyan-400' },
+                    { label: 'Diffusés', val: countDiffuses, color: 'text-emerald-400' },
+                    { label: 'Total archivés', val: circulaires.length, color: 'text-slate-300' },
                 ].map(s => (
                     <div key={s.label} className="glass-card p-4">
                         <p className="text-xs text-slate-400 mb-1">{s.label}</p>
@@ -2342,13 +2353,13 @@ function AddCirculaireModal({ building, defaultTemplate, onClose, onAdd, showToa
 }
 
 function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
-    const [search,      setSearch]      = useState('')
-    const [catFilter,   setCatFilter]   = useState('all')
-    const [showAdd,     setShowAdd]     = useState(false)
-    const [editing,     setEditing]     = useState(null)
+    const [search, setSearch] = useState('')
+    const [catFilter, setCatFilter] = useState('all')
+    const [showAdd, setShowAdd] = useState(false)
+    const [editing, setEditing] = useState(null)
 
     const filtered = suppliers.filter(s => {
-        const matchCat  = catFilter === 'all' || s.category === catFilter
+        const matchCat = catFilter === 'all' || s.category === catFilter
         const matchName = s.name.toLowerCase().includes(search.toLowerCase())
         return matchCat && matchName
     })
@@ -2416,12 +2427,12 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
                 {/* Category pills */}
                 <div className="flex gap-1.5 flex-wrap">
                     <button onClick={() => setCatFilter('all')}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter==='all'?'bg-sp/15 border-sp/30 text-sp':'bg-navy-800 border-white/8 text-slate-400 hover:border-sp/20'}`}>
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter === 'all' ? 'bg-sp/15 border-sp/30 text-sp' : 'bg-navy-800 border-white/8 text-slate-400 hover:border-sp/20'}`}>
                         Tous
                     </button>
                     {SUPPLIER_CATS.map(c => (
                         <button key={c.key} onClick={() => setCatFilter(c.key)}
-                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter===c.key?c.color:'bg-navy-800 border-white/8 text-slate-400 hover:border-white/20'}`}>
+                            className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all border ${catFilter === c.key ? c.color : 'bg-navy-800 border-white/8 text-slate-400 hover:border-white/20'}`}>
                             {c.label}
                         </button>
                     ))}
@@ -2461,7 +2472,7 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
                                             <FileText size={11} className="flex-shrink-0" />
                                             {s.contractRef ? `Réf: ${s.contractRef}` : ''}
                                             {s.contractRef && s.since ? ' · ' : ''}
-                                            {s.since ? `Depuis ${s.since.slice(0,7).replace('-','/')}` : ''}
+                                            {s.since ? `Depuis ${s.since.slice(0, 7).replace('-', '/')}` : ''}
                                         </p>
                                     )}
                                 </div>
@@ -2475,8 +2486,8 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
             )}
 
             <AnimatePresence>
-                {showAdd  && <AddSupplierModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
-                {editing  && <EditSupplierModal supplier={editing} onClose={() => setEditing(null)} onSave={handleSave} onDelete={handleDelete} />}
+                {showAdd && <AddSupplierModal onClose={() => setShowAdd(false)} onAdd={handleAdd} />}
+                {editing && <EditSupplierModal supplier={editing} onClose={() => setEditing(null)} onSave={handleSave} onDelete={handleDelete} />}
             </AnimatePresence>
         </div>
     )
@@ -2563,7 +2574,7 @@ function AddSupplierModal({ onClose, onAdd }) {
                         className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">Annuler</button>
                     <button type="submit" disabled={saving || !form.name.trim()}
                         className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                        {saving ? <Spinner /> : <><Check size={14}/> Enregistrer</>}
+                        {saving ? <Spinner /> : <><Check size={14} /> Enregistrer</>}
                     </button>
                 </div>
             </form>
@@ -2572,10 +2583,10 @@ function AddSupplierModal({ onClose, onAdd }) {
 }
 
 function EditSupplierModal({ supplier, onClose, onSave, onDelete }) {
-    const [form, setForm]           = useState({ ...supplier })
-    const [confirmDelete, setCD]    = useState(false)
-    const [confirmSave,   setCS]    = useState(false)
-    const [saving, setSaving]       = useState(false)
+    const [form, setForm] = useState({ ...supplier })
+    const [confirmDelete, setCD] = useState(false)
+    const [confirmSave, setCS] = useState(false)
+    const [saving, setSaving] = useState(false)
     function set(k, v) { setForm(f => ({ ...f, [k]: v })); setCS(false) }
 
     async function doSave() {
@@ -2594,7 +2605,7 @@ function EditSupplierModal({ supplier, onClose, onSave, onDelete }) {
                             className="flex-1 py-2.5 bg-navy-700 text-slate-300 rounded-xl text-sm font-semibold hover:bg-navy-600 transition-colors border border-white/8">Annuler</button>
                         <button type="button" onClick={() => setCS(true)} disabled={!form.name.trim()}
                             className="flex-1 py-2.5 bg-sp hover:bg-sp/90 text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                            <Check size={14}/> Enregistrer
+                            <Check size={14} /> Enregistrer
                         </button>
                     </div>
                 ) : (
@@ -2604,7 +2615,7 @@ function EditSupplierModal({ supplier, onClose, onSave, onDelete }) {
                             <button onClick={() => setCS(false)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-navy-700 text-slate-300 border border-white/8 hover:bg-navy-600 transition-colors">Revenir</button>
                             <button onClick={doSave} disabled={saving}
                                 className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-sp/20 text-sp border border-sp/30 hover:bg-sp/30 transition-colors disabled:opacity-60 flex items-center justify-center gap-1.5">
-                                {saving ? <Spinner /> : <><Check size={12}/> Confirmer</>}
+                                {saving ? <Spinner /> : <><Check size={12} /> Confirmer</>}
                             </button>
                         </div>
                     </div>
@@ -2641,13 +2652,13 @@ function getPageNumbers(current, total) {
 }
 
 function ResidentsPage({ building, data, residents, setResidents, showToast }) {
-    const [search,           setSearch]          = useState('')
-    const [filter,           setFilter]          = useState('all')
-    const [page,             setPage]            = useState(1)
-    const [showAddResident,  setShowAddResident] = useState(false)
-    const [showImportCSV,    setShowImportCSV]   = useState(false)
-    const [showGroupWA,      setShowGroupWA]     = useState(false)
-    const [editingResident,  setEditingResident] = useState(null)
+    const [search, setSearch] = useState('')
+    const [filter, setFilter] = useState('all')
+    const [page, setPage] = useState(1)
+    const [showAddResident, setShowAddResident] = useState(false)
+    const [showImportCSV, setShowImportCSV] = useState(false)
+    const [showGroupWA, setShowGroupWA] = useState(false)
+    const [editingResident, setEditingResident] = useState(null)
 
     function handleEditResident(updated) {
         setResidents(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
@@ -2664,7 +2675,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 
     const filtered = residents.filter(r => {
         const matchSearch = r.name.toLowerCase().includes(search.toLowerCase()) ||
-                            r.unit.toLowerCase().includes(search.toLowerCase())
+            r.unit.toLowerCase().includes(search.toLowerCase())
         const matchFilter = filter === 'all' || computeStatus(r.paidThrough) === filter
         return matchSearch && matchFilter
     })
@@ -2673,11 +2684,11 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     useEffect(() => { setPage(1) }, [search, filter])
 
     const totalPages = Math.ceil(filtered.length / RESIDENTS_PAGE_SIZE)
-    const paginated  = filtered.slice((page - 1) * RESIDENTS_PAGE_SIZE, page * RESIDENTS_PAGE_SIZE)
+    const paginated = filtered.slice((page - 1) * RESIDENTS_PAGE_SIZE, page * RESIDENTS_PAGE_SIZE)
 
     const counts = {
-        all:     residents.length,
-        paid:    residents.filter(r => computeStatus(r.paidThrough) === 'paid').length,
+        all: residents.length,
+        paid: residents.filter(r => computeStatus(r.paidThrough) === 'paid').length,
         pending: residents.filter(r => computeStatus(r.paidThrough) === 'pending').length,
         overdue: residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length,
     }
@@ -2702,10 +2713,10 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4">
                 {[
-                    { label: 'Unités totales', value: building.total_units, color: 'text-slate-300'  },
-                    { label: 'Payés',          value: counts.paid,          color: 'text-emerald-400' },
-                    { label: 'En attente',     value: counts.pending,       color: 'text-amber-400'  },
-                    { label: 'En retard',      value: counts.overdue,       color: 'text-red-400'    },
+                    { label: 'Unités totales', value: building.total_units, color: 'text-slate-300' },
+                    { label: 'Payés', value: counts.paid, color: 'text-emerald-400' },
+                    { label: 'En attente', value: counts.pending, color: 'text-amber-400' },
+                    { label: 'En retard', value: counts.overdue, color: 'text-red-400' },
                 ].map(s => (
                     <div key={s.label} className="glass-card p-4 flex items-center gap-3">
                         <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
@@ -2751,11 +2762,10 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                         <button
                             key={f}
                             onClick={() => setFilter(f)}
-                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                                filter === f
+                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${filter === f
                                     ? 'bg-sp text-navy-900'
                                     : 'bg-navy-800 text-slate-400 border border-white/8 hover:border-sp/30'
-                            }`}
+                                }`}
                         >
                             {label} {f !== 'all' && `(${counts[f]})`}
                         </button>
@@ -2786,7 +2796,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                 <td className="px-6 py-3.5">
                                     <div className="flex items-center gap-2.5">
                                         <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(r.name)}&background=111d35&color=06b6d4&size=28`}
-                                             alt="" className="w-7 h-7 rounded-lg flex-shrink-0" />
+                                            alt="" className="w-7 h-7 rounded-lg flex-shrink-0" />
                                         <div>
                                             <span className="text-slate-200 font-medium">{r.name}</span>
                                             {r.isNew && (
@@ -2803,11 +2813,10 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                         const st = computeStatus(r.paidThrough)
                                         return (
                                             <div className="space-y-1">
-                                                <span className={`inline-block text-xs font-semibold rounded-lg px-2.5 py-1 border ${
-                                                    st === 'paid'    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
-                                                    st === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
-                                                                       'bg-red-500/10 text-red-400 border-red-500/20'
-                                                }`}>
+                                                <span className={`inline-block text-xs font-semibold rounded-lg px-2.5 py-1 border ${st === 'paid' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                                                        st === 'pending' ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' :
+                                                            'bg-red-500/10 text-red-400 border-red-500/20'
+                                                    }`}>
                                                     {st === 'paid' ? '✓ Payé' : st === 'pending' ? '⏳ En attente' : '⚠ En retard'}
                                                 </span>
                                                 <p className="text-[10px] text-slate-500">
@@ -2862,9 +2871,8 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                 p === '...'
                                     ? <span key={`dots-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-500 text-xs select-none">…</span>
                                     : <button key={p} onClick={() => setPage(p)}
-                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${
-                                            p === page ? 'bg-sp text-navy-900' : 'bg-navy-700 text-slate-400 hover:text-slate-200 hover:bg-navy-600 border border-white/8'
-                                        }`}>{p}</button>
+                                        className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-semibold transition-all ${p === page ? 'bg-sp text-navy-900' : 'bg-navy-700 text-slate-400 hover:text-slate-200 hover:bg-navy-600 border border-white/8'
+                                            }`}>{p}</button>
                             ))}
                             <button
                                 onClick={() => setPage(p => Math.min(totalPages, p + 1))}
@@ -2911,17 +2919,17 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 ══════════════════════════════════════════ */
 function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
     const STATUS_INFO = {
-        open:      { label: 'Ouvert',    cls: 'bg-red-500/15 text-red-400 border-red-500/20',              btnCls: 'border-red-500/40 text-red-400 bg-red-500/10'             },
-        mediation: { label: 'Médiation', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20',        btnCls: 'border-amber-500/40 text-amber-400 bg-amber-500/10'       },
-        resolved:  { label: 'Résolu',    cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',  btnCls: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' },
-        closed:    { label: 'Clôturé',   cls: 'bg-slate-500/15 text-slate-400 border-slate-500/20',        btnCls: 'border-slate-500/40 text-slate-400 bg-slate-500/10'       },
+        open: { label: 'Ouvert', cls: 'bg-red-500/15 text-red-400 border-red-500/20', btnCls: 'border-red-500/40 text-red-400 bg-red-500/10' },
+        mediation: { label: 'Médiation', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', btnCls: 'border-amber-500/40 text-amber-400 bg-amber-500/10' },
+        resolved: { label: 'Résolu', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', btnCls: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' },
+        closed: { label: 'Clôturé', cls: 'bg-slate-500/15 text-slate-400 border-slate-500/20', btnCls: 'border-slate-500/40 text-slate-400 bg-slate-500/10' },
     }
     const priorityColor = { high: 'text-red-400', medium: 'text-amber-400', low: 'text-slate-400' }
     const priorityLabel = { high: 'ÉLEVÉ', medium: 'MOYEN', low: 'FAIBLE' }
 
-    const [filter,          setFilter]          = useState('all')
-    const [showAdd,         setShowAdd]         = useState(false)
-    const [editingDispute,  setEditingDispute]  = useState(null)
+    const [filter, setFilter] = useState('all')
+    const [showAdd, setShowAdd] = useState(false)
+    const [editingDispute, setEditingDispute] = useState(null)
 
     const filtered = filter === 'all' ? disputes : disputes.filter(d => d.status === filter)
 
@@ -2950,11 +2958,11 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
     }
 
     const FILTER_TABS = [
-        { key: 'all',       label: 'Tous' },
-        { key: 'open',      label: 'Ouvert' },
+        { key: 'all', label: 'Tous' },
+        { key: 'open', label: 'Ouvert' },
         { key: 'mediation', label: 'Médiation' },
-        { key: 'resolved',  label: 'Résolu' },
-        { key: 'closed',    label: 'Clôturé' },
+        { key: 'resolved', label: 'Résolu' },
+        { key: 'closed', label: 'Clôturé' },
     ]
 
     return (
@@ -2984,7 +2992,7 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
 
             {/* AI Banner */}
             <div className="glass-card p-5 flex items-center gap-4 border-sp/15"
-                 style={{ background: 'linear-gradient(90deg, rgba(6,182,212,0.06), transparent)' }}>
+                style={{ background: 'linear-gradient(90deg, rgba(6,182,212,0.06), transparent)' }}>
                 <div className="w-10 h-10 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center flex-shrink-0">
                     <Activity size={20} className="text-sp" />
                 </div>
@@ -3003,11 +3011,10 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
             <div className="flex gap-1.5 flex-wrap">
                 {FILTER_TABS.map(t => (
                     <button key={t.key} onClick={() => setFilter(t.key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                            filter === t.key
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${filter === t.key
                                 ? 'bg-sp/15 text-sp border-sp/30'
                                 : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/15'
-                        }`}>
+                            }`}>
                         {t.label}
                         {t.key !== 'all' && (
                             <span className="ml-1.5 opacity-60">{disputes.filter(d => d.status === t.key).length}</span>
@@ -3113,9 +3120,9 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
    ADD DISPUTE MODAL
 ══════════════════════════════════════════ */
 const DISPUTE_PRIORITY_BTNS = [
-    { key: 'high',   label: 'ÉLEVÉ',  cls: 'border-red-500/40 text-red-400 bg-red-500/10'     },
-    { key: 'medium', label: 'MOYEN',  cls: 'border-amber-500/40 text-amber-400 bg-amber-500/10' },
-    { key: 'low',    label: 'FAIBLE', cls: 'border-slate-500/40 text-slate-400 bg-slate-500/10' },
+    { key: 'high', label: 'ÉLEVÉ', cls: 'border-red-500/40 text-red-400 bg-red-500/10' },
+    { key: 'medium', label: 'MOYEN', cls: 'border-amber-500/40 text-amber-400 bg-amber-500/10' },
+    { key: 'low', label: 'FAIBLE', cls: 'border-slate-500/40 text-slate-400 bg-slate-500/10' },
 ]
 
 /* ── Pièces jointes — shared by Add/Edit dispute modals ─────────── */
@@ -3123,7 +3130,7 @@ function AttachmentsField({ attachments, setAttachments }) {
     const [fileError, setFileError] = useState('')
     const inputRef = useRef(null)
     const MAX_FILES = 5
-    const MAX_SIZE  = 5 * 1024 * 1024 // 5 MB
+    const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 
     function handleFiles(e) {
         setFileError('')
@@ -3196,15 +3203,15 @@ function AttachmentsField({ attachments, setAttachments }) {
 }
 
 function AddDisputeModal({ onClose, onAdd }) {
-    const [form, setForm]         = useState({ title: '', parties: ['', ''], priority: 'medium', notes: '' })
-    const [errors, setErrors]     = useState({})
-    const [saving, setSaving]     = useState(false)
+    const [form, setForm] = useState({ title: '', parties: ['', ''], priority: 'medium', notes: '' })
+    const [errors, setErrors] = useState({})
+    const [saving, setSaving] = useState(false)
     const [attachments, setAttachments] = useState([])
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
     function setParty(i, v) { setForm(f => { const p = [...f.parties]; p[i] = v; return { ...f, parties: p } }) }
-    function addParty()      { setForm(f => ({ ...f, parties: [...f.parties, ''] })) }
-    function removeParty(i)  { setForm(f => ({ ...f, parties: f.parties.filter((_, j) => j !== i) })) }
+    function addParty() { setForm(f => ({ ...f, parties: [...f.parties, ''] })) }
+    function removeParty(i) { setForm(f => ({ ...f, parties: f.parties.filter((_, j) => j !== i) })) }
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -3261,9 +3268,8 @@ function AddDisputeModal({ onClose, onAdd }) {
                     <div className="flex gap-2">
                         {DISPUTE_PRIORITY_BTNS.map(b => (
                             <button type="button" key={b.key} onClick={() => set('priority', b.key)}
-                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                                    form.priority === b.key ? b.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
-                                }`}>
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${form.priority === b.key ? b.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
+                                    }`}>
                                 {b.label}
                             </button>
                         ))}
@@ -3299,27 +3305,27 @@ function AddDisputeModal({ onClose, onAdd }) {
 ══════════════════════════════════════════ */
 function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
     const EDIT_STATUS_INFO = {
-        open:      { label: 'Ouvert',    cls: 'border-red-500/40 text-red-400 bg-red-500/10'             },
-        mediation: { label: 'Médiation', cls: 'border-amber-500/40 text-amber-400 bg-amber-500/10'       },
-        resolved:  { label: 'Résolu',    cls: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' },
-        closed:    { label: 'Clôturé',   cls: 'border-slate-500/40 text-slate-400 bg-slate-500/10'       },
+        open: { label: 'Ouvert', cls: 'border-red-500/40 text-red-400 bg-red-500/10' },
+        mediation: { label: 'Médiation', cls: 'border-amber-500/40 text-amber-400 bg-amber-500/10' },
+        resolved: { label: 'Résolu', cls: 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10' },
+        closed: { label: 'Clôturé', cls: 'border-slate-500/40 text-slate-400 bg-slate-500/10' },
     }
-    const [form, setForm]         = useState({
-        title:    dispute.title,
-        parties:  [...dispute.parties],
+    const [form, setForm] = useState({
+        title: dispute.title,
+        parties: [...dispute.parties],
         priority: dispute.priority,
-        status:   dispute.status,
-        notes:    dispute.notes ?? '',
+        status: dispute.status,
+        notes: dispute.notes ?? '',
     })
-    const [attachments, setAttachments]     = useState(dispute.attachments ?? [])
+    const [attachments, setAttachments] = useState(dispute.attachments ?? [])
     const [confirmDelete, setConfirmDelete] = useState(false)
-    const [confirmSave,   setConfirmSave]   = useState(false)
-    const [saving, setSaving]               = useState(false)
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [saving, setSaving] = useState(false)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
     function setParty(i, v) { setForm(f => { const p = [...f.parties]; p[i] = v; return { ...f, parties: p } }); setConfirmSave(false) }
-    function addParty()      { setForm(f => ({ ...f, parties: [...f.parties, ''] })); setConfirmSave(false) }
-    function removeParty(i)  { setForm(f => ({ ...f, parties: f.parties.filter((_, j) => j !== i) })); setConfirmSave(false) }
+    function addParty() { setForm(f => ({ ...f, parties: [...f.parties, ''] })); setConfirmSave(false) }
+    function removeParty(i) { setForm(f => ({ ...f, parties: f.parties.filter((_, j) => j !== i) })); setConfirmSave(false) }
 
     function handleSubmit(e) {
         e.preventDefault()
@@ -3372,9 +3378,8 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
                     <div className="flex gap-2">
                         {DISPUTE_PRIORITY_BTNS.map(b => (
                             <button type="button" key={b.key} onClick={() => set('priority', b.key)}
-                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                                    form.priority === b.key ? b.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
-                                }`}>
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${form.priority === b.key ? b.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
+                                    }`}>
                                 {b.label}
                             </button>
                         ))}
@@ -3386,9 +3391,8 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
                     <div className="grid grid-cols-2 gap-2">
                         {Object.entries(EDIT_STATUS_INFO).map(([key, info]) => (
                             <button type="button" key={key} onClick={() => set('status', key)}
-                                className={`py-2 rounded-xl text-xs font-bold border transition-all ${
-                                    form.status === key ? info.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
-                                }`}>
+                                className={`py-2 rounded-xl text-xs font-bold border transition-all ${form.status === key ? info.cls : 'bg-navy-700 border-white/8 text-slate-500 hover:border-white/15'
+                                    }`}>
                                 {info.label}
                             </button>
                         ))}
@@ -3465,13 +3469,13 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
    PLANNING PAGE
 ══════════════════════════════════════════ */
 const CATEGORY_META = {
-    espaces_verts: { icon: Leaf,        label: 'Espaces verts', color: 'text-emerald-400' },
-    electricite:   { icon: Zap,         label: 'Électricité',   color: 'text-yellow-400'  },
-    plomberie:     { icon: Activity,    label: 'Plomberie',     color: 'text-blue-400'    },
-    nettoyage:     { icon: CheckCircle2,label: 'Nettoyage',     color: 'text-cyan-400'    },
-    securite:      { icon: ShieldCheck, label: 'Sécurité',      color: 'text-violet-400'  },
-    ascenseur:     { icon: Wrench,      label: 'Ascenseur',     color: 'text-orange-400'  },
-    peinture:      { icon: Wrench,      label: 'Peinture',      color: 'text-pink-400'    },
+    espaces_verts: { icon: Leaf, label: 'Espaces verts', color: 'text-emerald-400' },
+    electricite: { icon: Zap, label: 'Électricité', color: 'text-yellow-400' },
+    plomberie: { icon: Activity, label: 'Plomberie', color: 'text-blue-400' },
+    nettoyage: { icon: CheckCircle2, label: 'Nettoyage', color: 'text-cyan-400' },
+    securite: { icon: ShieldCheck, label: 'Sécurité', color: 'text-violet-400' },
+    ascenseur: { icon: Wrench, label: 'Ascenseur', color: 'text-orange-400' },
+    peinture: { icon: Wrench, label: 'Peinture', color: 'text-pink-400' },
 }
 
 /* Pure display card — used both in kanban and in DragOverlay */
@@ -3479,11 +3483,10 @@ function TicketCard({ t, ghost = false, onEdit }) {
     const cat = CATEGORY_META[t.category] ?? CATEGORY_META.plomberie
     const CatIcon = cat.icon
     return (
-        <div className={`glass-card p-4 border-l-4 select-none ${
-            t.status === 'in_progress' ? 'border-l-sp' :
-            t.status === 'scheduled'   ? 'border-l-amber-400' :
-                                         'border-l-emerald-500'
-        } ${ghost ? 'opacity-30' : ''}`}>
+        <div className={`glass-card p-4 border-l-4 select-none ${t.status === 'in_progress' ? 'border-l-sp' :
+                t.status === 'scheduled' ? 'border-l-amber-400' :
+                    'border-l-emerald-500'
+            } ${ghost ? 'opacity-30' : ''}`}>
             <div className="flex items-start justify-between gap-2 mb-2.5">
                 <div className="flex items-center gap-2">
                     <CatIcon size={13} className={cat.color} />
@@ -3545,12 +3548,12 @@ function KanbanColumn({ status, label, dot, count, children }) {
     const { setNodeRef, isOver } = useDroppable({ id: status })
     const badgeCls =
         status === 'in_progress' ? 'bg-sp/15 text-sp' :
-        status === 'scheduled'   ? 'bg-amber-400/15 text-amber-400' :
-                                    'bg-emerald-500/15 text-emerald-400'
+            status === 'scheduled' ? 'bg-amber-400/15 text-amber-400' :
+                'bg-emerald-500/15 text-emerald-400'
     const borderCls =
         status === 'in_progress' ? 'border-b-sp/50' :
-        status === 'scheduled'   ? 'border-b-amber-400/50' :
-                                    'border-b-emerald-500/50'
+            status === 'scheduled' ? 'border-b-amber-400/50' :
+                'border-b-emerald-500/50'
     return (
         <div>
             <div className={`flex items-center gap-2 mb-3 pb-2 border-b ${borderCls}`}>
@@ -3560,9 +3563,8 @@ function KanbanColumn({ status, label, dot, count, children }) {
             </div>
             <div
                 ref={setNodeRef}
-                className={`min-h-[100px] space-y-3 rounded-xl p-1 transition-all duration-150 ${
-                    isOver ? 'bg-white/[0.04] ring-1 ring-white/10 scale-[1.01]' : ''
-                }`}
+                className={`min-h-[100px] space-y-3 rounded-xl p-1 transition-all duration-150 ${isOver ? 'bg-white/[0.04] ring-1 ring-white/10 scale-[1.01]' : ''
+                    }`}
             >
                 {children}
                 {count === 0 && !isOver && (
@@ -3576,10 +3578,10 @@ function KanbanColumn({ status, label, dot, count, children }) {
 /* Edit ticket modal */
 function EditTicketModal({ ticket, onSave, onClose }) {
     const [form, setForm] = useState({
-        title:    ticket.title,
-        agent:    ticket.agent,
-        time:     ticket.time,
-        date:     ticket.date ?? '',
+        title: ticket.title,
+        agent: ticket.agent,
+        time: ticket.time,
+        date: ticket.date ?? '',
         category: ticket.category,
         priority: ticket.priority,
     })
@@ -3621,17 +3623,15 @@ function EditTicketModal({ ticket, onSave, onClose }) {
                     <label className="block text-xs text-slate-400 mb-2 font-medium">Priorité</label>
                     <div className="flex gap-2">
                         <button onClick={() => set('priority', 'normal')}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                                form.priority !== 'urgent'
+                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.priority !== 'urgent'
                                     ? 'bg-slate-700/60 text-slate-200 border-white/15'
                                     : 'bg-navy-700 text-slate-500 border-white/8 hover:border-white/20'
-                            }`}>Normal</button>
+                                }`}>Normal</button>
                         <button onClick={() => set('priority', 'urgent')}
-                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${
-                                form.priority === 'urgent'
+                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.priority === 'urgent'
                                     ? 'bg-red-500/20 text-red-400 border-red-500/40'
                                     : 'bg-navy-700 text-slate-500 border-white/8 hover:border-red-500/30 hover:text-red-400'
-                            }`}>URGENT</button>
+                                }`}>URGENT</button>
                     </div>
                 </div>
                 <div className="flex gap-3 pt-2">
@@ -3650,10 +3650,10 @@ function EditTicketModal({ ticket, onSave, onClose }) {
 }
 
 function PlanningPage({ building, data, showToast }) {
-    const [tickets,       setTickets]       = useState(data.tickets)
-    const [filter,        setFilter]        = useState('all')
-    const [search,        setSearch]        = useState('')
-    const [activeId,      setActiveId]      = useState(null)
+    const [tickets, setTickets] = useState(data.tickets)
+    const [filter, setFilter] = useState('all')
+    const [search, setSearch] = useState('')
+    const [activeId, setActiveId] = useState(null)
     const [editingTicket, setEditingTicket] = useState(null)
 
     function handleSaveEdit(form) {
@@ -3666,16 +3666,16 @@ function PlanningPage({ building, data, showToast }) {
 
     const counts = {
         in_progress: tickets.filter(t => t.status === 'in_progress').length,
-        scheduled:   tickets.filter(t => t.status === 'scheduled').length,
-        done:        tickets.filter(t => t.status === 'done').length,
+        scheduled: tickets.filter(t => t.status === 'scheduled').length,
+        done: tickets.filter(t => t.status === 'done').length,
     }
 
     const filterLabels = { all: 'Tous', in_progress: 'En cours', scheduled: 'Planifié', done: 'Terminé' }
 
     const columns = [
-        { status: 'in_progress', label: 'En cours', dot: 'bg-sp'          },
-        { status: 'scheduled',   label: 'Planifié',  dot: 'bg-amber-400'   },
-        { status: 'done',        label: 'Terminé',   dot: 'bg-emerald-500' },
+        { status: 'in_progress', label: 'En cours', dot: 'bg-sp' },
+        { status: 'scheduled', label: 'Planifié', dot: 'bg-amber-400' },
+        { status: 'done', label: 'Terminé', dot: 'bg-emerald-500' },
     ]
 
     function handleDragStart({ active }) {
@@ -3695,7 +3695,7 @@ function PlanningPage({ building, data, showToast }) {
     const filtered = tickets.filter(t => {
         const q = search.toLowerCase()
         return (t.title.toLowerCase().includes(q) || t.agent.toLowerCase().includes(q)) &&
-               (filter === 'all' || t.status === filter)
+            (filter === 'all' || t.status === filter)
     })
 
     const showKanban = filter === 'all' && !search
@@ -3722,9 +3722,9 @@ function PlanningPage({ building, data, showToast }) {
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
                 {[
-                    { label: 'En cours', value: counts.in_progress, color: 'text-sp',          border: 'border-sp/20'          },
-                    { label: 'Planifié', value: counts.scheduled,   color: 'text-amber-400',   border: 'border-amber-400/20'   },
-                    { label: 'Terminé',  value: counts.done,        color: 'text-emerald-400', border: 'border-emerald-400/20' },
+                    { label: 'En cours', value: counts.in_progress, color: 'text-sp', border: 'border-sp/20' },
+                    { label: 'Planifié', value: counts.scheduled, color: 'text-amber-400', border: 'border-amber-400/20' },
+                    { label: 'Terminé', value: counts.done, color: 'text-emerald-400', border: 'border-emerald-400/20' },
                 ].map(s => (
                     <div key={s.label} className={`glass-card p-5 border ${s.border}`}>
                         <div className={`text-3xl font-bold ${s.color} mb-1`}>{s.value}</div>
@@ -3738,9 +3738,8 @@ function PlanningPage({ building, data, showToast }) {
                 <div className="flex gap-2">
                     {Object.entries(filterLabels).map(([f, label]) => (
                         <button key={f} onClick={() => setFilter(f)}
-                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                                filter === f ? 'bg-sp text-navy-900' : 'bg-navy-800 text-slate-400 border border-white/8 hover:border-sp/30'
-                            }`}
+                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${filter === f ? 'bg-sp text-navy-900' : 'bg-navy-800 text-slate-400 border border-white/8 hover:border-sp/30'
+                                }`}
                         >
                             {label}{f !== 'all' && ` (${counts[f] ?? 0})`}
                         </button>
@@ -3785,11 +3784,10 @@ function PlanningPage({ building, data, showToast }) {
                         const cat = CATEGORY_META[t.category] ?? CATEGORY_META.plomberie
                         const CatIcon = cat.icon
                         return (
-                            <div key={t.id} className={`glass-card p-4 border-l-4 flex items-center gap-5 ${
-                                t.status === 'in_progress' ? 'border-l-sp' :
-                                t.status === 'scheduled'   ? 'border-l-amber-400' :
-                                                             'border-l-emerald-500'
-                            }`}>
+                            <div key={t.id} className={`glass-card p-4 border-l-4 flex items-center gap-5 ${t.status === 'in_progress' ? 'border-l-sp' :
+                                    t.status === 'scheduled' ? 'border-l-amber-400' :
+                                        'border-l-emerald-500'
+                                }`}>
                                 <CatIcon size={16} className={`${cat.color} flex-shrink-0`} />
                                 <div className="flex-1 min-w-0">
                                     <p className={`font-semibold text-sm ${t.status === 'done' ? 'text-slate-400 line-through' : 'text-slate-100'}`}>
@@ -3884,13 +3882,13 @@ function Spinner() {
 ══════════════════════════════════════════ */
 function AddExpenseModal({ onClose, onAdd, suppliers = [] }) {
     const [form, setForm] = useState({
-        category:    EXPENSE_CATEGORIES[0].label,
-        amount:      '',
-        vendorId:    suppliers.length > 0 ? '' : 'autre',  // '' = not chosen yet, 'autre' = free text
-        vendor:      '',
-        date:        new Date().toISOString().slice(0, 10),
+        category: EXPENSE_CATEGORIES[0].label,
+        amount: '',
+        vendorId: suppliers.length > 0 ? '' : 'autre',  // '' = not chosen yet, 'autre' = free text
+        vendor: '',
+        date: new Date().toISOString().slice(0, 10),
         description: '',
-        hasInvoice:  false,
+        hasInvoice: false,
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
@@ -3912,21 +3910,21 @@ function AddExpenseModal({ onClose, onAdd, suppliers = [] }) {
         e.preventDefault()
         const errs = {}
         if (!form.amount || Number(form.amount) <= 0) errs.amount = 'Montant requis'
-        if (!form.vendor.trim())                       errs.vendor = 'Fournisseur requis'
-        if (suppliers.length > 0 && !form.vendorId)   errs.vendor = 'Sélectionnez un fournisseur ou "Autre"'
+        if (!form.vendor.trim()) errs.vendor = 'Fournisseur requis'
+        if (suppliers.length > 0 && !form.vendorId) errs.vendor = 'Sélectionnez un fournisseur ou "Autre"'
         if (Object.keys(errs).length) { setErrors(errs); return }
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
         const cat = EXPENSE_CATEGORIES.find(c => c.label === form.category)
         onAdd({
-            category:    form.category,
-            amount:      parseInt(form.amount),
-            color:       cat?.color ?? 'bg-slate-500',
-            vendor:      form.vendor.trim(),
-            date:        form.date,
+            category: form.category,
+            amount: parseInt(form.amount),
+            color: cat?.color ?? 'bg-slate-500',
+            vendor: form.vendor.trim(),
+            date: form.date,
             description: form.description,
-            hasInvoice:  form.hasInvoice,
-            isNew:       true,
+            hasInvoice: form.hasInvoice,
+            isNew: true,
         })
         setSaving(false)
         onClose()
@@ -4023,9 +4021,8 @@ function AddExpenseModal({ onClose, onAdd, suppliers = [] }) {
                 {/* Invoice toggle */}
                 <div
                     onClick={() => set('hasInvoice', !form.hasInvoice)}
-                    className={`border-2 border-dashed rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${
-                        form.hasInvoice ? 'border-sp/50 bg-sp/5' : 'border-white/10 hover:border-sp/30'
-                    }`}
+                    className={`border-2 border-dashed rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-all ${form.hasInvoice ? 'border-sp/50 bg-sp/5' : 'border-white/10 hover:border-sp/30'
+                        }`}
                 >
                     <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${form.hasInvoice ? 'bg-sp/20' : 'bg-navy-600'}`}>
                         {form.hasInvoice ? <Check size={16} className="text-sp" /> : <Upload size={16} className="text-slate-400" />}
@@ -4055,10 +4052,10 @@ function AddExpenseModal({ onClose, onAdd, suppliers = [] }) {
 
 /* ── Searchable resident combobox ─────────────────────────────────────── */
 function ResidentCombobox({ residents, value, onChange }) {
-    const [open,  setOpen]  = useState(false)
+    const [open, setOpen] = useState(false)
     const [query, setQuery] = useState('')
     const containerRef = useRef(null)
-    const inputRef     = useRef(null)
+    const inputRef = useRef(null)
 
     const selected = residents.find(r => r.id === value)
 
@@ -4143,9 +4140,8 @@ function ResidentCombobox({ residents, value, onChange }) {
                                 key={r.id}
                                 type="button"
                                 onClick={() => select(r.id)}
-                                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-colors ${
-                                    r.id === value ? 'bg-sp/12 text-sp' : 'hover:bg-navy-700 text-slate-300'
-                                }`}
+                                className={`w-full flex items-center gap-2 px-3 py-2.5 text-xs text-left transition-colors ${r.id === value ? 'bg-sp/12 text-sp' : 'hover:bg-navy-700 text-slate-300'
+                                    }`}
                             >
                                 <span className={`flex-shrink-0 w-4 text-center ${stColor(r)}`}>{stIcon(r)}</span>
                                 <span className="font-mono text-[10px] text-slate-500 flex-shrink-0 w-10">{r.unit}</span>
@@ -4172,11 +4168,11 @@ function ResidentCombobox({ residents, value, onChange }) {
 function RecordPaymentModal({ building, residents, onClose, onRecord, presetResidentId }) {
     const [form, setForm] = useState({
         residentId: presetResidentId ?? residents[0]?.id ?? '',
-        months:     1,
-        amount:     '',
-        method:     'especes',
-        date:       new Date().toISOString().slice(0, 10),
-        ref:        '',
+        months: 1,
+        amount: '',
+        method: 'especes',
+        date: new Date().toISOString().slice(0, 10),
+        ref: '',
     })
     const [saving, setSaving] = useState(false)
 
@@ -4223,11 +4219,10 @@ function RecordPaymentModal({ building, residents, onClose, onRecord, presetResi
                     <div className="flex gap-2">
                         {[1, 2, 3, 6, 12].map(n => (
                             <button type="button" key={n} onClick={() => set('months', n)}
-                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
-                                    form.months === n
+                                className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${form.months === n
                                         ? 'bg-sp/15 border-sp/40 text-sp'
                                         : 'bg-navy-700 border-white/8 text-slate-400 hover:border-sp/20'
-                                }`}>
+                                    }`}>
                                 {n === 12 ? '1 an' : `${n} mois`}
                             </button>
                         ))}
@@ -4262,16 +4257,15 @@ function RecordPaymentModal({ building, residents, onClose, onRecord, presetResi
                         <label className="block text-xs font-semibold text-slate-400 mb-1.5">Mode de paiement</label>
                         <div className="flex flex-col gap-1.5">
                             {[
-                                { value: 'especes',  label: 'Espèces'  },
+                                { value: 'especes', label: 'Espèces' },
                                 { value: 'virement', label: 'Virement' },
-                                { value: 'cheque',   label: 'Chèque'   },
+                                { value: 'cheque', label: 'Chèque' },
                             ].map(m => (
                                 <button type="button" key={m.value} onClick={() => set('method', m.value)}
-                                    className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                                        form.method === m.value
+                                    className={`py-1.5 rounded-lg text-xs font-semibold border transition-all ${form.method === m.value
                                             ? 'bg-sp/15 border-sp/40 text-sp'
                                             : 'bg-navy-700 border-white/8 text-slate-400 hover:border-sp/20'
-                                    }`}>
+                                        }`}>
                                     {m.label}
                                 </button>
                             ))}
@@ -4314,7 +4308,7 @@ function RecordPaymentModal({ building, residents, onClose, onRecord, presetResi
 ══════════════════════════════════════════ */
 function WhatsAppGroupModal({ overdueResidents, building, onClose }) {
     const defaultMsg =
-`Bonjour,
+        `Bonjour,
 
 Nous vous rappelons que votre cotisation de syndic est actuellement en retard de paiement.
 
@@ -4367,17 +4361,17 @@ Cordialement,
 
 function EditResidentModal({ resident, onSave, onDelete, onClose }) {
     const [form, setForm] = useState({
-        name:        resident.name,
-        phone:       resident.phone === '—' ? '' : resident.phone,
-        unit:        resident.unit,
-        floor:       resident.floor?.toString() ?? '',
-        type:        resident.type ?? 'proprietaire',
+        name: resident.name,
+        phone: resident.phone === '—' ? '' : resident.phone,
+        unit: resident.unit,
+        floor: resident.floor?.toString() ?? '',
+        type: resident.type ?? 'proprietaire',
         paidThrough: resident.paidThrough ?? '',
     })
-    const [saving,       setSaving]       = useState(false)
-    const [confirmSave,  setConfirmSave]  = useState(false)
-    const [confirmDel,   setConfirmDel]   = useState(false)
-    const [errors,       setErrors]       = useState({})
+    const [saving, setSaving] = useState(false)
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [confirmDel, setConfirmDel] = useState(false)
+    const [errors, setErrors] = useState({})
 
     function set(k, v) {
         setForm(f => ({ ...f, [k]: v }))
@@ -4398,11 +4392,11 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
         await new Promise(r => setTimeout(r, 600))
         onSave({
             ...resident,
-            name:        form.name.trim(),
-            unit:        form.unit.toUpperCase(),
-            phone:       form.phone || '—',
-            floor:       parseInt(form.floor) || 0,
-            type:        form.type,
+            name: form.name.trim(),
+            unit: form.unit.toUpperCase(),
+            phone: form.phone || '—',
+            floor: parseInt(form.floor) || 0,
+            type: form.type,
             paidThrough: form.paidThrough || resident.paidThrough,
         })
     }
@@ -4458,16 +4452,15 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
                     <div className="grid grid-cols-2 gap-2">
                         {[
                             { value: 'proprietaire', label: 'Propriétaire' },
-                            { value: 'locataire',    label: 'Locataire'    },
+                            { value: 'locataire', label: 'Locataire' },
                         ].map(t => (
                             <button
                                 type="button" key={t.value}
                                 onClick={() => set('type', t.value)}
-                                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                                    form.type === t.value
+                                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${form.type === t.value
                                         ? 'bg-sp/15 border-sp/40 text-sp'
                                         : 'bg-navy-700 border-white/8 text-slate-400 hover:border-sp/20'
-                                }`}
+                                    }`}
                             >
                                 {t.label}
                             </button>
@@ -4556,11 +4549,11 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
 
 function AddResidentModal({ onClose, onAdd }) {
     const [form, setForm] = useState({
-        name:  '',
+        name: '',
         phone: '',
-        unit:  '',
+        unit: '',
         floor: '',
-        type:  'proprietaire',
+        type: 'proprietaire',
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
@@ -4576,15 +4569,15 @@ function AddResidentModal({ onClose, onAdd }) {
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
         onAdd({
-            id:     `r-${Date.now()}`,
-            unit:   form.unit.toUpperCase(),
-            name:   form.name.trim(),
-            phone:  form.phone || '—',
-            floor:       parseInt(form.floor) || 0,
+            id: `r-${Date.now()}`,
+            unit: form.unit.toUpperCase(),
+            name: form.name.trim(),
+            phone: form.phone || '—',
+            floor: parseInt(form.floor) || 0,
             paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
-            since:       new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
-            type:        form.type,
-            isNew:       true,
+            since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
+            type: form.type,
+            isNew: true,
         })
         setSaving(false)
         onClose()
@@ -4645,16 +4638,15 @@ function AddResidentModal({ onClose, onAdd }) {
                     <div className="grid grid-cols-2 gap-2">
                         {[
                             { value: 'proprietaire', label: 'Propriétaire' },
-                            { value: 'locataire',    label: 'Locataire'    },
+                            { value: 'locataire', label: 'Locataire' },
                         ].map(t => (
                             <button
                                 type="button" key={t.value}
                                 onClick={() => set('type', t.value)}
-                                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${
-                                    form.type === t.value
+                                className={`py-2 rounded-xl text-xs font-semibold border transition-all ${form.type === t.value
                                         ? 'bg-sp/15 border-sp/40 text-sp'
                                         : 'bg-navy-700 border-white/8 text-slate-400 hover:border-sp/20'
-                                }`}
+                                    }`}
                             >
                                 {t.label}
                             </button>
@@ -4740,17 +4732,17 @@ function downloadResidentsTemplate() {
 }
 
 function ImportCSVModal({ onClose, onImport }) {
-    const [step,        setStep]        = useState(1)
-    const [fileName,    setFileName]    = useState('')
-    const [parsedRows,  setParsedRows]  = useState([])
-    const [parseError,  setParseError]  = useState('')
-    const [importing,   setImporting]   = useState(false)
+    const [step, setStep] = useState(1)
+    const [fileName, setFileName] = useState('')
+    const [parsedRows, setParsedRows] = useState([])
+    const [parseError, setParseError] = useState('')
+    const [importing, setImporting] = useState(false)
     const fileRef = useRef(null)
 
     const detectedCols = parsedRows.length > 0
         ? Object.keys(parsedRows[0]).filter(k => COL_LABEL[k])
         : []
-    const previewRows  = parsedRows.slice(0, 5)
+    const previewRows = parsedRows.slice(0, 5)
 
     async function handleFile(e) {
         const file = e.target.files?.[0]
@@ -4791,25 +4783,25 @@ function ImportCSVModal({ onClose, onImport }) {
         setImporting(true)
         await new Promise(r => setTimeout(r, 900))
         onImport(parsedRows.map((row, i) => ({
-            id:          `csv-${Date.now()}-${i}`,
-            unit:        row.unite,
-            name:        row.nom,
-            phone:       row.telephone || '',
-            floor:       parseInt(row.etage) || 0,
+            id: `csv-${Date.now()}-${i}`,
+            unit: row.unite,
+            name: row.nom,
+            phone: row.telephone || '',
+            floor: parseInt(row.etage) || 0,
             paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
-            since:       formatMonth(CURRENT_MONTH),
-            type:        (row.type || 'propriétaire').toLowerCase(),
-            quota:       row.quota ? parseFloat(row.quota) : null,
-            isNew:       true,
+            since: formatMonth(CURRENT_MONTH),
+            type: (row.type || 'propriétaire').toLowerCase(),
+            quota: row.quota ? parseFloat(row.quota) : null,
+            isNew: true,
         })))
         setImporting(false)
         setStep(3)
     }
 
     const STEPS = [
-        { n: 1, label: 'Sélectionner fichier'       },
+        { n: 1, label: 'Sélectionner fichier' },
         { n: 2, label: 'Vérifier la correspondance' },
-        { n: 3, label: 'Confirmation'               },
+        { n: 3, label: 'Confirmation' },
     ]
 
     return (
@@ -4823,11 +4815,10 @@ function ImportCSVModal({ onClose, onImport }) {
             <div className="flex items-center gap-2 mb-6">
                 {STEPS.map(({ n, label }, idx) => (
                     <div key={n} className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${
-                            step > n  ? 'bg-emerald-500 text-white' :
-                            step === n ? 'bg-sp text-navy-900'      :
-                                         'bg-navy-600 text-slate-500'
-                        }`}>
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold transition-all ${step > n ? 'bg-emerald-500 text-white' :
+                                step === n ? 'bg-sp text-navy-900' :
+                                    'bg-navy-600 text-slate-500'
+                            }`}>
                             {step > n ? <Check size={12} /> : n}
                         </div>
                         <span className={`text-xs ${step === n ? 'text-slate-200 font-semibold' : 'text-slate-500'}`}>{label}</span>
@@ -4987,13 +4978,13 @@ function ImportCSVModal({ onClose, onImport }) {
 ══════════════════════════════════════════ */
 function BuildingSettingsModal({ building, onClose, onSave }) {
     const [form, setForm] = useState({
-        name:    building.name    ?? '',
-        city:    building.city    ?? '',
+        name: building.name ?? '',
+        city: building.city ?? '',
         manager: building.manager ?? '',
-        logo:    building.logo    ?? null,
+        logo: building.logo ?? null,
     })
     const [confirmSave, setConfirmSave] = useState(false)
-    const [saving,      setSaving]      = useState(false)
+    const [saving, setSaving] = useState(false)
     const [logoPreview, setLogoPreview] = useState(building.logo ?? null)
     const fileRef = useRef(null)
 
@@ -5015,8 +5006,8 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         onSave({ ...form })
     }
 
-    const logoColor    = building.color ?? '#06b6d4'
-    const logoInitials = form.name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase() || '??'
+    const logoColor = building.color ?? '#06b6d4'
+    const logoInitials = form.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '??'
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -5032,7 +5023,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Logo de la syndic</label>
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center flex-shrink-0"
-                                 style={{ backgroundColor: logoColor + '22' }}>
+                                style={{ backgroundColor: logoColor + '22' }}>
                                 {logoPreview
                                     ? <img src={logoPreview} alt="" className="w-full h-full object-cover" />
                                     : <span className="text-xl font-bold" style={{ color: logoColor }}>{logoInitials}</span>
@@ -5127,7 +5118,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
 /* ══════════════════════════════════════════
    ADD BUILDING MODAL
 ══════════════════════════════════════════ */
-const BUILDING_COLORS = ['#22c55e','#06b6d4','#6366f1','#f59e0b','#ec4899','#ef4444','#8b5cf6','#14b8a6']
+const BUILDING_COLORS = ['#22c55e', '#06b6d4', '#6366f1', '#f59e0b', '#ec4899', '#ef4444', '#8b5cf6', '#14b8a6']
 
 function AddBuildingModal({ onClose, onSave }) {
     const [form, setForm] = useState({
@@ -5136,7 +5127,7 @@ function AddBuildingModal({ onClose, onSave }) {
         color: BUILDING_COLORS[0],
         logo: null,
     })
-    const [saving,      setSaving]      = useState(false)
+    const [saving, setSaving] = useState(false)
     const [logoPreview, setLogoPreview] = useState(null)
     const fileRef = useRef(null)
 
@@ -5156,22 +5147,22 @@ function AddBuildingModal({ onClose, onSave }) {
         setSaving(true)
         await new Promise(r => setTimeout(r, 700))
         onSave({
-            id:                 `bld-${Date.now()}`,
-            name:               form.name.trim(),
-            city:               form.city.trim(),
-            address:            form.address.trim(),
-            manager:            form.manager.trim(),
-            total_units:        Number(form.total_units) || 0,
+            id: `bld-${Date.now()}`,
+            name: form.name.trim(),
+            city: form.city.trim(),
+            address: form.address.trim(),
+            manager: form.manager.trim(),
+            total_units: Number(form.total_units) || 0,
             monthly_charge_mad: Number(form.monthly_charge) || 0,
-            reserve_fund_mad:   0,
-            color:              form.color,
-            icon:               'Building2',
-            logo:               form.logo,
-            collection_rate:    100,
+            reserve_fund_mad: 0,
+            color: form.color,
+            icon: 'Building2',
+            logo: form.logo,
+            collection_rate: 100,
         })
     }
 
-    const logoInitials = form.name.trim().split(/\s+/).slice(0,2).map(w => w[0]).join('').toUpperCase() || '??'
+    const logoInitials = form.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '??'
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -5187,7 +5178,7 @@ function AddBuildingModal({ onClose, onSave }) {
                         <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">Logo de la syndic</label>
                         <div className="flex items-center gap-4">
                             <div className="w-16 h-16 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center flex-shrink-0"
-                                 style={{ backgroundColor: form.color + '22' }}>
+                                style={{ backgroundColor: form.color + '22' }}>
                                 {logoPreview
                                     ? <img src={logoPreview} alt="" className="w-full h-full object-cover" />
                                     : <span className="text-xl font-bold" style={{ color: form.color }}>{logoInitials}</span>
@@ -5270,20 +5261,20 @@ function AddBuildingModal({ onClose, onSave }) {
 const BUILDING_ICON_MAP = { Building2, Landmark, Leaf }
 
 function BuildingAvatar({ building, size = 'sm' }) {
-    const dim      = size === 'sm' ? 'w-8 h-8'  : 'w-10 h-10'
-    const iconSize = size === 'sm' ? 15          : 18
-    const Icon     = BUILDING_ICON_MAP[building.icon] ?? Building2
+    const dim = size === 'sm' ? 'w-8 h-8' : 'w-10 h-10'
+    const iconSize = size === 'sm' ? 15 : 18
+    const Icon = BUILDING_ICON_MAP[building.icon] ?? Building2
     if (building.logo) {
         return (
             <div className={`${dim} rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden`}
-                 style={{ border: `1px solid ${building.color}55` }}>
+                style={{ border: `1px solid ${building.color}55` }}>
                 <img src={building.logo} alt="" className="w-full h-full object-cover" />
             </div>
         )
     }
     return (
         <div className={`${dim} rounded-lg flex items-center justify-center flex-shrink-0`}
-             style={{ backgroundColor: building.color + '33', border: `1px solid ${building.color}55` }}>
+            style={{ backgroundColor: building.color + '33', border: `1px solid ${building.color}55` }}>
             <Icon size={iconSize} style={{ color: building.color }} strokeWidth={1.5} />
         </div>
     )
@@ -5292,9 +5283,9 @@ function BuildingAvatar({ building, size = 'sm' }) {
 function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
     const colorMap = {
         emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
-        cyan:    { bg: 'bg-sp/10',          border: 'border-sp/20',          text: 'text-sp'          },
-        amber:   { bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   text: 'text-amber-400'   },
-        violet:  { bg: 'bg-violet-500/10',  border: 'border-violet-500/20',  text: 'text-violet-400'  },
+        cyan: { bg: 'bg-sp/10', border: 'border-sp/20', text: 'text-sp' },
+        amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
+        violet: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400' },
     }
     const c = colorMap[color] ?? colorMap.cyan
     return (
@@ -5331,17 +5322,17 @@ function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
 /* ── Transparence Score Modal ── */
 function TransparenceModal({ score, tier, breakdown, onClose }) {
     const tierMeta = {
-        'Gold Elite': { emoji: '🥇', cls: 'text-yellow-300',  bg: 'bg-yellow-500/10',  border: 'border-yellow-500/20',  min: 95  },
-        'Silver Pro': { emoji: '🥈', cls: 'text-slate-300',   bg: 'bg-slate-500/10',   border: 'border-slate-500/20',   min: 80  },
-        'Bronze':     { emoji: '🥉', cls: 'text-amber-500',   bg: 'bg-amber-500/10',   border: 'border-amber-500/20',   min: 60  },
-        'Standard':   { emoji: '📋', cls: 'text-slate-400',   bg: 'bg-slate-600/10',   border: 'border-slate-600/20',   min: 0   },
+        'Gold Elite': { emoji: '🥇', cls: 'text-yellow-300', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', min: 95 },
+        'Silver Pro': { emoji: '🥈', cls: 'text-slate-300', bg: 'bg-slate-500/10', border: 'border-slate-500/20', min: 80 },
+        'Bronze': { emoji: '🥉', cls: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', min: 60 },
+        'Standard': { emoji: '📋', cls: 'text-slate-400', bg: 'bg-slate-600/10', border: 'border-slate-600/20', min: 0 },
     }
     const descriptions = {
         'Recouvrement documenté': 'Basé sur le taux de recouvrement actuel de la résidence.',
-        'Dépenses tracées':       'Toutes les dépenses sont enregistrées dans le journal avec catégorie et fournisseur.',
-        'Tickets suivis':         'Proportion de tickets de maintenance clôturés vs. ouverts.',
-        'Résidents renseignés':   'Pourcentage de résidents avec un numéro de téléphone renseigné.',
-        'Assemblée planifiée':    'Au moins une assemblée générale planifiée ou tenue cette année.',
+        'Dépenses tracées': 'Toutes les dépenses sont enregistrées dans le journal avec catégorie et fournisseur.',
+        'Tickets suivis': 'Proportion de tickets de maintenance clôturés vs. ouverts.',
+        'Résidents renseignés': 'Pourcentage de résidents avec un numéro de téléphone renseigné.',
+        'Assemblée planifiée': 'Au moins une assemblée générale planifiée ou tenue cette année.',
     }
     const tm = tierMeta[tier] ?? tierMeta['Standard']
     const tiers = ['Gold Elite', 'Silver Pro', 'Bronze', 'Standard']
@@ -5349,7 +5340,7 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className="relative w-full max-w-md bg-[#0d1629] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
-                 onClick={e => e.stopPropagation()}>
+                onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
@@ -5394,7 +5385,7 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
                             </div>
                             <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
                                 <div className="h-full bg-violet-400 rounded-full transition-all"
-                                     style={{ width: `${Math.round((item.pts / item.max) * 100)}%` }} />
+                                    style={{ width: `${Math.round((item.pts / item.max) * 100)}%` }} />
                             </div>
                         </div>
                     ))}
@@ -5427,8 +5418,8 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
 function StatusBadge({ status }) {
     const map = {
         in_progress: 'bg-sp/15 text-sp border-sp/20',
-        scheduled:   'bg-slate-500/15 text-slate-400 border-slate-500/20',
-        done:        'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
+        scheduled: 'bg-slate-500/15 text-slate-400 border-slate-500/20',
+        done: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20',
     }
     const label = { in_progress: 'En cours', scheduled: 'Planifié', done: 'Terminé' }
     return (
@@ -5440,9 +5431,9 @@ function StatusBadge({ status }) {
 
 function PaymentBadge({ status }) {
     const map = {
-        paid:    { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', label: 'Payé',       icon: CheckCircle2 },
-        pending: { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20',       label: 'En attente', icon: Clock        },
-        overdue: { cls: 'bg-red-500/15 text-red-400 border-red-500/20',             label: 'En retard',  icon: XCircle      },
+        paid: { cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20', label: 'Payé', icon: CheckCircle2 },
+        pending: { cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', label: 'En attente', icon: Clock },
+        overdue: { cls: 'bg-red-500/15 text-red-400 border-red-500/20', label: 'En retard', icon: XCircle },
     }
     const { cls, label, icon: Icon } = map[status] ?? map.pending
     return (
@@ -5468,14 +5459,14 @@ function ProgressRow({ label, value, color }) {
 
 function ActionBtn({ icon, onClick, color = 'sp', title }) {
     const hoverMap = {
-        sp:    'hover:bg-sp/20 hover:text-sp',
+        sp: 'hover:bg-sp/20 hover:text-sp',
         green: 'hover:bg-emerald-500/20 hover:text-emerald-400',
-        blue:  'hover:bg-blue-500/20 hover:text-blue-400',
+        blue: 'hover:bg-blue-500/20 hover:text-blue-400',
         amber: 'hover:bg-amber-500/20 hover:text-amber-400',
     }
     return (
         <button onClick={onClick} title={title}
-                className={`p-1.5 rounded-lg bg-navy-600 ${hoverMap[color] ?? hoverMap.sp} text-slate-400 transition-all`}>
+            className={`p-1.5 rounded-lg bg-navy-600 ${hoverMap[color] ?? hoverMap.sp} text-slate-400 transition-all`}>
             {icon}
         </button>
     )
@@ -5560,7 +5551,7 @@ function generateConvocation(building, residents, meeting) {
 
 <div class="wa-panel">
   <h3>💬 Message WhatsApp (copier-coller dans le groupe)</h3>
-  <div class="wa-text" id="watext">${waText.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+  <div class="wa-text" id="watext">${waText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
   <button class="wa-btn" onclick="navigator.clipboard.writeText(document.getElementById('watext').innerText).then(()=>this.textContent='✓ Copié !')">📋 Copier le message</button>
 </div>
 <script>window.onload = () => window.print()</script>
@@ -5671,10 +5662,10 @@ function generatePV(building, meeting) {
 
 <h2>Résultats des votes</h2>
 ${meeting.agenda.map((a, i) => {
-    const v = (meeting.votes ?? []).find(x => x.agendaId === a.id)
-    const total = v ? (v.pour + v.contre + v.abstention) : 0
-    const adopted = v && v.pour > v.contre
-    return `<div class="vote-item">
+        const v = (meeting.votes ?? []).find(x => x.agendaId === a.id)
+        const total = v ? (v.pour + v.contre + v.abstention) : 0
+        const adopted = v && v.pour > v.contre
+        return `<div class="vote-item">
   <div class="vote-title">${i + 1}. ${a.title}</div>
   ${v ? `
   <div class="vote-row"><span>✅ Pour :</span><span>${v.pour} voix</span></div>
@@ -5683,7 +5674,7 @@ ${meeting.agenda.map((a, i) => {
   <div class="result ${adopted ? 'adopted' : 'rejected'}">${adopted ? '✓ POINT ADOPTÉ' : '✗ POINT REJETÉ'}</div>
   ` : '<div style="color:#9ca3af;font-size:12px">Votes non enregistrés</div>'}
 </div>`
-}).join('')}
+    }).join('')}
 
 ${meeting.notes ? `<h2>Notes</h2><p style="font-size:12px;color:#374151;line-height:1.6">${meeting.notes}</p>` : ''}
 
@@ -5704,8 +5695,8 @@ ${meeting.notes ? `<h2>Notes</h2><p style="font-size:12px;color:#374151;line-hei
    ASSEMBLÉES PAGE
 ══════════════════════════════════════════ */
 function AssembliesPage({ building, residents, meetings, setMeetings, showToast }) {
-    const [filter,        setFilter]        = useState('all')
-    const [showAdd,       setShowAdd]       = useState(false)
+    const [filter, setFilter] = useState('all')
+    const [showAdd, setShowAdd] = useState(false)
     const [editingMeeting, setEditingMeeting] = useState(null)
 
     const filtered = filter === 'all' ? meetings : meetings.filter(m => m.status === filter)
@@ -5781,9 +5772,8 @@ function AssembliesPage({ building, residents, meetings, setMeetings, showToast 
             <div className="flex gap-1.5">
                 {[{ key: 'all', label: 'Toutes' }, { key: 'upcoming', label: 'À venir' }, { key: 'completed', label: 'Terminées' }].map(t => (
                     <button key={t.key} onClick={() => setFilter(t.key)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
-                            filter === t.key ? 'bg-sp/15 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/15'
-                        }`}>
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${filter === t.key ? 'bg-sp/15 text-sp border-sp/30' : 'bg-navy-700 text-slate-400 border-white/8 hover:border-sp/15'
+                            }`}>
                         {t.label}
                     </button>
                 ))}
@@ -5798,11 +5788,10 @@ function AssembliesPage({ building, residents, meetings, setMeetings, showToast 
                     <div key={m.id} className="glass-card p-6">
                         <div className="flex items-start justify-between mb-4">
                             <div className="flex items-center gap-3 flex-wrap">
-                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${
-                                    m.status === 'upcoming'
+                                <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full border ${m.status === 'upcoming'
                                         ? 'bg-sp/15 text-sp border-sp/25'
                                         : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
-                                }`}>
+                                    }`}>
                                     {m.status === 'upcoming' ? 'À venir' : 'Terminée'}
                                 </span>
                                 {m.convocationSent && (
@@ -5890,19 +5879,19 @@ function AssembliesPage({ building, residents, meetings, setMeetings, showToast 
 function AddAGModal({ onClose, onAdd }) {
     const year = new Date().getFullYear()
     const [form, setForm] = useState({
-        title:    `Assemblée Générale Ordinaire ${year}`,
-        date:     '',
-        time:     '19:00',
+        title: `Assemblée Générale Ordinaire ${year}`,
+        date: '',
+        time: '19:00',
         location: 'Salle commune — RDC',
-        agenda:   [{ id: 'n1', title: 'Approbation des comptes' }, { id: 'n2', title: 'Budget prévisionnel' }],
+        agenda: [{ id: 'n1', title: 'Approbation des comptes' }, { id: 'n2', title: 'Budget prévisionnel' }],
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
     function setAgenda(i, v) { setForm(f => { const a = [...f.agenda]; a[i] = { ...a[i], title: v }; return { ...f, agenda: a } }) }
-    function addPoint()      { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `n${Date.now()}`, title: '' }] })) }
-    function removePoint(i)  { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
+    function addPoint() { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `n${Date.now()}`, title: '' }] })) }
+    function removePoint(i) { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
 
     async function handleSubmit(e) {
         e.preventDefault()
@@ -5989,25 +5978,25 @@ function AddAGModal({ onClose, onAdd }) {
 ══════════════════════════════════════════ */
 function EditAGModal({ meeting, onClose, onSave, onDelete }) {
     const [form, setForm] = useState({
-        title:    meeting.title,
-        date:     meeting.date,
-        time:     meeting.time,
+        title: meeting.title,
+        date: meeting.date,
+        time: meeting.time,
         location: meeting.location,
-        status:   meeting.status,
+        status: meeting.status,
         convocationSent: meeting.convocationSent,
-        agenda:   meeting.agenda.map(a => ({ ...a })),
+        agenda: meeting.agenda.map(a => ({ ...a })),
         attendance: meeting.attendance ? { ...meeting.attendance } : { present: '', total: '' },
-        votes:    meeting.votes.map(v => ({ ...v })),
-        notes:    meeting.notes ?? '',
+        votes: meeting.votes.map(v => ({ ...v })),
+        notes: meeting.notes ?? '',
     })
     const [confirmDelete, setConfirmDelete] = useState(false)
-    const [confirmSave,   setConfirmSave]   = useState(false)
-    const [saving, setSaving]               = useState(false)
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [saving, setSaving] = useState(false)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
     function setAgenda(i, v) { setForm(f => { const a = [...f.agenda]; a[i] = { ...a[i], title: v }; return { ...f, agenda: a } }); setConfirmSave(false) }
-    function addPoint()      { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `e${Date.now()}`, title: '' }] })) }
-    function removePoint(i)  { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
+    function addPoint() { setForm(f => ({ ...f, agenda: [...f.agenda, { id: `e${Date.now()}`, title: '' }] })) }
+    function removePoint(i) { setForm(f => ({ ...f, agenda: f.agenda.filter((_, j) => j !== i) })) }
     function setVote(agendaId, field, val) {
         setForm(f => {
             const votes = f.votes.map(v => v.agendaId === agendaId ? { ...v, [field]: Number(val) } : v)
@@ -6219,8 +6208,8 @@ function UsersPage({ showToast }) {
     const users = getAllUsers()
 
     const ROLE_META = {
-        super_admin:    { label: 'Super Admin', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
-        syndic_manager: { label: 'Syndic',      cls: 'bg-sp/15 text-sp border-sp/20' },
+        super_admin: { label: 'Super Admin', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
+        syndic_manager: { label: 'Syndic', cls: 'bg-sp/15 text-sp border-sp/20' },
     }
 
     function handleCreated() {
@@ -6349,7 +6338,7 @@ function CreateUserModal({ onClose, onCreated }) {
     }
 
     function copyCredentials() {
-        navigator.clipboard.writeText(`Email: ${done.email}\nMot de passe: ${done.password}`).catch(() => {})
+        navigator.clipboard.writeText(`Email: ${done.email}\nMot de passe: ${done.password}`).catch(() => { })
         setCopied(true)
         setTimeout(() => setCopied(false), 2000)
     }
@@ -6445,11 +6434,11 @@ function CreateUserModal({ onClose, onCreated }) {
 ══════════════════════════════════════════ */
 function ResidentPortal({ session, onLogout }) {
     const { buildingId, resident } = session
-    const building  = BUILDINGS.find(b => b.id === buildingId) ?? {}
-    const bldgData  = getBuildingData(buildingId)
-    const expenses  = bldgData.expenses ?? []
-    const meetings  = bldgData.meetings ?? []
-    const status    = computeStatus(resident.paidThrough)
+    const building = BUILDINGS.find(b => b.id === buildingId) ?? {}
+    const bldgData = getBuildingData(buildingId)
+    const expenses = bldgData.expenses ?? []
+    const meetings = bldgData.meetings ?? []
+    const status = computeStatus(resident.paidThrough)
 
     const nextAG = meetings.find(m => m.status === 'upcoming')
 
@@ -6459,12 +6448,12 @@ function ResidentPortal({ session, onLogout }) {
         const allCircs = JSON.parse(localStorage.getItem(`sp_circ_${buildingId}`) ?? '[]')
         const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000
         recentCircs = allCircs.filter(c => new Date(c.createdAt).getTime() >= cutoff).slice(0, 5)
-    } catch {}
+    } catch { }
 
     const STATUS_META = {
-        paid:    { label: 'À jour',      cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
-        pending: { label: 'En attente',  cls: 'bg-amber-500/15  text-amber-400  border-amber-500/20'  },
-        overdue: { label: 'En retard',   cls: 'bg-red-500/15    text-red-400    border-red-500/20'    },
+        paid: { label: 'À jour', cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20' },
+        pending: { label: 'En attente', cls: 'bg-amber-500/15  text-amber-400  border-amber-500/20' },
+        overdue: { label: 'En retard', cls: 'bg-red-500/15    text-red-400    border-red-500/20' },
     }
     const sm = STATUS_META[status]
 
@@ -6524,14 +6513,14 @@ function ResidentPortal({ session, onLogout }) {
                         {/* Cards */}
                         <div className="divide-y divide-amber-500/10">
                             {recentCircs.map(c => {
-                                const tpl     = CIRCULAIRE_TEMPLATES.find(t => t.key === c.template)
-                                const label   = tpl?.label ?? c.template
-                                const icon    = tpl?.icon  ?? '📢'
-                                const when    = new Date(c.createdAt).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })
+                                const tpl = CIRCULAIRE_TEMPLATES.find(t => t.key === c.template)
+                                const label = tpl?.label ?? c.template
+                                const icon = tpl?.icon ?? '📢'
+                                const when = new Date(c.createdAt).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })
                                 const fullMsg = buildCirculaireMessage(c.template, c.vars, building.name ?? '')
                                 // First non-empty line as teaser
-                                const teaser  = fullMsg.split('\n').find(l => l.trim()) ?? label
-                                const isOpen  = expandedCirc === c.id
+                                const teaser = fullMsg.split('\n').find(l => l.trim()) ?? label
+                                const isOpen = expandedCirc === c.id
                                 return (
                                     <div key={c.id}>
                                         {/* Clickable header row */}
@@ -6591,8 +6580,8 @@ function ResidentPortal({ session, onLogout }) {
                             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-4">Mon appartement</p>
                             <div className="space-y-2.5">
                                 {[
-                                    ['Unité',  resident.unit],
-                                    ['Étage',  resident.floor != null ? `Étage ${resident.floor}` : '—'],
+                                    ['Unité', resident.unit],
+                                    ['Étage', resident.floor != null ? `Étage ${resident.floor}` : '—'],
                                     ['Depuis', resident.since ?? '—'],
                                     ['Quote-part', `${resident.quota ?? '—'}%`],
                                 ].map(([k, v]) => (
@@ -6645,13 +6634,12 @@ function ResidentPortal({ session, onLogout }) {
                                             return (
                                                 <div key={ym} className="flex items-center justify-between">
                                                     <span className="text-xs text-slate-400">{formatMonth(ym)}</span>
-                                                    <div className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-                                                        paid
+                                                    <div className={`flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${paid
                                                             ? 'bg-emerald-500/12 text-emerald-400'
                                                             : ym === CURRENT_MONTH
                                                                 ? 'bg-amber-500/12 text-amber-400'
                                                                 : 'bg-red-500/12 text-red-400'
-                                                    }`}>
+                                                        }`}>
                                                         {paid ? '✓' : ym === CURRENT_MONTH ? '–' : '✗'}
                                                         {paid ? 'Payé' : ym === CURRENT_MONTH ? 'En attente' : 'Non payé'}
                                                     </div>
