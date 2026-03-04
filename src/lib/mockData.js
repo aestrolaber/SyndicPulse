@@ -27,6 +27,7 @@ export const BUILDINGS = [
         collection_rate: 96.8,
         monthly_fee: 850,
         accessCode: 'NRWST-2026',
+        shortCode: 'NW',
     },
     {
         id: 'bld-2',
@@ -42,6 +43,7 @@ export const BUILDINGS = [
         collection_rate: 88.4,
         monthly_fee: 1200,
         accessCode: 'ATLAS-2026',
+        shortCode: 'AT',
     },
     {
         id: 'bld-3',
@@ -57,6 +59,7 @@ export const BUILDINGS = [
         collection_rate: 91.2,
         monthly_fee: 1000,
         accessCode: 'JARDINS-2026',
+        shortCode: 'JR',
     },
 ]
 
@@ -500,17 +503,50 @@ export const SUPPLIERS_BLD3 = [
 ]
 
 // ── Resident portal access validation ─────────────────────────────────────────
+
+const RESIDENTS_BY_BLDG = {
+    'bld-1': RESIDENTS_BLD1,
+    'bld-2': RESIDENTS_BLD2,
+    'bld-3': RESIDENTS_BLD3,
+}
+
+/**
+ * Generate a unique portal access code for a resident.
+ * Format: [NameInitials]-[BldgShort]-[Last4PhoneDigits]
+ * Example: Ahmed Benjelloun · Norwest · +212661234567 → AB-NW-4567
+ */
+export function generateResidentCode(resident, building) {
+    const parts = resident.name.trim().split(/\s+/)
+    const n1 = (parts[0]?.[0] ?? 'X').toUpperCase()
+    const n2 = (parts[1]?.[0] ?? parts[0]?.[1] ?? 'X').toUpperCase()
+    const bldg = (building.shortCode ?? building.name.slice(0, 2)).toUpperCase()
+    const digits = (resident.phone ?? '').replace(/\D/g, '')
+    const suffix = digits.length >= 4
+        ? digits.slice(-4)
+        : resident.unit.replace(/\D/g, '').padStart(4, '0').slice(-4)
+    return `${n1}${n2}-${bldg}-${suffix}`
+}
+
+/**
+ * Validate a resident's individual portal code (no unit field needed).
+ * Scans all buildings to find a match.
+ */
+export function validateResidentCodeDirect(code) {
+    const normalized = code.trim().toUpperCase()
+    for (const building of BUILDINGS) {
+        const residents = RESIDENTS_BY_BLDG[building.id] ?? []
+        const resident = residents.find(r => generateResidentCode(r, building) === normalized)
+        if (resident) return { building, resident }
+    }
+    return null
+}
+
 export function validateResidentAccess(accessCode, unitInput) {
     const building = BUILDINGS.find(
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
     )
     if (!building) return null
-    const byBldg = {
-        'bld-1': RESIDENTS_BLD1,
-        'bld-2': RESIDENTS_BLD2,
-        'bld-3': RESIDENTS_BLD3,
-    }
-    const residents = byBldg[building.id] ?? []
+    const residents = RESIDENTS_BY_BLDG[building.id] ?? []
     const resident = residents.find(
         r => r.unit.toLowerCase() === unitInput.toLowerCase().trim()
     )

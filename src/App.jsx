@@ -42,6 +42,7 @@ import {
     MEETINGS_BLD1, MEETINGS_BLD2, MEETINGS_BLD3,
     SUPPLIERS_BLD1, SUPPLIERS_BLD2, SUPPLIERS_BLD3,
     DEMO_USERS,
+    generateResidentCode,
 } from './lib/mockData.js'
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
@@ -3626,6 +3627,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const [showImportCSV, setShowImportCSV] = useState(false)
     const [showGroupWA, setShowGroupWA] = useState(false)
     const [editingResident, setEditingResident] = useState(null)
+    const [copiedCode, setCopiedCode] = useState(null)
 
     function handleEditResident(updated) {
         setResidents(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
@@ -3803,7 +3805,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Solde dû', 'Actions'].map(h => (
+                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Solde dû', 'Code portail', 'Actions'].map(h => (
                                 <th key={h} className="text-left px-6 py-4 font-semibold">{h}</th>
                             ))}
                         </tr>
@@ -3871,6 +3873,26 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                     })()}
                                 </td>
                                 <td className="px-6 py-3.5">
+                                    {(() => {
+                                        const code = generateResidentCode(r, building)
+                                        const justCopied = copiedCode === r.id
+                                        return (
+                                            <button
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(code).catch(() => {})
+                                                    setCopiedCode(r.id)
+                                                    setTimeout(() => setCopiedCode(null), 2000)
+                                                }}
+                                                title="Copier le code portail"
+                                                className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-sp/80 hover:text-sp bg-sp/5 hover:bg-sp/10 border border-sp/15 hover:border-sp/30 rounded-lg px-2 py-1 transition-all group/code"
+                                            >
+                                                {justCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                                                <span>{justCopied ? 'Copié !' : code}</span>
+                                            </button>
+                                        )
+                                    })()}
+                                </td>
+                                <td className="px-6 py-3.5">
                                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                         <ActionBtn
                                             color="green"
@@ -3902,7 +3924,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                         <span className="text-sm font-bold text-emerald-400">Tout à jour ✓</span>
                                     )}
                                 </td>
-                                <td />
+                                <td colSpan={2} />
                             </tr>
                         </tfoot>
                     )}
