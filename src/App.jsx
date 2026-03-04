@@ -22,6 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
+    BookOpen, HelpCircle,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -1016,11 +1017,190 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 }
 
 /* ══════════════════════════════════════════
+   USER GUIDE MODAL
+══════════════════════════════════════════ */
+const GUIDE_SECTIONS = [
+    { id: 'parametres', label: 'Paramètres', icon: Settings, available: true },
+    { id: 'dashboard',  label: 'Tableau de bord', icon: LayoutDashboard, available: false },
+    { id: 'residents',  label: 'Résidents',   icon: Users,          available: false },
+    { id: 'financials', label: 'Finances',    icon: BarChart3,      available: false },
+    { id: 'disputes',   label: 'Litiges',     icon: MessageSquare,  available: false },
+    { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck,        available: false },
+    { id: 'circulaires', label: 'Circulaires', icon: Megaphone,     available: false },
+    { id: 'assemblees', label: 'Assemblées',  icon: CalendarCheck,  available: false },
+]
+
+function GuideField({ label, description, tip, badge }) {
+    return (
+        <div className="flex gap-4 py-4 border-b border-white/5 last:border-0">
+            <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-bold text-white">{label}</span>
+                    {badge && <span className="text-[10px] bg-amber-500/15 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded-full font-semibold">{badge}</span>}
+                </div>
+                <p className="text-[13px] text-slate-400 leading-relaxed">{description}</p>
+                {tip && <p className="text-[11px] text-sp/70 mt-1.5 flex items-start gap-1.5"><HelpCircle size={10} className="mt-0.5 flex-shrink-0" />{tip}</p>}
+            </div>
+        </div>
+    )
+}
+
+function UserGuideModal({ onClose }) {
+    const [section, setSection] = useState('parametres')
+
+    return (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex overflow-hidden" style={{ height: '82vh' }}>
+
+                {/* Left nav */}
+                <div className="w-52 bg-navy-900/60 border-r border-white/8 flex flex-col flex-shrink-0">
+                    <div className="px-5 py-4 border-b border-white/8">
+                        <div className="flex items-center gap-2 mb-1">
+                            <BookOpen size={16} className="text-sp" />
+                            <h2 className="text-sm font-bold text-white">Guide utilisateur</h2>
+                        </div>
+                        <p className="text-[10px] text-slate-500">SyndicPulse · v1.0</p>
+                    </div>
+                    <nav className="p-3 space-y-0.5 flex-1 overflow-auto">
+                        {GUIDE_SECTIONS.map(s => (
+                            <button
+                                key={s.id}
+                                onClick={() => s.available && setSection(s.id)}
+                                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all text-xs ${
+                                    s.id === section
+                                        ? 'bg-sp/15 text-sp font-semibold border border-sp/20'
+                                        : s.available
+                                            ? 'text-slate-400 hover:text-white hover:bg-white/5'
+                                            : 'text-slate-600 cursor-default'
+                                }`}
+                            >
+                                <s.icon size={13} className="flex-shrink-0" />
+                                <span className="flex-1">{s.label}</span>
+                                {!s.available && <span className="text-[9px] bg-navy-700 text-slate-600 px-1.5 py-0.5 rounded-full">bientôt</span>}
+                            </button>
+                        ))}
+                    </nav>
+                    <div className="p-4 border-t border-white/5">
+                        <p className="text-[10px] text-slate-600 leading-relaxed">D'autres sections seront documentées au fur et à mesure du déploiement.</p>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-auto">
+                    <div className="flex items-center justify-between px-7 py-4 border-b border-white/8 sticky top-0 bg-navy-800 z-10">
+                        <div>
+                            <h3 className="font-bold text-white text-base">{GUIDE_SECTIONS.find(s => s.id === section)?.label}</h3>
+                            <p className="text-[11px] text-slate-500 mt-0.5">Comment configurer et utiliser cette section</p>
+                        </div>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1">
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="px-7 py-6 space-y-6">
+
+                        {section === 'parametres' && <>
+                            {/* Intro */}
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    Le panneau <span className="text-white font-semibold">Paramètres de la propriété</span> est accessible via l'icône <span className="text-white font-semibold">⚙</span> dans la barre latérale gauche. Les modifications s'appliquent uniquement à l'immeuble actif — chaque immeuble possède ses propres réglages.
+                                </p>
+                            </div>
+
+                            {/* Section: Identité visuelle */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Identité visuelle</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField
+                                        label="Logo de la syndic"
+                                        description="Importer une image PNG ou JPG (max 2 Mo). Apparaît dans l'en-tête de tous les documents imprimés : reçus de paiement, convocations AG, feuilles de présence, PV, circulaires et appels de fonds."
+                                        tip="Si aucun logo n'est chargé, SyndicPulse génère automatiquement un icône avec les initiales de l'immeuble et sa couleur d'identité."
+                                    />
+                                    <GuideField
+                                        label="Cachet officiel du Syndic"
+                                        badge="Nouveau"
+                                        description="Importer l'image du tampon officiel du syndic (PNG transparent recommandé). Une fois configuré, il est apposé automatiquement sur chaque document généré : reçus, circulaires, appels de fonds, convocations, feuilles de présence et PV d'assemblée."
+                                        tip="Conseil : scanner votre tampon sur fond blanc, puis détourer l'arrière-plan avec un outil gratuit (ex: remove.bg) pour obtenir un PNG transparent — le résultat est bien plus propre sur les documents."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Section: Informations */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Informations de l'immeuble</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField
+                                        label="Nom de la propriété"
+                                        description="Nom officiel de la résidence. Utilisé dans tous les titres de documents, dans la barre de navigation latérale et comme identifiant dans les messages WhatsApp générés."
+                                    />
+                                    <GuideField
+                                        label="Ville"
+                                        description="Ville de l'immeuble. Apparaît dans les en-têtes de documents officiels et dans le sous-titre de la barre de navigation. Format libre (ex: Tanger, Casablanca — Ain Sebaâ)."
+                                    />
+                                    <GuideField
+                                        label="Gestionnaire"
+                                        description="Nom du gestionnaire syndic responsable de cet immeuble. Affiché dans la barre supérieure de l'application et utilisé comme signataire dans les documents officiels."
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Section: Workflow */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Workflow recommandé</h4>
+                                <div className="space-y-2">
+                                    {[
+                                        { step: '1', text: 'Configurer le logo de la syndic — il s\'affiche immédiatement dans tous les nouveaux documents.' },
+                                        { step: '2', text: 'Scanner et importer le cachet officiel (PNG transparent) — supprime entièrement la chaîne imprimer → tamponner → scanner → envoyer.' },
+                                        { step: '3', text: 'Vérifier le nom, la ville et le gestionnaire — ces informations sont inscrites dans les documents légaux.' },
+                                        { step: '4', text: 'Répéter pour chaque immeuble si vous gérez plusieurs propriétés — chaque immeuble a ses propres paramètres indépendants.' },
+                                    ].map(({ step, text }) => (
+                                        <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
+                                            <span className="w-6 h-6 rounded-full bg-sp/20 text-sp text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
+                                            <p className="text-[13px] text-slate-300 leading-relaxed">{text}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Section: Documents impactés */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Documents utilisant le logo & le cachet</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[
+                                        { doc: 'Reçu de paiement', logo: true, cachet: true },
+                                        { doc: 'Circulaire', logo: true, cachet: true },
+                                        { doc: 'Appel de fonds', logo: true, cachet: true },
+                                        { doc: 'Convocation AG', logo: true, cachet: true },
+                                        { doc: 'Feuille de présence', logo: true, cachet: true },
+                                        { doc: 'PV d\'assemblée', logo: true, cachet: true },
+                                    ].map(({ doc, logo, cachet }) => (
+                                        <div key={doc} className="flex items-center justify-between bg-navy-700/40 rounded-lg px-3 py-2.5">
+                                            <span className="text-xs text-slate-300 font-medium">{doc}</span>
+                                            <div className="flex gap-2">
+                                                {logo && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Logo</span>}
+                                                {cachet && <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Cachet</span>}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>}
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
    TOP BAR
 ══════════════════════════════════════════ */
 function TopBar({ activeTab, activeBuilding, showToast }) {
     const pageLabel = NAV.find(n => n.id === activeTab)?.label ?? activeTab
+    const [showGuide, setShowGuide] = useState(false)
     return (
+        <>
         <header className="flex items-center justify-between px-8 py-4 border-b border-white/5 bg-navy-900/80 backdrop-blur-sm flex-shrink-0">
             <div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-0.5">
@@ -1035,6 +1215,13 @@ function TopBar({ activeTab, activeBuilding, showToast }) {
                 <h1 className="text-xl font-bold text-white">{pageLabel}</h1>
             </div>
             <div className="flex items-center gap-3">
+                <button
+                    onClick={() => setShowGuide(true)}
+                    title="Guide utilisateur"
+                    className="relative p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-white/5 transition-colors group"
+                >
+                    <BookOpen size={17} className="text-slate-400 group-hover:text-sp transition-colors" />
+                </button>
                 <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="relative p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-white/5 transition-colors">
                     <Bell size={17} className="text-slate-400" />
                     <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sp rounded-full border border-navy-800" />
@@ -1045,6 +1232,8 @@ function TopBar({ activeTab, activeBuilding, showToast }) {
                 </div>
             </div>
         </header>
+        {showGuide && <UserGuideModal onClose={() => setShowGuide(false)} />}
+        </>
     )
 }
 
