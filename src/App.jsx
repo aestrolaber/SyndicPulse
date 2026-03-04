@@ -1568,6 +1568,31 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const FIN_MONTHS = ['Jan.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
     const curMonthLabel = FIN_MONTHS[parseInt(CURRENT_MONTH.split('-')[1]) - 1]
 
+    // Live collection history — last bar overridden with computed rate from live residents
+    const liveCollectionRate = residents.length > 0 ? Math.round((paidResi.length / residents.length) * 100) : 0
+    const liveCollectionHistory = data.collectionHistory.map((h, i) =>
+        i === data.collectionHistory.length - 1
+            ? { ...h, value: liveCollectionRate, isLive: true }
+            : h
+    )
+    const liveMaxBar = Math.max(maxBar, liveCollectionRate)
+
+    // Live expense breakdown — computed from actual expenseLog; falls back to budget allocation if empty
+    const liveExpBreakdown = (() => {
+        if (expenseLog.length === 0) return data.expenses
+        const totals = {}
+        expenseLog.forEach(e => { totals[e.category] = (totals[e.category] ?? 0) + e.amount })
+        const total = Object.values(totals).reduce((s, v) => s + v, 0)
+        const catColorMap = Object.fromEntries(EXPENSE_CATEGORIES.map(c => [c.label, c.color]))
+        return Object.entries(totals)
+            .map(([category, amount]) => ({
+                category, amount,
+                pct: total > 0 ? Math.round((amount / total) * 100) : 0,
+                color: catColorMap[category] ?? 'bg-slate-500',
+            }))
+            .sort((a, b) => b.amount - a.amount)
+    })()
+
     function handleAddExpense(entry) {
         setExpenseLog(prev => [{ ...entry, id: `el-${Date.now()}` }, ...prev])
         showToast(`Dépense enregistrée — ${entry.amount.toLocaleString('fr-FR')} MAD`)
@@ -1668,19 +1693,23 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                         - Container 140px: labels ~38px → usable bar height = 80px max
                     */}
                         <div className="flex items-end justify-between" style={{ height: '140px' }}>
-                            {data.collectionHistory.map((h, i) => {
+                            {liveCollectionHistory.map((h, i) => {
                                 const BAR_MAX_PX = 80
-                                const barPx = Math.max(4, Math.round((h.value / maxBar) * BAR_MAX_PX))
-                                const isLast = i === data.collectionHistory.length - 1
+                                const barPx = Math.max(4, Math.round((h.value / liveMaxBar) * BAR_MAX_PX))
+                                const isLast = i === liveCollectionHistory.length - 1
                                 return (
                                     <div key={h.month} className="flex-1 flex flex-col items-center gap-1.5 justify-end">
-                                        <span className="text-[10px] font-bold text-slate-300">{h.value}%</span>
-                                        <div className="w-8 rounded-t-md" style={{
+                                        <span className={`text-[10px] font-bold ${isLast ? 'text-cyan-300' : 'text-slate-300'}`}>{h.value}%</span>
+                                        <div className="w-8 rounded-t-md relative" style={{
                                             height: `${barPx}px`,
                                             background: isLast
                                                 ? 'linear-gradient(180deg, #22d3ee, #0891b2)'
                                                 : 'rgba(6,182,212,0.25)'
-                                        }} />
+                                        }}>
+                                            {isLast && (
+                                                <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-bold text-cyan-400 whitespace-nowrap">● live</span>
+                                            )}
+                                        </div>
                                         <span className="text-[10px] text-slate-500">{h.month}</span>
                                     </div>
                                 )
@@ -1690,9 +1719,14 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
 
                     {/* Expense breakdown */}
                     <div className="glass-card p-6">
-                        <h3 className="font-bold text-white mb-5">Répartition des dépenses</h3>
+                        <div className="flex items-center justify-between mb-5">
+                            <h3 className="font-bold text-white">Répartition des dépenses</h3>
+                            <span className="text-[10px] text-slate-500 bg-navy-700 border border-white/5 px-2 py-1 rounded-full">
+                                {expenseLog.length > 0 ? 'Dépenses réelles' : 'Budget alloué'}
+                            </span>
+                        </div>
                         <div className="space-y-4">
-                            {data.expenses.map(e => (
+                            {liveExpBreakdown.map(e => (
                                 <div key={e.category}>
                                     <div className="flex justify-between text-xs mb-1.5">
                                         <span className="text-slate-300 font-medium">{e.category}</span>
