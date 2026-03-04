@@ -1065,7 +1065,10 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
     const hasAG = data.meetings.some(m => ['upcoming', 'held'].includes(m.status))
 
     const monthlyFee = building.monthly_fee || 850
-    const totalImpayees = residents.reduce((sum, r) => sum + getUnpaidMonthsCount(r.paidThrough) * monthlyFee, 0)
+    const totalImpayees = residents.reduce((sum, r) => {
+        const fee = r.monthly_fee ?? monthlyFee
+        return sum + getUnpaidMonthsCount(r.paidThrough) * fee
+    }, 0)
     const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const tauxRecouvrement = totalRes > 0 ? Math.round((paidCount / totalRes) * 100) : 100
 
@@ -1080,9 +1083,13 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
     const transTier = transScore >= 95 ? 'Gold Elite' : transScore >= 80 ? 'Silver Pro' : transScore >= 60 ? 'Bronze' : 'Standard'
 
     const overdueCount = overdueResidents.length
+    const pendingCount = residents.filter(r => computeStatus(r.paidThrough) === 'pending').length
+    const impayesDelta = overdueCount === 0 && pendingCount === 0
+        ? 'Tout à jour'
+        : [overdueCount > 0 && `${overdueCount} en retard`, pendingCount > 0 && `${pendingCount} en attente`].filter(Boolean).join(' · ')
     const kpis = [
         { label: 'Taux de recouvrement', value: `${tauxRecouvrement}%`, delta: `${paidCount}/${residents.length} rés.`, up: true, icon: TrendingUp, color: 'emerald' },
-        { label: 'Charges impayées', value: `${totalImpayees.toLocaleString('fr-FR')} MAD`, delta: `${overdueCount} en retard`, up: overdueCount === 0, icon: CreditCard, color: 'cyan' },
+        { label: 'Charges impayées', value: `${totalImpayees.toLocaleString('fr-FR')} MAD`, delta: impayesDelta, up: overdueCount === 0 && pendingCount === 0, icon: CreditCard, color: 'cyan' },
         { label: 'Tickets ouverts', value: data.tickets.filter(t => t.status !== 'done').length.toString(), delta: 'Stable', up: null, icon: Wrench, color: 'amber' },
         { label: 'Transparence', value: `${transScore}/100`, delta: transTier, up: null, icon: ShieldCheck, color: 'violet' },
     ]
@@ -1548,15 +1555,17 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     }
 
     const monthlyFee = building.monthly_fee || 850
+    const residentFee = (r) => r.monthly_fee ?? monthlyFee
     const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').map(r => {
         const months = getUnpaidMonthsCount(r.paidThrough)
+        const fee = residentFee(r)
         return {
-            id: r.id, unit: r.unit, name: r.name, months, amount: `${(months * monthlyFee).toLocaleString('fr-FR')} MAD`,
+            id: r.id, unit: r.unit, name: r.name, months, amount: `${(months * fee).toLocaleString('fr-FR')} MAD`,
         }
     })
-    const totalImpayeesMAD = residents.reduce((sum, r) => sum + getUnpaidMonthsCount(r.paidThrough) * monthlyFee, 0)
+    const totalImpayeesMAD = residents.reduce((sum, r) => sum + getUnpaidMonthsCount(r.paidThrough) * residentFee(r), 0)
     const paidResi = residents.filter(r => computeStatus(r.paidThrough) === 'paid')
-    const totalEncaisseMAD = paidResi.length * monthlyFee
+    const totalEncaisseMAD = paidResi.reduce((sum, r) => sum + residentFee(r), 0)
 
     // Budget mensuel = sum of planned expense categories; % utilisé = current-month actual / budget
     const monthlyBudget = data.expenses.reduce((s, e) => s + e.amount, 0)
