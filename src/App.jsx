@@ -2903,7 +2903,10 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                     case 'proprete':     return v.sujet ?? '—'
                                     case 'objet_trouve': return [v.objet, v.lieu].filter(Boolean).join(' · ') || '—'
                                     case 'avis_libre':   return v.titre ?? v.contenu?.slice(0, 70) ?? '—'
-                                    default:             return v.titre ?? v.raison ?? v.sujet ?? v.zone ?? v.contenu?.slice(0, 70) ?? '—'
+                                    default: {
+                                        const firstField = tmpl.fields?.find(f => (f.type === 'text' || f.type === 'textarea') && v[f.key])
+                                        return (firstField ? v[firstField.key]?.slice(0, 70) : null) ?? v.titre ?? v.raison ?? v.sujet ?? v.zone ?? v.contenu?.slice(0, 70) ?? '—'
+                                    }
                                 }
                             })()
                             return (
