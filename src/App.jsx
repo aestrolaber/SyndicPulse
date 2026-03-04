@@ -22,7 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
-    BookOpen, HelpCircle, MapPin,
+    BookOpen, HelpCircle, MapPin, Camera,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -3083,6 +3083,21 @@ function AddCirculaireModal({ building, defaultTemplate, customTpls = [], onClos
                                     )}
                                 </div>
                             ))}
+
+                            {/* Photo field — objet trouvé only — coming soon */}
+                            {selectedTemplate === 'objet_trouve' && (
+                                <div className="rounded-xl bg-navy-700/40 border border-dashed border-white/12 p-4">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <p className="text-xs font-semibold text-slate-300">Photo de l'objet</p>
+                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">Prochaine version</span>
+                                    </div>
+                                    <div className="flex flex-col items-center justify-center gap-2 py-5 opacity-40 cursor-not-allowed select-none">
+                                        <Camera size={24} className="text-slate-400" />
+                                        <p className="text-xs text-slate-400">Joindre une photo de l'objet trouvé</p>
+                                        <p className="text-[10px] text-slate-500">Disponible dès l'activation du stockage cloud (Supabase Storage)</p>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Preview toggle */}
                             <button onClick={() => setPreview(p => !p)}
