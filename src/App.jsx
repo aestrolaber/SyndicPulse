@@ -6077,6 +6077,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         manager: building.manager ?? '',
         logo: building.logo ?? null,
         cachet: building.cachet ?? null,
+        reserve_fund_mad: building.reserve_fund_mad ?? '',
     })
     const [confirmSave, setConfirmSave] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -6194,6 +6195,22 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                             <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Gestionnaire</label>
                             <input value={form.manager} onChange={e => set('manager', e.target.value)}
                                 className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50" />
+                        </div>
+                        <div className="col-span-2">
+                            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">Fonds de réserve</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step="100"
+                                    value={form.reserve_fund_mad}
+                                    onChange={e => set('reserve_fund_mad', e.target.value === '' ? '' : Number(e.target.value))}
+                                    placeholder="Ex. 84500"
+                                    className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50 pr-14"
+                                />
+                                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-slate-500">MAD</span>
+                            </div>
+                            <p className="text-[10px] text-slate-600 mt-1">Provision pour travaux et imprévus de la copropriété</p>
                         </div>
                     </div>
 
