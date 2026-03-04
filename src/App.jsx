@@ -1374,10 +1374,11 @@ function exportFinancesCSV(building, residents, expenseLog, data) {
     // ── Section 2: Résumé ──────────────────────────────────────────────────────
     const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const overdueCount = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
+    const csvMonthlyBudget = data.expenses.reduce((s, e) => s + e.amount, 0)
     const summary = [
         ['RÉSUMÉ', '', '', '', '', ''],
         ['Unités payées', `${paidCount} / ${building.total_units}`, '', 'Unités en retard', overdueCount, ''],
-        ['Budget mensuel', '32 800 MAD', '', 'Fonds de réserve', `${building.reserve_fund_mad?.toLocaleString('fr-FR') ?? '—'} MAD`, ''],
+        ['Budget mensuel', `${csvMonthlyBudget.toLocaleString('fr-FR')} MAD`, '', 'Fonds de réserve', `${building.reserve_fund_mad?.toLocaleString('fr-FR') ?? '—'} MAD`, ''],
         [],
     ]
 
@@ -1430,6 +1431,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
     const paidCount = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const overdueList = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
     const totalExp = expenseLog.reduce((s, e) => s + e.amount, 0)
+    const pdfMonthlyBudget = data.expenses.reduce((s, e) => s + e.amount, 0)
     const dateStr = new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
 
     const html = `<!DOCTYPE html>
@@ -1472,7 +1474,7 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
 <div class="kpis">
   <div class="kpi"><div class="val">${paidCount} / ${building.total_units}</div><div class="lbl">Unités payées</div></div>
   <div class="kpi"><div class="val" style="color:#dc2626">${overdueList.length}</div><div class="lbl">En retard</div></div>
-  <div class="kpi"><div class="val">32 800 MAD</div><div class="lbl">Budget mensuel</div></div>
+  <div class="kpi"><div class="val">${pdfMonthlyBudget.toLocaleString('fr-FR')} MAD</div><div class="lbl">Budget mensuel</div></div>
   <div class="kpi"><div class="val" style="color:#7c3aed">${building.reserve_fund_mad?.toLocaleString('fr-FR') ?? '—'} MAD</div><div class="lbl">Fonds de réserve</div></div>
 </div>
 
@@ -1556,6 +1558,16 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const paidResi = residents.filter(r => computeStatus(r.paidThrough) === 'paid')
     const totalEncaisseMAD = paidResi.length * monthlyFee
 
+    // Budget mensuel = sum of planned expense categories; % utilisé = current-month actual / budget
+    const monthlyBudget = data.expenses.reduce((s, e) => s + e.amount, 0)
+    const currentMonthExp = expenseLog.filter(e => e.date?.startsWith(CURRENT_MONTH)).reduce((s, e) => s + e.amount, 0)
+    const budgetUsedPct = monthlyBudget > 0 ? Math.min(100, Math.round((currentMonthExp / monthlyBudget) * 100)) : 0
+    const monthlySurplus = totalEncaisseMAD - monthlyBudget
+
+    // Dynamic current month label for KPI headers
+    const FIN_MONTHS = ['Jan.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
+    const curMonthLabel = FIN_MONTHS[parseInt(CURRENT_MONTH.split('-')[1]) - 1]
+
     function handleAddExpense(entry) {
         setExpenseLog(prev => [{ ...entry, id: `el-${Date.now()}` }, ...prev])
         showToast(`Dépense enregistrée — ${entry.amount.toLocaleString('fr-FR')} MAD`)
@@ -1622,10 +1634,10 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                 {/* Summary KPIs */}
                 <div className="grid grid-cols-4 gap-5">
                     {[
-                        { label: 'Total encaissé (Fév.)', value: `${totalEncaisseMAD.toLocaleString('fr-FR')} MAD`, sub: `${paidResi.length} / ${building.total_units} unités payées`, color: 'emerald' },
+                        { label: `Total encaissé (${curMonthLabel})`, value: `${totalEncaisseMAD.toLocaleString('fr-FR')} MAD`, sub: `${paidResi.length} / ${building.total_units} unités payées`, color: 'emerald' },
                         { label: 'Charges impayées', value: `${totalImpayeesMAD.toLocaleString('fr-FR')} MAD`, sub: `${overdue.length} unités en retard`, color: 'red' },
-                        { label: 'Budget mensuel', value: '32 800 MAD', sub: '61% utilisé', color: 'cyan' },
-                        { label: 'Fonds de réserve', value: `${(building.reserve_fund_mad / 1000).toFixed(0)} 000 MAD`, sub: '+3 200 ce mois', color: 'violet' },
+                        { label: 'Budget mensuel', value: `${monthlyBudget.toLocaleString('fr-FR')} MAD`, sub: `${budgetUsedPct}% utilisé ce mois`, color: 'cyan' },
+                        { label: 'Fonds de réserve', value: `${(building.reserve_fund_mad / 1000).toFixed(0)} 000 MAD`, sub: monthlySurplus >= 0 ? `+${monthlySurplus.toLocaleString('fr-FR')} ce mois` : `${monthlySurplus.toLocaleString('fr-FR')} ce mois`, color: 'violet' },
                     ].map(s => (
                         <div key={s.label} className="glass-card p-5">
                             <p className="text-xs text-slate-400 mb-2 font-medium">{s.label}</p>
