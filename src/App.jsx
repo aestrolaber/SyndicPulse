@@ -2893,7 +2893,19 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                     <div className="divide-y divide-white/5">
                         {circulaires.map(circ => {
                             const tmpl = allTemplates.find(t => t.key === circ.template) ?? { icon: '📝', label: 'Avis' }
-                            const summary = circ.vars.titre ?? circ.vars.raison ?? circ.vars.sujet ?? circ.vars.zone ?? circ.vars.contenu?.slice(0, 70) ?? '—'
+                            const summary = (() => {
+                                const v = circ.vars
+                                switch (circ.template) {
+                                    case 'coupure_eau':  return v.raison ?? (v.date ? `Le ${fmtDate(v.date)}` : '—')
+                                    case 'coupure_elec': return v.raison ?? (v.date ? `Le ${fmtDate(v.date)}` : '—')
+                                    case 'travaux':      return [v.zone, v.raison].filter(Boolean).join(' · ') || '—'
+                                    case 'rappel_ag':    return [v.lieu, v.date ? fmtDate(v.date) : null].filter(Boolean).join(' · ') || '—'
+                                    case 'proprete':     return v.sujet ?? '—'
+                                    case 'objet_trouve': return [v.objet, v.lieu].filter(Boolean).join(' · ') || '—'
+                                    case 'avis_libre':   return v.titre ?? v.contenu?.slice(0, 70) ?? '—'
+                                    default:             return v.titre ?? v.raison ?? v.sujet ?? v.zone ?? v.contenu?.slice(0, 70) ?? '—'
+                                }
+                            })()
                             return (
                                 <div key={circ.id} className="flex items-center gap-4 px-5 py-4 hover:bg-navy-700/30 transition-colors">
                                     <span className="text-2xl flex-shrink-0">{tmpl.icon}</span>
