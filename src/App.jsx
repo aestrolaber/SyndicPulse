@@ -653,7 +653,13 @@ function Dashboard() {
     }
 
     // Shared disputes state
-    const disputes = disputesByBldg[activeBuilding?.id] ?? buildingData.disputes
+    const disputes = disputesByBldg[activeBuilding?.id] ?? (() => {
+        try {
+            const stored = JSON.parse(localStorage.getItem(`sp_disputes_${activeBuilding?.id}`) ?? 'null')
+            if (Array.isArray(stored)) return stored
+        } catch { }
+        return buildingData.disputes
+    })()
     function setDisputes(fn) {
         const bldgId = activeBuilding.id
         setDisputesByBldg(prev => ({
@@ -678,7 +684,13 @@ function Dashboard() {
 
     // Shared suppliers state
     const [suppliersByBldg, setSuppliersByBldg] = useState({})
-    const suppliers = suppliersByBldg[activeBuilding?.id] ?? buildingData.suppliers
+    const suppliers = suppliersByBldg[activeBuilding?.id] ?? (() => {
+        try {
+            const stored = JSON.parse(localStorage.getItem(`sp_suppliers_${activeBuilding?.id}`) ?? 'null')
+            if (Array.isArray(stored)) return stored
+        } catch { }
+        return buildingData.suppliers
+    })()
     function setSuppliers(fn) {
         const bldgId = activeBuilding.id
         setSuppliersByBldg(prev => ({
@@ -1785,7 +1797,16 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
 
     const [subTab, setSubTab] = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
     const [hoveredBar, setHoveredBar] = useState(null)
-    const [expenseLog, setExpenseLog] = useState(INITIAL_EXPENSE_LOG)
+    const [expenseLog, setExpenseLog] = useState(() => {
+        try {
+            const stored = JSON.parse(localStorage.getItem(`sp_expenses_${building.id}`) ?? 'null')
+            if (Array.isArray(stored)) return stored
+        } catch { }
+        return INITIAL_EXPENSE_LOG
+    })
+    useEffect(() => {
+        try { localStorage.setItem(`sp_expenses_${building.id}`, JSON.stringify(expenseLog)) } catch { }
+    }, [expenseLog, building.id])
     const [showAddExp, setShowAddExp] = useState(false)
     const [showRecPay, setShowRecPay] = useState(false)
     const [showAppelDF, setShowAppelDF] = useState(false)
@@ -3485,6 +3506,10 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
     const [showAdd, setShowAdd] = useState(false)
     const [editing, setEditing] = useState(null)
 
+    useEffect(() => {
+        try { localStorage.setItem(`sp_suppliers_${building.id}`, JSON.stringify(suppliers)) } catch { }
+    }, [suppliers, building.id])
+
     const filtered = suppliers.filter(s => {
         const matchCat = catFilter === 'all' || s.category === catFilter
         const matchName = s.name.toLowerCase().includes(search.toLowerCase())
@@ -4187,6 +4212,10 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
     const [filter, setFilter] = useState('all')
     const [showAdd, setShowAdd] = useState(false)
     const [editingDispute, setEditingDispute] = useState(null)
+
+    useEffect(() => {
+        try { localStorage.setItem(`sp_disputes_${building.id}`, JSON.stringify(disputes)) } catch { }
+    }, [disputes, building.id])
 
     const filtered = filter === 'all' ? disputes : disputes.filter(d => d.status === filter)
 
