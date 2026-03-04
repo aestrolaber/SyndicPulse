@@ -6319,6 +6319,65 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
     const [cachetPreview, setCachetPreview] = useState(building.cachet ?? null)
     const fileRef = useRef(null)
     const cachetRef = useRef(null)
+    const [confirmRestore, setConfirmRestore] = useState(false)
+    const [pendingRestore, setPendingRestore] = useState(null)
+
+    function handleExport() {
+        const bldgId = building.id
+        const data = {}
+        const map = {
+            expenses: `sp_expenses_${bldgId}`, disputes: `sp_disputes_${bldgId}`,
+            suppliers: `sp_suppliers_${bldgId}`, payments: `sp_payments_${bldgId}`,
+            meetings: `sp_meetings_${bldgId}`, residents_extra: `sp_residents_extra_${bldgId}`,
+            circulaires: `sp_circ_${bldgId}`, bank: `sp_bank_${bldgId}`,
+        }
+        for (const [key, lsKey] of Object.entries(map)) {
+            try { data[key] = JSON.parse(localStorage.getItem(lsKey) ?? 'null') } catch { data[key] = null }
+        }
+        const backup = { app: 'SyndicPulse', version: '1.0', building: { id: building.id, name: building.name }, exportedAt: new Date().toISOString(), data }
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `SyndicPulse_${building.name.replace(/\s+/g, '_')}_${new Date().toISOString().slice(0, 10)}.json`
+        a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    function handleRestoreFile(e) {
+        const file = e.target.files?.[0]
+        if (!file) return
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+            try {
+                const backup = JSON.parse(ev.target.result)
+                if (backup.app !== 'SyndicPulse') { alert("Fichier invalide — ce n'est pas une sauvegarde SyndicPulse."); return }
+                setPendingRestore(backup)
+                setConfirmRestore(true)
+            } catch { alert('Fichier JSON invalide.') }
+        }
+        reader.readAsText(file)
+        e.target.value = ''
+    }
+
+    function doRestore() {
+        if (!pendingRestore) return
+        const bldgId = pendingRestore.building.id
+        const d = pendingRestore.data ?? {}
+        const write = (key, val) => { try { if (val !== null) localStorage.setItem(key, JSON.stringify(val)) } catch { } }
+        write(`sp_expenses_${bldgId}`, d.expenses)
+        write(`sp_disputes_${bldgId}`, d.disputes)
+        write(`sp_suppliers_${bldgId}`, d.suppliers)
+        write(`sp_payments_${bldgId}`, d.payments)
+        write(`sp_meetings_${bldgId}`, d.meetings)
+        write(`sp_residents_extra_${bldgId}`, d.residents_extra)
+        write(`sp_circ_${bldgId}`, d.circulaires)
+        write(`sp_bank_${bldgId}`, d.bank)
+        setConfirmRestore(false)
+        setPendingRestore(null)
+        onClose()
+        window.location.reload()
+    }
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
 
@@ -6502,6 +6561,64 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                             <span className="text-[10px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-2.5 py-1 rounded-full whitespace-nowrap">
                                 Prochainement
                             </span>
+                        </div>
+                    </div>
+
+                    {/* ── Données & Sauvegarde ── */}
+                    <div className="border-t border-white/8 pt-5 space-y-3">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Données & Sauvegarde</p>
+
+                        {/* Export */}
+                        <div className="flex items-center justify-between rounded-xl bg-navy-700/50 border border-white/8 px-4 py-3">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                                    <Download size={15} className="text-emerald-400" />
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-white">Exporter la sauvegarde</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">Télécharge toutes les données en fichier JSON</p>
+                                </div>
+                            </div>
+                            <button type="button" onClick={handleExport}
+                                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 transition-colors">
+                                Télécharger
+                            </button>
+                        </div>
+
+                        {/* Restore */}
+                        <div className="rounded-xl bg-navy-700/50 border border-white/8 px-4 py-3">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-amber-500/15 border border-amber-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Upload size={15} className="text-amber-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">Restaurer une sauvegarde</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">Importe un fichier JSON exporté précédemment</p>
+                                    </div>
+                                </div>
+                                <label className="cursor-pointer text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500/15 border border-amber-500/25 text-amber-400 hover:bg-amber-500/25 transition-colors">
+                                    Importer
+                                    <input type="file" accept=".json" className="hidden" onChange={handleRestoreFile} />
+                                </label>
+                            </div>
+                            {confirmRestore && pendingRestore && (
+                                <div className="mt-3 rounded-lg bg-red-500/10 border border-red-500/25 p-3">
+                                    <p className="text-xs text-red-300 font-medium mb-2">
+                                        Restaurer la sauvegarde du {new Date(pendingRestore.exportedAt).toLocaleDateString('fr-MA')} pour {pendingRestore.building.name} ? Toutes les données actuelles seront remplacées.
+                                    </p>
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => { setConfirmRestore(false); setPendingRestore(null) }}
+                                            className="px-3 py-1.5 text-xs text-slate-400 hover:text-white bg-white/5 rounded-lg transition-colors">
+                                            Annuler
+                                        </button>
+                                        <button type="button" onClick={doRestore}
+                                            className="px-3 py-1.5 text-xs font-semibold bg-red-500/80 hover:bg-red-500 text-white rounded-lg transition-colors">
+                                            Oui, restaurer
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
