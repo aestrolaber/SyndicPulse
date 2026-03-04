@@ -2025,10 +2025,30 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
         setRecTo(CURRENT_MONTH)
     }
 
+    const [recActiveFilters, setRecActiveFilters] = useState([])
+    function handleRecCardClick(e, status) {
+        if (e.ctrlKey || e.metaKey) {
+            setRecActiveFilters(prev =>
+                prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
+            )
+        } else {
+            setRecActiveFilters(prev =>
+                prev.length === 1 && prev[0] === status ? [] : [status]
+            )
+        }
+    }
+    useEffect(() => { setRecPage(1) }, [recActiveFilters])
+
+    const buildingFee = building.monthly_fee || 850
+    const rFee = (r) => r.monthly_fee ?? buildingFee
+
     const paid = residents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const pending = residents.filter(r => computeStatus(r.paidThrough) === 'pending').length
     const overdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
     const rate = residents.length ? Math.round((paid / residents.length) * 100) : 0
+    const amountPaid = residents.filter(r => computeStatus(r.paidThrough) === 'paid').reduce((s, r) => s + rFee(r), 0)
+    const amountPending = residents.filter(r => computeStatus(r.paidThrough) === 'pending').reduce((s, r) => s + getUnpaidMonthsCount(r.paidThrough) * rFee(r), 0)
+    const amountOverdue = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').reduce((s, r) => s + getUnpaidMonthsCount(r.paidThrough) * rFee(r), 0)
 
     function cellStatus(r, m) {
         const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
@@ -2041,28 +2061,69 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
         return 'future'
     }
 
-    // Residents pagination
+    // Residents pagination — respects recActiveFilters
     const [recPage, setRecPage] = useState(1)
     const REC_PER_PAGE = 15
-    const recTotalPages = Math.max(1, Math.ceil(residents.length / REC_PER_PAGE))
-    const paginatedResidents = residents.slice((recPage - 1) * REC_PER_PAGE, recPage * REC_PER_PAGE)
+    const filteredResidents = recActiveFilters.length === 0
+        ? residents
+        : residents.filter(r => recActiveFilters.includes(computeStatus(r.paidThrough)))
+    const recTotalPages = Math.max(1, Math.ceil(filteredResidents.length / REC_PER_PAGE))
+    const paginatedResidents = filteredResidents.slice((recPage - 1) * REC_PER_PAGE, recPage * REC_PER_PAGE)
 
     return (
         <div className="space-y-5">
-            {/* Stats */}
+            {/* Stats — clickable filter cards (Ctrl+clic = multi-select) */}
             <div className="grid grid-cols-4 gap-4">
-                {[
-                    { label: 'Taux actuel', value: `${rate}%`, color: 'text-sp' },
-                    { label: 'Unités à jour', value: paid, color: 'text-emerald-400' },
-                    { label: 'En attente', value: pending, color: 'text-amber-400' },
-                    { label: 'En retard', value: overdue, color: 'text-red-400' },
-                ].map(s => (
-                    <div key={s.label} className="glass-card p-4">
-                        <p className="text-xs text-slate-400 mb-1">{s.label}</p>
-                        <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
+                {/* Taux / Tous */}
+                <button
+                    onClick={() => setRecActiveFilters([])}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${recActiveFilters.length === 0 ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">Taux de recouvrement</p>
+                        {recActiveFilters.length === 0 && <span className="text-[10px] bg-sp/20 text-sp px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
-                ))}
+                    <div className="text-2xl font-bold text-sp">{rate}%</div>
+                    <p className="text-[11px] text-slate-500 mt-1">{residents.length} résidents · {building.name}</p>
+                </button>
+                {/* Payés */}
+                <button
+                    onClick={e => handleRecCardClick(e, 'paid')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${recActiveFilters.includes('paid') ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">Unités à jour</p>
+                        {recActiveFilters.includes('paid') && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-400">{paid}</div>
+                    <p className="text-[11px] text-emerald-500/70 mt-1 font-semibold">{amountPaid.toLocaleString('fr-FR')} MAD encaissés</p>
+                </button>
+                {/* En attente */}
+                <button
+                    onClick={e => handleRecCardClick(e, 'pending')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${recActiveFilters.includes('pending') ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">En attente</p>
+                        {recActiveFilters.includes('pending') && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-amber-400">{pending}</div>
+                    <p className="text-[11px] text-amber-500/70 mt-1 font-semibold">{amountPending.toLocaleString('fr-FR')} MAD dus</p>
+                </button>
+                {/* En retard */}
+                <button
+                    onClick={e => handleRecCardClick(e, 'overdue')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${recActiveFilters.includes('overdue') ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">En retard</p>
+                        {recActiveFilters.includes('overdue') && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-red-400">{overdue}</div>
+                    <p className="text-[11px] text-red-500/70 mt-1 font-semibold">{amountOverdue.toLocaleString('fr-FR')} MAD dus</p>
+                </button>
             </div>
+            <p className="text-[10px] text-slate-600 -mt-3">Ctrl+clic pour sélectionner plusieurs statuts</p>
 
             {/* Date range controls */}
             <div className="glass-card p-4 flex flex-wrap items-center gap-3">
@@ -3391,6 +3452,14 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const buildingFee = building.monthly_fee || 850
     const rFee = (r) => r.monthly_fee ?? buildingFee
 
+    // Total Solde dû across all filtered (not just current page)
+    const totalSoldeDu = filtered.reduce((s, r) => {
+        const st = computeStatus(r.paidThrough)
+        if (st === 'paid') return s
+        return s + getUnpaidMonthsCount(r.paidThrough) * rFee(r)
+    }, 0)
+    const nonPaidFilteredCount = filtered.filter(r => computeStatus(r.paidThrough) !== 'paid').length
+
     const counts = {
         all: residents.length,
         paid: residents.filter(r => computeStatus(r.paidThrough) === 'paid').length,
@@ -3603,6 +3672,24 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                             </motion.tr>
                         ))}
                     </tbody>
+                    {filtered.length > 0 && (
+                        <tfoot>
+                            <tr className="border-t border-white/10 bg-navy-800/40">
+                                <td colSpan={6} className="px-6 py-3 text-right text-xs text-slate-500 font-semibold">
+                                    Total Solde dû
+                                    {nonPaidFilteredCount > 0 && <span className="ml-1 text-slate-600">({nonPaidFilteredCount} résident{nonPaidFilteredCount > 1 ? 's' : ''})</span>}
+                                </td>
+                                <td className="px-6 py-3">
+                                    {totalSoldeDu > 0 ? (
+                                        <span className="text-sm font-bold text-red-400">{totalSoldeDu.toLocaleString('fr-FR')} MAD</span>
+                                    ) : (
+                                        <span className="text-sm font-bold text-emerald-400">Tout à jour ✓</span>
+                                    )}
+                                </td>
+                                <td />
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
 
                 {filtered.length === 0 && (
