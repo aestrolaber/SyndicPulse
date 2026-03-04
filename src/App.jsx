@@ -1056,14 +1056,14 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
    USER GUIDE MODAL
 ══════════════════════════════════════════ */
 const GUIDE_SECTIONS = [
-    { id: 'parametres', label: 'Paramètres', icon: Settings, available: true },
-    { id: 'dashboard',  label: 'Tableau de bord', icon: LayoutDashboard, available: false },
-    { id: 'residents',  label: 'Résidents',   icon: Users,          available: false },
-    { id: 'financials', label: 'Finances',    icon: BarChart3,      available: false },
-    { id: 'disputes',   label: 'Litiges',     icon: MessageSquare,  available: false },
-    { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck,        available: false },
-    { id: 'circulaires', label: 'Circulaires', icon: Megaphone,     available: false },
-    { id: 'assemblees', label: 'Assemblées',  icon: CalendarCheck,  available: false },
+    { id: 'parametres',   label: 'Paramètres',      icon: Settings,       available: true },
+    { id: 'dashboard',    label: 'Tableau de bord',  icon: LayoutDashboard,available: true },
+    { id: 'residents',    label: 'Résidents',         icon: Users,          available: true },
+    { id: 'financials',   label: 'Finances',          icon: BarChart3,      available: true },
+    { id: 'disputes',     label: 'Litiges',           icon: MessageSquare,  available: true },
+    { id: 'fournisseurs', label: 'Fournisseurs',      icon: Truck,          available: true },
+    { id: 'circulaires',  label: 'Circulaires',       icon: Megaphone,      available: true },
+    { id: 'assemblees',   label: 'Assemblées',        icon: CalendarCheck,  available: true },
 ]
 
 function GuideField({ label, description, tip, badge }) {
@@ -1117,7 +1117,7 @@ function UserGuideModal({ onClose }) {
                         ))}
                     </nav>
                     <div className="p-4 border-t border-white/5">
-                        <p className="text-[10px] text-slate-600 leading-relaxed">D'autres sections seront documentées au fur et à mesure du déploiement.</p>
+                        <p className="text-[10px] text-slate-600 leading-relaxed">Guide complet — toutes les sections sont disponibles.</p>
                     </div>
                 </div>
 
@@ -1243,6 +1243,272 @@ function UserGuideModal({ onClose }) {
                                                 {logo && <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded-full">Logo</span>}
                                                 {cachet && <span className="text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Cachet</span>}
                                             </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Section: Sauvegarde */}
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Données & Sauvegarde</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField
+                                        label="Exporter la sauvegarde"
+                                        badge="Nouveau"
+                                        description="Télécharge un fichier JSON horodaté contenant l'intégralité des données de l'immeuble : résidents, paiements, dépenses, litiges, fournisseurs, réunions, circulaires et coordonnées bancaires."
+                                        tip="Bonne pratique : téléchargez une sauvegarde chaque vendredi avant de fermer le navigateur. Nommez les fichiers avec la date pour garder un historique (ex: SyndicPulse_Norwest_2026-03-07.json)."
+                                    />
+                                    <GuideField
+                                        label="Restaurer une sauvegarde"
+                                        description="Importe un fichier JSON exporté précédemment. SyndicPulse affiche la date de la sauvegarde et demande une confirmation avant d'écraser les données actuelles. La page se recharge automatiquement après la restauration."
+                                        tip="En cas de problème (navigateur effacé, changement de poste), la restauration remet l'application dans l'état exact de la dernière sauvegarde en moins de 10 secondes."
+                                    />
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'dashboard' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    Le <span className="text-white font-semibold">Tableau de bord</span> est la première page à l'ouverture. Il donne une vue instantanée de l'état financier et opérationnel de l'immeuble actif.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Indicateurs clés (KPI)</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Taux de recouvrement" description="Pourcentage de résidents ayant réglé leur charge du mois en cours. Calculé en temps réel à partir des statuts de paiement. Affiché en vert si ≥ 80 %, en orange entre 60–80 %, en rouge en dessous." />
+                                    <GuideField label="Charges du mois" description="Total des dépenses enregistrées sur le mois calendaire en cours. Se met à jour automatiquement à chaque ajout dans l'onglet Dépenses." />
+                                    <GuideField label="Fonds de réserve" description="Trésorerie de réserve de la copropriété, saisie dans Paramètres. Affiché en violet pour le distinguer des flux mensuels." />
+                                    <GuideField label="Résidents en retard" description="Nombre de résidents avec un ou plusieurs mois de charges impayés. Un clic redirige vers la liste Résidents filtrée sur 'En retard'." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Autres éléments</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Prochaine assemblée" description="Affiche la date et le lieu de la prochaine AG planifiée. Mis à jour automatiquement depuis l'onglet Assemblées." />
+                                    <GuideField label="Activité récente" description="Journal des dernières actions : paiements enregistrés, circulaires envoyées, litiges créés. Permet un suivi rapide sans naviguer dans chaque section." />
+                                    <GuideField label="Switcher d'immeuble" badge="Super Admin" description="Les comptes super administrateur voient un sélecteur d'immeuble dans la barre supérieure pour basculer entre les propriétés gérées. Chaque immeuble a ses propres données indépendantes." />
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'residents' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Résidents</span> est le registre central de la copropriété. Il concentre la gestion des paiements, les coordonnées des copropriétaires et l'accès au portail résident.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Liste & filtres</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Filtres de statut" description="Boutons Tous / En retard / En attente / Payé en haut de liste. 'En retard' = au moins un mois impayé avant le mois en cours. 'En attente' = mois courant non encore réglé. 'Payé' = à jour." />
+                                    <GuideField label="Recherche" description="Barre de recherche en temps réel sur le nom du résident et le numéro d'appartement." />
+                                    <GuideField label="Import CSV" description="Bouton 'Importer CSV' pour charger une liste de résidents depuis un fichier tableur. Télécharger le modèle CSV fourni pour respecter le format attendu (colonnes : nom, appartement, téléphone, email, paidThrough)." tip="En cas d'erreur d'import, vérifiez que les colonnes respectent exactement les noms du modèle et que le fichier est encodé en UTF-8." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Actions par résident</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Enregistrer un paiement" description="Bouton vert dans chaque ligne. Ouvre une modale permettant de couvrir 1, 2, 3, 6 ou 12 mois en une seule opération. Un aperçu montre les mois qui seront couverts avant confirmation. Un reçu PDF peut être imprimé immédiatement après." />
+                                    <GuideField label="WhatsApp contextuel" description="Bouton WhatsApp (vert) qui génère un message adapté au statut : pour un résident en retard, le message liste explicitement chaque mois impayé et le montant total dû. Pour un résident à jour, ouvre un message blanc de courtoisie." />
+                                    <GuideField label="Téléphone & Email" description="Boutons d'action rapide qui ouvrent l'application téléphone ou le client mail avec le contact pré-rempli." />
+                                    <GuideField label="Modifier le résident" description="Crayon pour éditer les informations (nom, appartement, téléphone, email, paidThrough). Toute modification sur paidThrough est persistée et reflétée en temps réel dans le portail résident." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Portail résident</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Code portail individuel" badge="Portail" description="Chaque résident reçoit un code unique au format NW-4K8MRX (initiales de l'immeuble + 6 caractères aléatoires). Ce code lui permet de se connecter au portail pour consulter son solde, les coordonnées de paiement et les prochaines réunions." tip="Pour distribuer les codes à tous les résidents : imprimez la liste depuis Paramètres ou envoyez chaque code individuellement via WhatsApp depuis la fiche résident." />
+                                    <GuideField label="Nouveaux résidents" description="Le bouton '+ Nouveau résident' génère automatiquement un code portail. Le nouveau résident est immédiatement accessible depuis le portail sans besoin de rechargement." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Workflow recommandé (premier démarrage)</h4>
+                                <div className="space-y-2">
+                                    {[
+                                        { step: '1', text: 'Importer la liste des résidents via CSV ou les saisir manuellement.' },
+                                        { step: '2', text: 'Vérifier les statuts de paiement — mettre à jour le champ paidThrough pour chaque résident selon la situation réelle.' },
+                                        { step: '3', text: 'Distribuer les codes portail : envoyer chaque code par WhatsApp depuis la fiche du résident.' },
+                                        { step: '4', text: 'Chaque mois, filtrer sur "En retard" et utiliser le bouton WhatsApp pour relancer les impayés en une seule action.' },
+                                    ].map(({ step, text }) => (
+                                        <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
+                                            <span className="w-6 h-6 rounded-full bg-sp/20 text-sp text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
+                                            <p className="text-[13px] text-slate-300 leading-relaxed">{text}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'financials' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Finances</span> regroupe trois sous-onglets : <span className="text-white font-semibold">Vue d'ensemble</span>, <span className="text-white font-semibold">Recouvrement</span> et <span className="text-white font-semibold">Dépenses</span>.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Vue d'ensemble</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Graphique de recouvrement" description="Histogramme des 6 derniers mois montrant le montant total collecté chaque mois. Utile pour repérer les mois creux et les tendances saisonnières." />
+                                    <GuideField label="Résumé financier du mois" description="Synthèse rapide : charges totales vs montant recouvré, solde net du mois." />
+                                    <GuideField label="Appel de fonds" description="Génère un document PDF d'appel de fonds officiel à distribuer aux résidents, avec logo, cachet et détail des charges à régler." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Recouvrement</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Matrice de paiement" description="Tableau croisé résidents × mois. Chaque cellule indique le statut (payé ✓ / en attente / en retard). Par défaut affiche les 6 derniers mois. Cliquer sur une cellule en attente ouvre directement la modale de paiement." />
+                                    <GuideField label="Filtres de période" description="Pills 3M / 6M / 12M / 24M pour ajuster la plage temporelle de la matrice. Les sélecteurs de dates manuels permettent une plage personnalisée (le pill actif se désactive automatiquement)." />
+                                    <GuideField label="Pagination" description="15 résidents par page. Navigation avec les boutons Précédent / Suivant." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Dépenses</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Journal des dépenses" description="Liste chronologique de toutes les dépenses enregistrées : date, catégorie, fournisseur, montant, description, statut facture. Les données persistent entre les sessions." />
+                                    <GuideField label="Ajouter une dépense" description="Bouton '+ Dépense' : saisir la date, la catégorie, le fournisseur (sélectionné depuis l'annuaire fournisseurs ou saisi librement), le montant et une description. La facture peut être marquée comme reçue ou non." />
+                                    <GuideField label="Filtres & export" description="Pills 1M / 3M / 6M / 1an / Tout pour filtrer la période affichée. Bouton 'Exporter CSV' télécharge uniquement les dépenses de la période filtrée — pratique pour la comptabilité mensuelle." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Workflow mensuel recommandé</h4>
+                                <div className="space-y-2">
+                                    {[
+                                        { step: '1', text: 'Début de mois : aller dans Recouvrement → vérifier qui n\'a pas encore payé → relancer via WhatsApp depuis la liste Résidents.' },
+                                        { step: '2', text: 'Au fil du mois : enregistrer chaque dépense (prestataires, factures) dans l\'onglet Dépenses.' },
+                                        { step: '3', text: 'Fin de mois : exporter le CSV des dépenses du mois pour la comptabilité, générer un Appel de fonds si besoin.' },
+                                    ].map(({ step, text }) => (
+                                        <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
+                                            <span className="w-6 h-6 rounded-full bg-sp/20 text-sp text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
+                                            <p className="text-[13px] text-slate-300 leading-relaxed">{text}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'disputes' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Litiges</span> permet de suivre les conflits entre résidents ou avec la copropriété — de l'ouverture à la clôture, avec pièces jointes et suggestions légales automatiques.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Statuts & priorités</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Statuts" description="4 étapes du cycle de vie : Ouvert (rouge) → Médiation (orange) → Résolu (vert) → Clôturé (gris). Le statut est modifiable à tout moment depuis la fiche du litige." />
+                                    <GuideField label="Priorités" description="3 niveaux : Élevé (rouge) / Moyen (orange) / Faible (gris). Utilisés pour trier visuellement les litiges urgents en haut de liste." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Gestion des litiges</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Créer un litige" description="Bouton '+ Nouveau litige' : saisir le titre, les parties concernées, la description, la priorité et le statut initial. Un identifiant unique (ex: DSP-001) est généré automatiquement." />
+                                    <GuideField label="Modifier / clôturer" description="Crayon sur la carte du litige. Confirmation en 2 étapes avant toute modification ou suppression pour éviter les erreurs." />
+                                    <GuideField label="Pièces jointes" badge="Nouveau" description="Chaque litige peut stocker jusqu'à 5 fichiers (photos, PDF, courriers) de 5 Mo maximum chacun. Les images s'affichent en miniature, les documents avec une icône de type. Un badge trombone indique le nombre de pièces jointes sur la carte." />
+                                    <GuideField label="Suggestion IA" description="Chaque litige affiche une suggestion de résolution basée sur la Loi 18-00 relative à la copropriété au Maroc. Information indicative — consulter un juriste pour les cas complexes." />
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'fournisseurs' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Fournisseurs</span> est l'annuaire des prestataires de l'immeuble. Il s'intègre directement avec l'enregistrement des dépenses.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Annuaire</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Catégories" description="8 catégories : Ascenseur, Nettoyage, Électricité, Plomberie, Gardiennage, Espaces verts, Peinture, Autre. Chaque catégorie a une couleur d'identification pour un repérage visuel rapide." />
+                                    <GuideField label="Fiche fournisseur" description="Chaque fiche contient : nom, catégorie, téléphone (cliquable), email, référence contrat, date de début, note (1–5 étoiles) et notes libres." />
+                                    <GuideField label="Recherche & filtre" description="Barre de recherche sur le nom + filtre par catégorie en haut de liste." />
+                                    <GuideField label="Notation étoiles" description="Système de notation 1 à 5 étoiles modifiable depuis la fiche. La note moyenne de tous les fournisseurs est affichée dans le KPI en haut de page." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Intégration avec les dépenses</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Sélection automatique" description="Lors de l'ajout d'une dépense dans l'onglet Finances, si des fournisseurs sont enregistrés, un menu déroulant les liste automatiquement. Sélectionner un fournisseur remplit son nom dans le champ vendeur instantanément." tip="Ajoutez vos fournisseurs réguliers avant de saisir les dépenses mensuelles pour gagner du temps et éviter les fautes de frappe dans les noms." />
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'circulaires' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Circulaires</span> permet de rédiger et diffuser des avis officiels aux résidents en quelques secondes, via WhatsApp Broadcast ou document imprimé.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Templates disponibles</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="💧 Coupure d'eau" description="Avis de coupure temporaire : date, horaires, zones concernées, raison. Message WhatsApp et document imprimable générés automatiquement." />
+                                    <GuideField label="⚡ Coupure d'électricité" description="Identique au modèle eau, adapté pour les coupures électriques avec zones de bâtiments." />
+                                    <GuideField label="🔧 Travaux / Maintenance" description="Notification de travaux : équipement concerné, date de début, durée estimée, nature des travaux." />
+                                    <GuideField label="🏛️ Rappel Assemblée" description="Rappel AG avec date, heure, lieu et ordre du jour. Génère également une convocation officielle imprimable." />
+                                    <GuideField label="🧹 Propreté & Règlement" description="Avis de rappel du règlement intérieur : sujet, rappel réglementaire, sanction prévue le cas échéant." />
+                                    <GuideField label="🔍 Objet trouvé" badge="Nouveau" description="Annonce un objet trouvé dans les parties communes : description de l'objet, lieu de découverte, date, contact pour récupérer. Message WhatsApp généré automatiquement." />
+                                    <GuideField label="📝 Avis personnalisé" description="Template libre : titre + contenu libre. Pour tout avis ne correspondant pas aux modèles prédéfinis." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Historique & actions</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Lancement rapide" description="Grille de raccourcis en haut de page — un clic sur un template ouvre directement le formulaire à l'étape 2, sans passer par le sélecteur." />
+                                    <GuideField label="Copier message WhatsApp" description="Bouton copie dans chaque ligne d'historique. Colle le texte prêt à l'emploi dans WhatsApp Broadcast ou un groupe de résidents." />
+                                    <GuideField label="Imprimer / PDF" description="Génère un document bilingue (français + titre en arabe) avec logo et cachet, prêt pour l'affichage dans les parties communes ou l'envoi par email." />
+                                    <GuideField label="Modifier depuis l'historique" badge="Nouveau" description="Icône crayon sur chaque circulaire archivée. Rouvre le formulaire pré-rempli avec les données existantes — utile pour corriger une erreur ou réutiliser un modèle avec de nouvelles dates." />
+                                    <GuideField label="Marquer comme diffusé" description="Bouton ✓ pour indiquer qu'une circulaire a été envoyée aux résidents. Le badge 'Diffusé' apparaît sur la carte et incrémente le compteur dans les KPI." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">KPI circulaires</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="4 indicateurs" description="Ce mois-ci (avis rédigés ce mois) · Diffusés (marqués comme envoyés) · Objets trouvés (count des avis objet trouvé) · Total archivés (cumul historique)." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Module Objets trouvés</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Aperçu du registre centralisé" badge="Prochaine version" description="Un registre visuel des objets trouvés (photo, statut En attente / Réclamé, lieu) sera disponible dans une version à venir. Pour l'instant, utilisez le template 'Objet trouvé' pour notifier les résidents via WhatsApp." />
+                                </div>
+                            </div>
+                        </>}
+
+                        {section === 'assemblees' && <>
+                            <div className="bg-sp/5 border border-sp/15 rounded-xl p-4">
+                                <p className="text-sm text-slate-300 leading-relaxed">
+                                    L'onglet <span className="text-white font-semibold">Assemblées</span> gère le cycle complet des réunions de copropriété : planification, convocation, tenue et procès-verbal.
+                                </p>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Gestion des assemblées</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Créer une assemblée" description="Bouton '+ Nouvelle AG' : titre, date, heure, lieu, ordre du jour, statut initial. L'assemblée apparaît dans le calendrier de planification et dans la carte 'Prochaine AG' du tableau de bord." />
+                                    <GuideField label="Statuts" description="3 statuts : À venir (bleu) → En cours (orange) → Terminée (vert). Mettre à jour le statut au fil du déroulement de la réunion." />
+                                    <GuideField label="Modifier / supprimer" description="Icône crayon sur chaque assemblée. Confirmation en 2 étapes avant suppression." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Documents générés</h4>
+                                <div className="glass-card px-5 py-1">
+                                    <GuideField label="Convocation" description="Document officiel à envoyer aux résidents 15 jours avant l'assemblée. Inclut : logo, cachet, date, heure, lieu, ordre du jour complet. S'ouvre dans une fenêtre d'impression navigateur." />
+                                    <GuideField label="Feuille de présence" description="Tableau avec la liste de tous les résidents, leur appartement et une colonne signature. À imprimer le jour de l'AG pour l'émargement." />
+                                    <GuideField label="Procès-verbal (PV)" description="Modèle de PV pré-rempli avec les informations de l'assemblée : date, lieu, résidents présents, ordre du jour. À compléter avec les décisions prises lors de la réunion puis imprimer pour signature." />
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Workflow AG recommandé</h4>
+                                <div className="space-y-2">
+                                    {[
+                                        { step: '1', text: 'J−15 : créer l\'assemblée avec statut "À venir", rédiger l\'ordre du jour complet, imprimer la convocation et la distribuer (WhatsApp + affichage).' },
+                                        { step: '2', text: 'Jour J : imprimer la feuille de présence, changer le statut de l\'assemblée en "En cours".' },
+                                        { step: '3', text: 'Après l\'AG : imprimer le PV, le faire signer, changer le statut en "Terminée".' },
+                                    ].map(({ step, text }) => (
+                                        <div key={step} className="flex gap-3 items-start bg-navy-700/40 rounded-xl px-4 py-3">
+                                            <span className="w-6 h-6 rounded-full bg-sp/20 text-sp text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{step}</span>
+                                            <p className="text-[13px] text-slate-300 leading-relaxed">{text}</p>
                                         </div>
                                     ))}
                                 </div>
