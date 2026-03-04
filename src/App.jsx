@@ -22,7 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
-    BookOpen, HelpCircle,
+    BookOpen, HelpCircle, MapPin,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -196,6 +196,15 @@ const CIRCULAIRE_TEMPLATES = [
         ],
     },
     {
+        key: 'objet_trouve', label: 'Objet trouvé', icon: '🔍', color: '#f97316',
+        fields: [
+            { key: 'objet', label: "Description de l'objet", type: 'text', required: true, placeholder: 'Ex: Clés de voiture, sac à main noir' },
+            { key: 'lieu', label: 'Lieu de découverte', type: 'text', required: true, placeholder: 'Ex: Hall principal – RDC' },
+            { key: 'date', label: 'Date de découverte', type: 'date', required: true },
+            { key: 'contact', label: 'Contact pour récupérer', type: 'text', placeholder: 'Ex: Garderie – bâtiment A, bureau du syndic' },
+        ],
+    },
+    {
         key: 'avis_libre', label: 'Avis personnalisé', icon: '📝', color: '#6366f1',
         fields: [
             { key: 'titre', label: "Titre", type: 'text', required: true, placeholder: 'Ex: Information importante' },
@@ -223,6 +232,8 @@ function buildCirculaireMessage(templateKey, vars, buildingName) {
             return `Rappel — Assemblée Générale\n\nLe bureau du syndic de ${buildingName} vous rappelle que l'Assemblée Générale se tiendra le ${fmtDate(vars.date)} à ${vars.heure ?? '—'}.\n\nLieu : ${vars.lieu || '—'}${vars.odj ? `\n\nOrdre du jour :\n${vars.odj}` : ''}\n\nVotre présence est importante.${closing}`
         case 'proprete':
             return `Avis — Propreté & Règlement intérieur\n\nLe bureau du syndic de ${buildingName} attire votre attention sur : ${vars.sujet || '—'}.${vars.rappel ? `\n\nRappel : ${vars.rappel}` : ''}${vars.sanction ? `\n\nSanction prévue : ${vars.sanction}` : ''}\n\nNous comptons sur votre civisme et coopération.${closing}`
+        case 'objet_trouve':
+            return `Avis — Objet trouvé\n\nLe bureau du syndic de ${buildingName} informe les résidents qu'un objet a été trouvé :\n\n📦 Objet : ${vars.objet || '—'}\n📍 Lieu : ${vars.lieu || '—'}\n📅 Date : ${fmtDate(vars.date)}\n\n${vars.contact ? `Pour récupérer votre bien, contactez : ${vars.contact}` : 'Contactez le bureau du syndic ou la garderie pour récupérer votre bien.'}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
         case 'avis_libre':
         default:
             return `${vars.titre ? `${vars.titre}\n\n` : ''}${vars.contenu || ''}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
@@ -2753,6 +2764,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
     const thisMonth = new Date().toISOString().slice(0, 7)
     const countThisMonth = circulaires.filter(c => c.createdAt?.startsWith(thisMonth)).length
     const countDiffuses = circulaires.filter(c => c.diffuse).length
+    const countObjets = circulaires.filter(c => c.template === 'objet_trouve').length
 
     return (
         <div className="p-6 space-y-5">
@@ -2775,10 +2787,11 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
             </div>
 
             {/* Stats */}
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
                 {[
                     { label: 'Ce mois-ci', val: countThisMonth, color: 'text-cyan-400' },
                     { label: 'Diffusés', val: countDiffuses, color: 'text-emerald-400' },
+                    { label: 'Objets trouvés', val: countObjets, color: 'text-orange-400' },
                     { label: 'Total archivés', val: circulaires.length, color: 'text-slate-300' },
                 ].map(s => (
                     <div key={s.label} className="glass-card p-4">
@@ -2807,6 +2820,55 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                             <span className="absolute top-1.5 right-1.5 text-[9px] font-bold bg-violet-500/20 text-violet-400 border border-violet-500/20 px-1.5 py-0.5 rounded-full">Custom</span>
                         </button>
                     ))}
+                </div>
+            </div>
+
+            {/* Objets trouvés — full module preview (coming soon) */}
+            <div className="glass-card overflow-hidden">
+                <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                        <span className="text-lg">🔍</span>
+                        <p className="text-sm font-semibold text-white">Objets trouvés</p>
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">Prochaine version</span>
+                    </div>
+                    <button disabled title="Disponible prochainement"
+                        className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-400/50 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-not-allowed opacity-60">
+                        <Plus size={12} /> Signaler un objet
+                    </button>
+                </div>
+                <div className="p-4">
+                    <p className="text-xs text-slate-500 mb-4">
+                        Gérez les objets trouvés dans la résidence depuis un registre centralisé — avec photo, statut de récupération et notification automatique aux résidents.
+                    </p>
+                    {/* Mock item cards */}
+                    <div className="grid grid-cols-3 gap-3">
+                        {[
+                            { icon: '🔑', objet: 'Clés de voiture', lieu: 'Hall principal – RDC', date: '01 Mars 2026', status: 'En attente', statusColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                            { icon: '🎒', objet: 'Sac à dos noir', lieu: 'Parking B2', date: '28 Fév. 2026', status: 'Réclamé', statusColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
+                            { icon: '📱', objet: 'Téléphone portable', lieu: 'Ascenseur – Tour A', date: '02 Mars 2026', status: 'En attente', statusColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
+                        ].map((item, i) => (
+                            <div key={i} className="relative rounded-xl bg-navy-700/40 border border-white/6 p-4 opacity-70">
+                                <div className="absolute inset-0 rounded-xl bg-navy-900/20 backdrop-blur-[1px]" />
+                                <div className="relative">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <span className="text-2xl">{item.icon}</span>
+                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.statusColor}`}>{item.status}</span>
+                                    </div>
+                                    <p className="text-sm font-semibold text-white mb-1">{item.objet}</p>
+                                    <p className="text-xs text-slate-400 flex items-center gap-1">
+                                        <MapPin size={9} className="flex-shrink-0" /> {item.lieu}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 mt-1">{item.date}</p>
+                                    <button disabled className="mt-3 w-full text-[11px] font-medium py-1.5 rounded-lg bg-white/4 border border-white/8 text-slate-500 cursor-not-allowed">
+                                        Contacter le gardien
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-[11px] text-slate-600 text-center mt-4 italic">
+                        Aperçu — Ce module sera disponible dans une prochaine version de SyndicPulse
+                    </p>
                 </div>
             </div>
 
