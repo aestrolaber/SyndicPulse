@@ -3376,14 +3376,20 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const totalPages = Math.ceil(filtered.length / RESIDENTS_PAGE_SIZE)
     const paginated = filtered.slice((page - 1) * RESIDENTS_PAGE_SIZE, page * RESIDENTS_PAGE_SIZE)
 
+    const buildingFee = building.monthly_fee || 850
+    const rFee = (r) => r.monthly_fee ?? buildingFee
+
     const counts = {
         all: residents.length,
         paid: residents.filter(r => computeStatus(r.paidThrough) === 'paid').length,
         pending: residents.filter(r => computeStatus(r.paidThrough) === 'pending').length,
         overdue: residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length,
     }
-
-    const filterLabels = { all: 'Tous', paid: 'Payés', pending: 'En attente', overdue: 'En retard' }
+    const amounts = {
+        paid: residents.filter(r => computeStatus(r.paidThrough) === 'paid').reduce((s, r) => s + rFee(r), 0),
+        pending: residents.filter(r => computeStatus(r.paidThrough) === 'pending').reduce((s, r) => s + getUnpaidMonthsCount(r.paidThrough) * rFee(r), 0),
+        overdue: residents.filter(r => computeStatus(r.paidThrough) === 'overdue').reduce((s, r) => s + getUnpaidMonthsCount(r.paidThrough) * rFee(r), 0),
+    }
 
     function handleAddResident(r) {
         setResidents(prev => [r, ...prev])
@@ -3400,19 +3406,56 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 
     return (
         <div className="space-y-6">
-            {/* Stats */}
+            {/* Stats — clickable filter cards */}
             <div className="grid grid-cols-4 gap-4">
-                {[
-                    { label: 'Unités totales', value: building.total_units, color: 'text-slate-300' },
-                    { label: 'Payés', value: counts.paid, color: 'text-emerald-400' },
-                    { label: 'En attente', value: counts.pending, color: 'text-amber-400' },
-                    { label: 'En retard', value: counts.overdue, color: 'text-red-400' },
-                ].map(s => (
-                    <div key={s.label} className="glass-card p-4 flex items-center gap-3">
-                        <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                        <p className="text-sm text-slate-400">{s.label}</p>
+                {/* Tous — non-filterable info card */}
+                <button
+                    onClick={() => setFilter('all')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'all' ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">Tous les résidents</p>
+                        {filter === 'all' && <span className="text-[10px] bg-sp/20 text-sp px-1.5 py-0.5 rounded-full font-bold">actif</span>}
                     </div>
-                ))}
+                    <div className="text-2xl font-bold text-slate-200">{counts.all}</div>
+                    <p className="text-[11px] text-slate-500 mt-1">{building.total_units} unités · {building.name}</p>
+                </button>
+                {/* Payés */}
+                <button
+                    onClick={() => setFilter(filter === 'paid' ? 'all' : 'paid')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'paid' ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">Payés ce mois</p>
+                        {filter === 'paid' && <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-emerald-400">{counts.paid}</div>
+                    <p className="text-[11px] text-emerald-500/70 mt-1 font-semibold">{amounts.paid.toLocaleString('fr-FR')} MAD encaissés</p>
+                </button>
+                {/* En attente */}
+                <button
+                    onClick={() => setFilter(filter === 'pending' ? 'all' : 'pending')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'pending' ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">En attente</p>
+                        {filter === 'pending' && <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-amber-400">{counts.pending}</div>
+                    <p className="text-[11px] text-amber-500/70 mt-1 font-semibold">{amounts.pending.toLocaleString('fr-FR')} MAD dus</p>
+                </button>
+                {/* En retard */}
+                <button
+                    onClick={() => setFilter(filter === 'overdue' ? 'all' : 'overdue')}
+                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${filter === 'overdue' ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-slate-400">En retard</p>
+                        {filter === 'overdue' && <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded-full font-bold">actif</span>}
+                    </div>
+                    <div className="text-2xl font-bold text-red-400">{counts.overdue}</div>
+                    <p className="text-[11px] text-red-500/70 mt-1 font-semibold">{amounts.overdue.toLocaleString('fr-FR')} MAD dus</p>
+                </button>
             </div>
 
             {/* Action bar + Search + Filters */}
@@ -3447,20 +3490,14 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                         className="w-full bg-navy-800 border border-white/8 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sp/40 transition-colors"
                     />
                 </div>
-                <div className="flex gap-2 flex-shrink-0">
-                    {Object.entries(filterLabels).map(([f, label]) => (
-                        <button
-                            key={f}
-                            onClick={() => setFilter(f)}
-                            className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all ${filter === f
-                                    ? 'bg-sp text-navy-900'
-                                    : 'bg-navy-800 text-slate-400 border border-white/8 hover:border-sp/30'
-                                }`}
-                        >
-                            {label} {f !== 'all' && `(${counts[f]})`}
-                        </button>
-                    ))}
-                </div>
+                {filter !== 'all' && (
+                    <button
+                        onClick={() => setFilter('all')}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-semibold border border-white/8 hover:border-white/20 transition-all flex-shrink-0"
+                    >
+                        <X size={12} /> Réinitialiser filtre
+                    </button>
+                )}
             </div>
 
             {/* Table */}
