@@ -3726,6 +3726,12 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 
     function handleAddResident(r) {
         setResidents(prev => [r, ...prev])
+        // Persist to localStorage so the portal login can validate this new resident's code
+        try {
+            const key = `sp_residents_extra_${building.id}`
+            const existing = JSON.parse(localStorage.getItem(key) ?? '[]')
+            localStorage.setItem(key, JSON.stringify([...existing, r]))
+        } catch { }
         showToast(`${r.name} ajouté(e) — invitation WhatsApp envoyée`)
         setTimeout(() => setResidents(prev => prev.map(x => x.id === r.id ? { ...x, isNew: false } : x)), 5000)
     }

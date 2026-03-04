@@ -556,16 +556,25 @@ export function generateResidentCode(resident, building) {
 
 /**
  * Validate a resident's individual portal code (no unit field needed).
- * Matches on the stored portalCode field first.
+ * Checks static mock data first, then localStorage extras (residents added at runtime).
  */
 export function validateResidentCodeDirect(code) {
     const normalized = code.trim().toUpperCase()
     for (const building of BUILDINGS) {
+        // Check static mock data
         const residents = RESIDENTS_BY_BLDG[building.id] ?? []
         const resident = residents.find(r =>
             (r.portalCode ?? generateResidentCode(r, building)).toUpperCase() === normalized
         )
         if (resident) return { building, resident }
+        // Check residents added at runtime (persisted to localStorage by handleAddResident)
+        try {
+            const extras = JSON.parse(localStorage.getItem(`sp_residents_extra_${building.id}`) ?? '[]')
+            const extraResident = extras.find(r =>
+                (r.portalCode ?? generateResidentCode(r, building)).toUpperCase() === normalized
+            )
+            if (extraResident) return { building, resident: extraResident }
+        } catch { }
     }
     return null
 }
