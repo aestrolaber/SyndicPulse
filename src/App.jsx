@@ -1535,6 +1535,7 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
 
     const [subTab, setSubTab] = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
+    const [hoveredBar, setHoveredBar] = useState(null)
     const [expenseLog, setExpenseLog] = useState(INITIAL_EXPENSE_LOG)
     const [showAddExp, setShowAddExp] = useState(false)
     const [showRecPay, setShowRecPay] = useState(false)
@@ -1706,20 +1707,32 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                                 const BAR_MAX_PX = 80
                                 const barPx = Math.max(4, Math.round((h.value / liveMaxBar) * BAR_MAX_PX))
                                 const isLast = i === liveCollectionHistory.length - 1
+                                const isHovered = hoveredBar === i
                                 return (
-                                    <div key={h.month} className="flex-1 flex flex-col items-center gap-1.5 justify-end">
-                                        <span className={`text-[10px] font-bold ${isLast ? 'text-cyan-300' : 'text-slate-300'}`}>{h.value}%</span>
-                                        <div className="w-8 rounded-t-md relative" style={{
-                                            height: `${barPx}px`,
-                                            background: isLast
-                                                ? 'linear-gradient(180deg, #22d3ee, #0891b2)'
-                                                : 'rgba(6,182,212,0.25)'
-                                        }}>
-                                            {isLast && (
-                                                <span className="absolute -top-4 left-1/2 -translate-x-1/2 text-[8px] font-bold text-cyan-400 whitespace-nowrap">● live</span>
-                                            )}
-                                        </div>
-                                        <span className="text-[10px] text-slate-500">{h.month}</span>
+                                    <div key={h.month} className="flex-1 flex flex-col items-center gap-1 justify-end">
+                                        <span className={`text-[10px] font-bold transition-colors ${isLast ? 'text-cyan-300' : isHovered ? 'text-white' : 'text-slate-400'}`}>
+                                            {h.value}%
+                                        </span>
+                                        {isLast && (
+                                            <span className="text-[8px] font-bold text-cyan-400 animate-pulse whitespace-nowrap leading-none">● live</span>
+                                        )}
+                                        <div
+                                            className="w-8 rounded-t-md transition-all duration-200"
+                                            style={{
+                                                height: `${barPx}px`,
+                                                background: isLast
+                                                    ? isHovered
+                                                        ? 'linear-gradient(180deg, #67e8f9, #06b6d4)'
+                                                        : 'linear-gradient(180deg, #22d3ee, #0891b2)'
+                                                    : isHovered
+                                                        ? 'rgba(6,182,212,0.55)'
+                                                        : 'rgba(6,182,212,0.22)',
+                                                transform: isHovered ? 'scaleX(1.18)' : 'scaleX(1)',
+                                            }}
+                                            onMouseEnter={() => setHoveredBar(i)}
+                                            onMouseLeave={() => setHoveredBar(null)}
+                                        />
+                                        <span className={`text-[10px] transition-colors ${isHovered ? 'text-slate-300' : 'text-slate-500'}`}>{h.month}</span>
                                     </div>
                                 )
                             })}
