@@ -22,6 +22,9 @@
 - Finances — Appels de fonds: formal fund-call document generator (print + WhatsApp), 2-step modal with resident table preview
 - Finances — Recouvrement sub-tab: 6-month collection matrix per resident, click-to-pay, CSV + PDF export
 - Circulaires (Tier 1): template-driven notice generator (coupure eau/élec, travaux, AG, propreté, avis libre), print-ready bilingual document, copy-to-WhatsApp Broadcast flow, per-building archive, "Avis en cours" banner in resident portal
+- Circulaires — extensions: Objet trouvé template, edit from archive, template-aware history summary, custom template builder (Tier 2)
+- Thèmes UI: 3-mode switcher (Navy/Cyan · Indigo/Or · Blanc) via Palette button in TopBar, persisted in localStorage, full coverage across all modals and panels
+- KpiCard: hover scale effect; StatCard: hover + click-selected state
 
 ---
 
@@ -82,4 +85,4 @@
 
 ---
 
-*Last updated: 3 Mars 2026 · SyndicPulse internal — Circulaires Tier 1 shipped, Tier 3 planned*
+*Last updated: 5 Mars 2026 · SyndicPulse internal — Thèmes UI + Circulaires extensions shipped*
