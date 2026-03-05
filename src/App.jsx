@@ -2798,8 +2798,8 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                 <table className="w-full text-xs">
                     <thead>
                         <tr className="border-b border-white/5 text-[10px] text-slate-500 uppercase tracking-wider">
-                            <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-[#111d35]">Unité</th>
-                            <th className="text-left px-4 py-3 font-semibold sticky left-16 bg-[#111d35]">Résident</th>
+                            <th className="text-left px-4 py-3 font-semibold sticky left-0 bg-navy-700">Unité</th>
+                            <th className="text-left px-4 py-3 font-semibold sticky left-16 bg-navy-700">Résident</th>
                             {months.map(m => (
                                 <th key={m} className="px-3 py-3 font-semibold text-center whitespace-nowrap">{formatMonth(m)}</th>
                             ))}
@@ -2812,8 +2812,8 @@ function RecouvrementTab({ building, residents, setResidents, onRecordPayment, s
                             const paidCount = statuses.filter(s => s === 'paid').length
                             return (
                                 <tr key={r.id} className="hover:bg-navy-700/40 transition-colors">
-                                    <td className="px-4 py-3 font-mono text-sp font-semibold sticky left-0 bg-[#111d35]">{r.unit}</td>
-                                    <td className="px-4 py-3 text-slate-200 sticky left-16 bg-[#111d35] whitespace-nowrap">{r.name}</td>
+                                    <td className="px-4 py-3 font-mono text-sp font-semibold sticky left-0 bg-navy-700">{r.unit}</td>
+                                    <td className="px-4 py-3 text-slate-200 sticky left-16 bg-navy-700 whitespace-nowrap">{r.name}</td>
                                     {statuses.map((st, i) => (
                                         <td key={i} className="px-3 py-3 text-center">
                                             {st === 'future' ? (
@@ -3444,7 +3444,7 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -3658,7 +3658,7 @@ function CustomTemplateEditorModal({ tpl, onSave, onDelete, onClose, showToast }
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -3838,7 +3838,7 @@ function ManageCustomTemplatesModal({ customTpls, setCustomTpls, onClose, showTo
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-[#0d1629] border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -5850,7 +5850,7 @@ function ResidentCombobox({ residents, value, onChange }) {
 
             {/* Dropdown panel */}
             {open && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-[#0d1629] border border-white/12 rounded-xl shadow-2xl overflow-hidden">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1.5 bg-navy-800 border border-white/12 rounded-xl shadow-2xl overflow-hidden">
                     {/* Search */}
                     <div className="p-2 border-b border-white/8">
                         <div className="relative">
@@ -7473,7 +7473,7 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md bg-[#0d1629] border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}

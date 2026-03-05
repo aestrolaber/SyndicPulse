@@ -76,12 +76,10 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                     animate={{ scale: 1,   opacity: 1, y: 0  }}
                     exit={{   scale: 0.9, opacity: 0, y: 20  }}
                     transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-                    className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl"
-                    style={{ background: '#0d1629', border: '1px solid rgba(6,182,212,0.15)' }}
+                    className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl bg-navy-800 border border-sp/15"
                 >
                     {/* Header */}
-                    <div className="flex items-center justify-between px-6 py-5 border-b"
-                         style={{ borderColor: 'rgba(6,182,212,0.1)', background: 'linear-gradient(90deg, rgba(6,182,212,0.06), transparent)' }}>
+                    <div className="flex items-center justify-between px-6 py-5 border-b border-sp/10 bg-sp/5">
                         <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center">
                                 <Zap size={17} className="text-sp" strokeWidth={2} />
@@ -132,8 +130,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                         </div>
 
                         {/* Mic visualizer */}
-                        <div className="flex flex-col items-center py-8 rounded-2xl relative overflow-hidden"
-                             style={{ background: 'rgba(6,182,212,0.03)', border: '1px solid rgba(6,182,212,0.08)' }}>
+                        <div className="flex flex-col items-center py-8 rounded-2xl relative overflow-hidden bg-sp/5 border border-sp/10">
 
                             {/* Background pulse rings */}
                             {phase === 'listening' && (
@@ -211,8 +208,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                                                 <div className="w-7 h-7 rounded-lg bg-sp/15 border border-sp/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                                                     <Bot size={13} className="text-sp" />
                                                 </div>
-                                                <div className="flex-1 rounded-xl px-4 py-3 border border-sp/15"
-                                                     style={{ background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(17,29,53,0.8))' }}>
+                                                <div className="flex-1 rounded-xl px-4 py-3 border border-sp/15 bg-navy-700">
                                                     <div className="flex items-center gap-1.5 mb-1">
                                                         <Volume2 size={10} className="text-sp" />
                                                         <p className="text-[10px] text-sp uppercase tracking-wider font-bold">SyndicPulse AI</p>
@@ -240,7 +236,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                     </div>
 
                     {/* Footer */}
-                    <div className="px-6 py-4 border-t text-center" style={{ borderColor: 'rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.2)' }}>
+                    <div className="px-6 py-4 border-t border-white/5 bg-black/20 text-center">
                         <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
                             SyndicPulse Automation Core · Prochainement en production
                         </p>
