@@ -117,8 +117,10 @@ body {
   --bg-sidebar:    #ffffff;
   --bg-card:       rgba(255, 255, 255, 0.95);
 
-  background-color: #f1f5f9;
-  color: #0f172a;
+  /* !important so the root div's own bg-navy-900 / text-slate-100 classes are overridden
+     (descendant selector won't match an element that carries data-theme itself) */
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
 }
 
 /* Backgrounds */
