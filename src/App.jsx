@@ -146,22 +146,17 @@ function getResidentPortalPin(r, buildingId) {
     return idx >= 0 ? String(1000 + idx) : null
 }
 
-/* ── WhatsApp — send portal credentials to a resident ── */
-function openPortalWhatsApp(r, building) {
-    const num = r.phone.replace(/[^0-9]/g, '')
-    if (!num) return
-    const firstName = r.name.split(' ')[0]
-    const pin = getResidentPortalPin(r, building.id)
-    const msg =
-`Bonjour ${firstName} 👋
+/* ── Default portal WA template (with {variable} placeholders) ── */
+const DEFAULT_PORTAL_WA_TEMPLATE =
+`Bonjour {prénom} 👋
 
-Bienvenue dans votre espace résident SyndicPulse — *${building.name}* !
+Bienvenue dans votre espace résident SyndicPulse — *{résidence}* !
 
 Vous pouvez désormais suivre en toute transparence vos paiements de charges, consulter les avis de la résidence et accéder aux convocations d'assemblée générale.
 
 🔑 *Vos identifiants personnels d'accès :*
-🏠 Code résidence : *${building.accessCode ?? '—'}*
-🔐 Votre PIN personnel : *${pin ?? '—'}*
+🏠 Code résidence : *{code}*
+🔐 Votre PIN personnel : *{pin}*
 
 *Pour vous connecter :*
 1. Ouvrez https://syndicpulse.vercel.app
@@ -173,7 +168,20 @@ Vous pouvez désormais suivre en toute transparence vos paiements de charges, co
 Pour toute question, n'hésitez pas à nous contacter.
 
 Cordialement,
-— Le syndic de ${building.name}`
+— Le syndic de {résidence}`
+
+/* ── WhatsApp — send portal credentials to a resident ── */
+function openPortalWhatsApp(r, building) {
+    const num = r.phone.replace(/[^0-9]/g, '')
+    if (!num) return
+    const firstName = r.name.split(' ')[0]
+    const pin = getResidentPortalPin(r, building.id)
+    const tpl = building.wa_portal_template || DEFAULT_PORTAL_WA_TEMPLATE
+    const msg = tpl
+        .replace(/\{prénom\}/g, firstName)
+        .replace(/\{résidence\}/g, building.name)
+        .replace(/\{code\}/g, building.accessCode ?? '—')
+        .replace(/\{pin\}/g, pin ?? '—')
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
@@ -6783,6 +6791,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
         payment_bank: building.payment_bank ?? '',
         payment_account_holder: building.payment_account_holder ?? '',
         payment_whatsapp: building.payment_whatsapp ?? '',
+        wa_portal_template: building.wa_portal_template || DEFAULT_PORTAL_WA_TEMPLATE,
     })
     const [confirmSave, setConfirmSave] = useState(false)
     const [saving, setSaving] = useState(false)
@@ -6790,6 +6799,7 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
     const [cachetPreview, setCachetPreview] = useState(building.cachet ?? null)
     const fileRef = useRef(null)
     const cachetRef = useRef(null)
+    const portalTplRef = useRef(null)
     const [confirmRestore, setConfirmRestore] = useState(false)
     const [pendingRestore, setPendingRestore] = useState(null)
 
@@ -7013,6 +7023,58 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                                     className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-sp/50" />
                                 <p className="text-[10px] text-slate-600 mt-1">Le résident peut vous contacter via un message pré-rempli avec son solde dû</p>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* ── Modèles WhatsApp ── */}
+                    <div className="border-t border-white/8 pt-5">
+                        <div className="flex items-center justify-between mb-1">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Modèles WhatsApp</p>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mb-4 leading-relaxed">
+                            Personnalisez le message d'envoi des accès portail. Cliquez sur une variable pour l'insérer à la position du curseur.
+                        </p>
+
+                        {/* Portal credentials template */}
+                        <div>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Message d'accueil portail</label>
+                                <button type="button"
+                                    onClick={() => set('wa_portal_template', DEFAULT_PORTAL_WA_TEMPLATE)}
+                                    className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-slate-300 transition-colors"
+                                    title="Restaurer le message par défaut"
+                                >
+                                    <RefreshCw size={10} /> Défaut
+                                </button>
+                            </div>
+                            {/* Variable chips */}
+                            <div className="flex flex-wrap gap-1.5 mb-2">
+                                {['{prénom}', '{résidence}', '{code}', '{pin}'].map(v => (
+                                    <button key={v} type="button"
+                                        onClick={() => {
+                                            const ta = portalTplRef.current
+                                            if (!ta) return
+                                            const s = ta.selectionStart ?? form.wa_portal_template.length
+                                            const e = ta.selectionEnd ?? s
+                                            const newVal = form.wa_portal_template.slice(0, s) + v + form.wa_portal_template.slice(e)
+                                            set('wa_portal_template', newVal)
+                                            setTimeout(() => { ta.focus(); ta.setSelectionRange(s + v.length, s + v.length) }, 0)
+                                        }}
+                                        className="text-[10px] font-mono bg-sp/10 text-sp border border-sp/20 px-2 py-0.5 rounded-md hover:bg-sp/20 transition-colors"
+                                    >
+                                        {v}
+                                    </button>
+                                ))}
+                            </div>
+                            <textarea
+                                ref={portalTplRef}
+                                rows={11}
+                                value={form.wa_portal_template}
+                                onChange={e => set('wa_portal_template', e.target.value)}
+                                spellCheck={false}
+                                className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-[11px] text-slate-300 font-mono leading-relaxed focus:outline-none focus:border-sp/40 resize-none transition-colors"
+                            />
+                            <p className="text-[10px] text-slate-600 mt-1">{form.wa_portal_template.length} caractères</p>
                         </div>
                     </div>
 
