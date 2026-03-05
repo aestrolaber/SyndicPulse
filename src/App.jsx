@@ -4778,7 +4778,7 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                     <AddResidentModal onClose={() => setShowAddResident(false)} onAdd={handleAddResident} building={building} residents={residents} />
                 )}
                 {showImportCSV && (
-                    <ImportCSVModal onClose={() => setShowImportCSV(false)} onImport={handleImport} />
+                    <ImportCSVModal onClose={() => setShowImportCSV(false)} onImport={handleImport} building={building} />
                 )}
                 {showGroupWA && (
                     <WhatsAppGroupModal
@@ -6680,11 +6680,24 @@ const COL_ALIAS = {
     etage: 'etage', 'étage': 'etage', floor: 'etage', niveau: 'etage',
     type: 'type', 'type résident': 'type', 'type resident': 'type',
     quota: 'quota', 'quote-part': 'quota', 'quotepart': 'quota',
+    depuis: 'depuis', since: 'depuis', 'date arrivee': 'depuis', 'date entree': 'depuis',
+    'date_arrivee': 'depuis', 'date_entree': 'depuis', arrivee: 'depuis', arrive: 'depuis',
+    mois_payes: 'mois_payes', 'mois payes': 'mois_payes', 'mois_paye': 'mois_payes',
+    'mois paye': 'mois_payes', 'mois payés': 'mois_payes', 'mois payé': 'mois_payes',
+    avance: 'mois_payes', 'months paid': 'mois_payes', months_paid: 'mois_payes',
+    montant_paye: 'montant_paye', 'montant payé': 'montant_paye', 'montant paye': 'montant_paye',
+    'amount paid': 'montant_paye', amount_paid: 'montant_paye', 'montant avance': 'montant_paye',
+    monthly_fee: 'monthly_fee', cotisation: 'monthly_fee', montant: 'monthly_fee',
+    frais: 'monthly_fee', charge: 'monthly_fee', 'frais mensuels': 'monthly_fee',
 }
 
 const COL_LABEL = {
     nom: 'Nom complet', telephone: 'Téléphone WhatsApp',
     unite: 'Unité', etage: 'Étage', type: 'Type de résident', quota: 'Quote-part',
+    depuis: 'Depuis (année d\'arrivée)',
+    mois_payes: 'Mois payés d\'avance',
+    montant_paye: 'Montant payé (MAD)',
+    monthly_fee: 'Cotisation mensuelle (MAD)',
 }
 
 function normalizeHeader(h) {
@@ -6712,16 +6725,19 @@ function mapRowsToObjects(rawHeaders, dataLines) {
 }
 
 function downloadResidentsTemplate() {
-    const headers = 'nom;telephone;unite;etage;type;quota'
-    const example = 'Rachid Benkirane;+212 661 234 567;A-01;1;Propriétaire;250'
-    const blob = new Blob(['\uFEFF' + headers + '\n' + example + '\n'], { type: 'text/csv;charset=utf-8' })
+    const headers = 'nom;telephone;unite;etage;type;quota;depuis;mois_payes;montant_paye;monthly_fee'
+    const ex1 = 'Rachid Benkirane;+212 661 234 567;A-01;1;Propriétaire;250;2021;3;;850'
+    const ex2 = 'Fatima Zahra El Amrani;+212 662 345 678;B-03;2;Locataire;;2023;;;950'
+    const ex3 = 'Omar Idrissi;;C-07;3;Propriétaire;250;2019;0;;850'
+    const note = '# depuis = année ou mois d\'arrivée | mois_payes = nb de mois payés d\'avance | montant_paye = montant en MAD (alternative à mois_payes) | monthly_fee = cotisation individuelle'
+    const blob = new Blob(['\uFEFF' + headers + '\n' + ex1 + '\n' + ex2 + '\n' + ex3 + '\n' + note + '\n'], { type: 'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url; a.download = 'modele_residents_syndicpulse.csv'; a.click()
     URL.revokeObjectURL(url)
 }
 
-function ImportCSVModal({ onClose, onImport }) {
+function ImportCSVModal({ onClose, onImport, building }) {
     const [step, setStep] = useState(1)
     const [fileName, setFileName] = useState('')
     const [parsedRows, setParsedRows] = useState([])
@@ -6772,18 +6788,43 @@ function ImportCSVModal({ onClose, onImport }) {
     async function handleImport() {
         setImporting(true)
         await new Promise(r => setTimeout(r, 900))
-        onImport(parsedRows.map((row, i) => ({
-            id: `csv-${Date.now()}-${i}`,
-            unit: row.unite,
-            name: row.nom,
-            phone: row.telephone || '',
-            floor: parseInt(row.etage) || 0,
-            paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
-            since: formatMonth(CURRENT_MONTH),
-            type: (row.type || 'propriétaire').toLowerCase(),
-            quota: row.quota ? parseFloat(row.quota) : null,
-            isNew: true,
-        })))
+        const buildingFee = building?.monthly_fee ?? 850
+        onImport(parsedRows.map((row, i) => {
+            // Resolve per-resident monthly fee (from row or building default)
+            const rowFee = row.monthly_fee ? parseFloat(row.monthly_fee) : null
+            const fee = rowFee || buildingFee
+
+            // Compute months paid upfront
+            let moisPayes = 0
+            if (row.mois_payes !== undefined && row.mois_payes !== '') {
+                moisPayes = Math.max(0, parseInt(row.mois_payes) || 0)
+            } else if (row.montant_paye !== undefined && row.montant_paye !== '' && fee > 0) {
+                moisPayes = Math.max(0, Math.floor(parseFloat(row.montant_paye) / fee))
+            }
+
+            // paidThrough: 0 months → pending (1 month behind); N months → N months from current
+            const paidThrough = moisPayes > 0
+                ? advancePaidThrough(CURRENT_MONTH, moisPayes - 1)
+                : advancePaidThrough(CURRENT_MONTH, -1)
+
+            // since: use CSV column if provided, else current month
+            const since = row.depuis && row.depuis.trim() ? row.depuis.trim() : formatMonth(CURRENT_MONTH)
+
+            return {
+                id: `csv-${Date.now()}-${i}`,
+                unit: row.unite,
+                name: row.nom,
+                phone: row.telephone || '',
+                floor: parseInt(row.etage) || 0,
+                paidThrough,
+                since,
+                monthly_fee: rowFee || null,
+                monthlyFee: rowFee || null,
+                type: (row.type || 'propriétaire').toLowerCase(),
+                quota: row.quota ? parseFloat(row.quota) : null,
+                isNew: true,
+            }
+        }))
         setImporting(false)
         setStep(3)
     }
@@ -6840,11 +6881,19 @@ function ImportCSVModal({ onClose, onImport }) {
                             <p className="text-xs text-red-300">{parseError}</p>
                         </div>
                     )}
-                    <div className="mt-4 flex items-center justify-between px-1">
-                        <p className="text-xs text-slate-500">Colonnes requises : <span className="font-mono text-slate-400">nom, unite</span></p>
-                        <button onClick={downloadResidentsTemplate} className="text-xs text-sp hover:text-sp-light flex items-center gap-1.5 transition-colors">
-                            <Download size={12} /> Télécharger le modèle CSV
-                        </button>
+                    <div className="mt-4 space-y-1.5 px-1">
+                        <div className="flex items-center justify-between">
+                            <p className="text-xs text-slate-500">Requis : <span className="font-mono text-slate-400">nom, unite</span></p>
+                            <button onClick={downloadResidentsTemplate} className="text-xs text-sp hover:text-sp-light flex items-center gap-1.5 transition-colors">
+                                <Download size={12} /> Télécharger le modèle CSV
+                            </button>
+                        </div>
+                        <p className="text-[11px] text-slate-600">
+                            Optionnel : <span className="font-mono text-slate-500">depuis</span> (année d'arrivée) ·{' '}
+                            <span className="font-mono text-slate-500">mois_payes</span> (mois payés d'avance) ·{' '}
+                            <span className="font-mono text-slate-500">montant_paye</span> (MAD) ·{' '}
+                            <span className="font-mono text-slate-500">monthly_fee</span> (cotisation individuelle)
+                        </p>
                     </div>
                 </div>
             )}
@@ -6890,21 +6939,29 @@ function ImportCSVModal({ onClose, onImport }) {
                             <table className="w-full text-xs">
                                 <thead>
                                     <tr className="bg-navy-700">
-                                        {['Unité', 'Nom', 'Téléphone', 'Ét.', 'Type'].map(h => (
+                                        {['Unité', 'Nom', 'Téléphone', 'Ét.', 'Depuis', 'Mois payés'].map(h => (
                                             <th key={h} className="px-3 py-2 text-left font-semibold text-slate-500 uppercase tracking-wider text-[10px]">{h}</th>
                                         ))}
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {previewRows.map((row, i) => (
-                                        <tr key={i} className="hover:bg-navy-700/40">
-                                            <td className="px-3 py-2.5 font-mono text-sp font-semibold">{row.unite}</td>
-                                            <td className="px-3 py-2.5 text-slate-200">{row.nom}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.telephone || '—'}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.etage || '—'}</td>
-                                            <td className="px-3 py-2.5 text-slate-400">{row.type || '—'}</td>
-                                        </tr>
-                                    ))}
+                                    {previewRows.map((row, i) => {
+                                        const mp = row.mois_payes !== undefined && row.mois_payes !== '' ? parseInt(row.mois_payes) || 0 : null
+                                        return (
+                                            <tr key={i} className="hover:bg-navy-700/40">
+                                                <td className="px-3 py-2.5 font-mono text-sp font-semibold">{row.unite}</td>
+                                                <td className="px-3 py-2.5 text-slate-200">{row.nom}</td>
+                                                <td className="px-3 py-2.5 text-slate-400">{row.telephone || '—'}</td>
+                                                <td className="px-3 py-2.5 text-slate-400">{row.etage || '—'}</td>
+                                                <td className="px-3 py-2.5 text-slate-400">{row.depuis || '—'}</td>
+                                                <td className="px-3 py-2.5">
+                                                    {mp === null ? <span className="text-slate-600">—</span>
+                                                        : mp === 0 ? <span className="text-amber-400 font-medium">En attente</span>
+                                                        : <span className="text-emerald-400 font-semibold">{mp} mois</span>}
+                                                </td>
+                                            </tr>
+                                        )
+                                    })}
                                 </tbody>
                             </table>
                         </div>
