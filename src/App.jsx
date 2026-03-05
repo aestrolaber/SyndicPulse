@@ -4231,7 +4231,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 {/* Tous */}
                 <button
                     onClick={() => setActiveFilters([])}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.length === 0 ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
+                    className={`glass-card p-4 text-left transition-all duration-200 rounded-2xl border select-none hover:scale-[1.01] hover:bg-white/[0.025] active:scale-[0.99] ${activeFilters.length === 0 ? 'border-sp/50 ring-1 ring-sp/30' : 'border-white/5 hover:border-white/15'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">Tous les résidents</p>
@@ -4243,7 +4243,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 {/* Payés */}
                 <button
                     onClick={e => handleCardClick(e, 'paid')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('paid') ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
+                    className={`glass-card p-4 text-left transition-all duration-200 rounded-2xl border select-none hover:scale-[1.01] hover:bg-white/[0.025] active:scale-[0.99] ${activeFilters.includes('paid') ? 'border-emerald-500/50 ring-1 ring-emerald-500/25' : 'border-white/5 hover:border-emerald-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">Payés ce mois</p>
@@ -4255,7 +4255,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 {/* En attente */}
                 <button
                     onClick={e => handleCardClick(e, 'pending')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('pending') ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
+                    className={`glass-card p-4 text-left transition-all duration-200 rounded-2xl border select-none hover:scale-[1.01] hover:bg-white/[0.025] active:scale-[0.99] ${activeFilters.includes('pending') ? 'border-amber-500/50 ring-1 ring-amber-500/25' : 'border-white/5 hover:border-amber-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">En attente</p>
@@ -4267,7 +4267,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 {/* En retard */}
                 <button
                     onClick={e => handleCardClick(e, 'overdue')}
-                    className={`glass-card p-4 text-left transition-all rounded-2xl border ${activeFilters.includes('overdue') ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
+                    className={`glass-card p-4 text-left transition-all duration-200 rounded-2xl border select-none hover:scale-[1.01] hover:bg-white/[0.025] active:scale-[0.99] ${activeFilters.includes('overdue') ? 'border-red-500/50 ring-1 ring-red-500/25' : 'border-white/5 hover:border-red-500/25'}`}
                 >
                     <div className="flex items-center justify-between mb-2">
                         <p className="text-xs font-semibold text-slate-400">En retard</p>
