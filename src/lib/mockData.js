@@ -579,24 +579,37 @@ export function validateResidentCodeDirect(code) {
     return null
 }
 
-export function validateResidentAccess(accessCode, pinInput) {
+/**
+ * Validate portal access by building access code + PIN.
+ *
+ * 3rd param `runtimeResidentsByBldg` allows the caller (LoginPage) to pass
+ * Supabase-loaded residents so newly-added residents can log in without a
+ * page reload. Falls back to static mock data if Supabase is unavailable.
+ */
+export function validateResidentAccess(accessCode, pinInput, runtimeResidentsByBldg = {}) {
     const building = BUILDINGS.find(
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
     )
     if (!building) return null
     const normalizedPin = pinInput.trim()
-    // Load revocation list — residents deleted by the syndic must not access the portal
+
+    // 1. Check Supabase-loaded residents (passed by LoginPage)
+    const live = runtimeResidentsByBldg[building.id] ?? []
+    if (live.length > 0) {
+        const liveMatch = live.find(r =>
+            r.is_active !== false && (r.portal_pin ?? r.portalPin) === normalizedPin
+        )
+        if (liveMatch) return { building, resident: liveMatch }
+        // If we have live data but no match, deny (don't fall through to mock)
+        return null
+    }
+
+    // 2. Static mock fallback (used when Supabase is unreachable)
     let revoked = []
     try { revoked = JSON.parse(localStorage.getItem(`sp_revoked_${building.id}`) ?? '[]') } catch { }
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []
     // Match by stored portalPin; fall back to index-derived demo PIN (1000, 1001, …)
     const resident = residents.find((r, i) => !revoked.includes(r.id) && (r.portalPin ?? String(1000 + i)) === normalizedPin)
     if (resident) return { building, resident }
-    // Also check runtime-added residents persisted by handleAddResident
-    try {
-        const extras = JSON.parse(localStorage.getItem(`sp_residents_extra_${building.id}`) ?? '[]')
-        const extra = extras.find(r => !revoked.includes(r.id) && r.portalPin === normalizedPin)
-        if (extra) return { building, resident: extra }
-    } catch { }
     return null
 }

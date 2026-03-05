@@ -15,7 +15,7 @@
  *    )
  */
 
-import { DEMO_USERS, BUILDINGS, RESIDENTS_BLD1 } from './mockData.js'
+import { DEMO_USERS, BUILDINGS } from './mockData.js'
 
 const AUTH_KEY = 'sp_auth_user'
 
@@ -99,8 +99,8 @@ function createQueryBuilder(data) {
 }
 
 const DATABASE_MOCK = {
-    buildings:  BUILDINGS,
-    residents:  RESIDENTS_BLD1,
+    buildings: BUILDINGS,
+    // residents removed — fetched from real Supabase via src/lib/db.js
 }
 
 const db = {

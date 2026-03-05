@@ -84,8 +84,20 @@ export default function LoginPage({ onResidentLogin }) {
         e.preventDefault()
         setResidentError('')
         setResidentLoading(true)
-        await new Promise(r => setTimeout(r, 800))
-        const result = validateResidentAccess(residentCode, residentPin)
+        // Attempt to fetch live residents from Supabase for accurate portal validation
+        let liveResidentsByBldg = {}
+        try {
+            const { BUILDINGS } = await import('../lib/mockData.js')
+            const matchedBuilding = BUILDINGS.find(
+                b => b.accessCode?.toLowerCase() === residentCode.toLowerCase().trim()
+            )
+            if (matchedBuilding) {
+                const { fetchResidents } = await import('../lib/db.js')
+                const liveResidents = await fetchResidents(matchedBuilding.id)
+                if (liveResidents.length > 0) liveResidentsByBldg = { [matchedBuilding.id]: liveResidents }
+            }
+        } catch { /* fall through to mock validation */ }
+        const result = validateResidentAccess(residentCode, residentPin, liveResidentsByBldg)
         if (!result) {
             setResidentError('Code ou PIN incorrect. Vérifiez le code de votre résidence et votre PIN à 4 chiffres.')
             setResidentLoading(false)

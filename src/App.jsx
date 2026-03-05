@@ -30,6 +30,15 @@ import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/co
 import { useAuth } from './context/AuthContext.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import AIVoiceAgent from './components/AIVoiceAgent.jsx'
+import {
+    fetchResidents, upsertResident, deleteResident as dbDeleteResident,
+    fetchExpenses, upsertExpense, deleteExpense,
+    fetchTickets, upsertTicket,
+    fetchDisputes, upsertDispute, deleteDispute,
+    fetchSuppliers, upsertSupplier, deleteSupplier,
+    fetchMeetings, upsertMeeting, deleteMeeting,
+    fetchBuildingSettings, saveBuildingSettings,
+} from './lib/db.js'
 
 import {
     BUILDINGS,
@@ -700,7 +709,43 @@ function Dashboard() {
     const [showBldgSettings, setShowBldgSettings] = useState(false)
     const [showAddBuilding, setShowAddBuilding] = useState(false)
     const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'navy')
+    const [expensesByBldg, setExpensesByBldg] = useState({})   // individual expense log entries per building
+    const [ticketsByBldg, setTicketsByBldg] = useState({})     // maintenance tickets per building
+    const [dbLoading, setDbLoading] = useState(false)
+    const loadedBldgIds = useRef(new Set())                     // tracks which buildings have been fetched
     useEffect(() => { localStorage.setItem('sp_theme', themeMode) }, [themeMode])
+
+    // ── Supabase data loading ─────────────────────────────────────────────────
+    useEffect(() => {
+        if (!activeBuilding?.id) return
+        const bldgId = activeBuilding.id
+        // Skip if already fetched for this building (even if DB was empty)
+        if (loadedBldgIds.current.has(bldgId)) return
+        loadedBldgIds.current.add(bldgId)
+        setDbLoading(true)
+        Promise.all([
+            fetchResidents(bldgId),
+            fetchExpenses(bldgId),
+            fetchTickets(bldgId),
+            fetchDisputes(bldgId),
+            fetchSuppliers(bldgId),
+            fetchMeetings(bldgId),
+            fetchBuildingSettings(bldgId),
+        ]).then(([res, exp, tix, disp, sups, mts, settings]) => {
+            // Only override mock data if DB has rows — app stays functional before seeding
+            if (res.length  > 0) setResidentsByBldg(p => ({ ...p, [bldgId]: res }))
+            if (exp.length  > 0) setExpensesByBldg(p => ({ ...p, [bldgId]: exp }))
+            if (tix.length  > 0) setTicketsByBldg(p => ({ ...p, [bldgId]: tix }))
+            if (disp.length > 0) setDisputesByBldg(p => ({ ...p, [bldgId]: disp }))
+            if (sups.length > 0) setSuppliersByBldg(p => ({ ...p, [bldgId]: sups }))
+            if (mts.length  > 0) setMeetingsByBldg(p => ({ ...p, [bldgId]: mts }))
+            if (settings)        setBuildingSettingsByBldg(p => ({ ...p, [bldgId]: settings }))
+        }).catch(err => {
+            console.error('[Supabase]', err)
+            showToast('Mode hors-ligne — données locales', 'error', 5000)
+        }).finally(() => setDbLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeBuilding?.id])
 
     const buildingData = getBuildingData(activeBuilding?.id)
 
@@ -716,14 +761,8 @@ function Dashboard() {
         }))
     }
 
-    // Shared disputes state
-    const disputes = disputesByBldg[activeBuilding?.id] ?? (() => {
-        try {
-            const stored = JSON.parse(localStorage.getItem(`sp_disputes_${activeBuilding?.id}`) ?? 'null')
-            if (Array.isArray(stored)) return stored
-        } catch { }
-        return buildingData.disputes
-    })()
+    // Shared disputes state (Supabase-backed; falls back to mock data before first load)
+    const disputes = disputesByBldg[activeBuilding?.id] ?? buildingData.disputes
     function setDisputes(fn) {
         const bldgId = activeBuilding.id
         setDisputesByBldg(prev => ({
@@ -746,21 +785,39 @@ function Dashboard() {
         }))
     }
 
-    // Shared suppliers state
+    // Shared suppliers state (Supabase-backed; falls back to mock data before first load)
     const [suppliersByBldg, setSuppliersByBldg] = useState({})
-    const suppliers = suppliersByBldg[activeBuilding?.id] ?? (() => {
-        try {
-            const stored = JSON.parse(localStorage.getItem(`sp_suppliers_${activeBuilding?.id}`) ?? 'null')
-            if (Array.isArray(stored)) return stored
-        } catch { }
-        return buildingData.suppliers
-    })()
+    const suppliers = suppliersByBldg[activeBuilding?.id] ?? buildingData.suppliers
     function setSuppliers(fn) {
         const bldgId = activeBuilding.id
         setSuppliersByBldg(prev => ({
             ...prev,
             [bldgId]: typeof fn === 'function'
                 ? fn(prev[bldgId] ?? getBuildingData(bldgId).suppliers)
+                : fn,
+        }))
+    }
+
+    // Shared expense log state (Supabase-backed; falls back to INITIAL_EXPENSE_LOG for bld-1)
+    const expenseLog = expensesByBldg[activeBuilding?.id] ?? (activeBuilding?.id === 'bld-1' ? INITIAL_EXPENSE_LOG : [])
+    function setExpenseLog(fn) {
+        const bldgId = activeBuilding.id
+        setExpensesByBldg(prev => ({
+            ...prev,
+            [bldgId]: typeof fn === 'function'
+                ? fn(prev[bldgId] ?? (bldgId === 'bld-1' ? INITIAL_EXPENSE_LOG : []))
+                : fn,
+        }))
+    }
+
+    // Shared tickets state (Supabase-backed; falls back to mock data before first load)
+    const tickets = ticketsByBldg[activeBuilding?.id] ?? buildingData.tickets
+    function setTickets(fn) {
+        const bldgId = activeBuilding.id
+        setTicketsByBldg(prev => ({
+            ...prev,
+            [bldgId]: typeof fn === 'function'
+                ? fn(prev[bldgId] ?? getBuildingData(bldgId).tickets)
                 : fn,
         }))
     }
@@ -814,6 +871,114 @@ function Dashboard() {
         setTimeout(() => setToast(null), duration)
     }
 
+    // ── Supabase action functions ─────────────────────────────────────────────
+    // Pattern: optimistic UI update → async Supabase write → error toast on fail
+
+    async function saveResident(resident) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...resident, building_id: bldgId }
+        setResidents(prev => prev.some(r => r.id === withBldg.id)
+            ? prev.map(r => r.id === withBldg.id ? { ...r, ...withBldg } : r)
+            : [withBldg, ...prev])
+        try {
+            await upsertResident(withBldg)
+            // Sync paidThrough to localStorage so ResidentPortal can read it in the same browser
+            if (withBldg.paidThrough) {
+                const key = `sp_payments_${bldgId}`
+                const map = JSON.parse(localStorage.getItem(key) ?? '{}')
+                localStorage.setItem(key, JSON.stringify({ ...map, [withBldg.id]: withBldg.paidThrough }))
+            }
+        } catch (err) { showToast('Erreur sauvegarde résident: ' + err.message, 'error') }
+    }
+
+    async function removeResident(id) {
+        const bldgId = activeBuilding.id
+        setResidents(prev => prev.filter(r => r.id !== id))
+        // Also maintain localStorage revocation list for ResidentPortal offline fallback
+        try {
+            const key = `sp_revoked_${bldgId}`
+            const revoked = JSON.parse(localStorage.getItem(key) ?? '[]')
+            if (!revoked.includes(id)) localStorage.setItem(key, JSON.stringify([...revoked, id]))
+        } catch { }
+        try { await dbDeleteResident(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
+    }
+
+    async function saveExpense(expense) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...expense, building_id: bldgId }
+        setExpenseLog(prev => prev.some(e => e.id === withBldg.id)
+            ? prev.map(e => e.id === withBldg.id ? { ...e, ...withBldg } : e)
+            : [withBldg, ...prev])
+        try { await upsertExpense(withBldg) }
+        catch (err) { showToast('Erreur sauvegarde dépense: ' + err.message, 'error') }
+    }
+
+    async function removeExpense(id) {
+        setExpenseLog(prev => prev.filter(e => e.id !== id))
+        try { await deleteExpense(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
+    }
+
+    async function saveTicket(ticket) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...ticket, building_id: bldgId }
+        setTickets(prev => prev.some(t => t.id === withBldg.id)
+            ? prev.map(t => t.id === withBldg.id ? { ...t, ...withBldg } : t)
+            : [withBldg, ...prev])
+        try { await upsertTicket(withBldg) }
+        catch (err) { showToast('Erreur sauvegarde ticket: ' + err.message, 'error') }
+    }
+
+    async function saveDispute(dispute) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...dispute, building_id: bldgId }
+        setDisputes(prev => prev.some(d => d.id === withBldg.id)
+            ? prev.map(d => d.id === withBldg.id ? { ...d, ...withBldg } : d)
+            : [withBldg, ...prev])
+        try { await upsertDispute(withBldg) }
+        catch (err) { showToast('Erreur sauvegarde litige: ' + err.message, 'error') }
+    }
+
+    async function removeDispute(id) {
+        setDisputes(prev => prev.filter(d => d.id !== id))
+        try { await deleteDispute(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
+    }
+
+    async function saveSupplier(supplier) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...supplier, building_id: bldgId }
+        setSuppliers(prev => prev.some(s => s.id === withBldg.id)
+            ? prev.map(s => s.id === withBldg.id ? { ...s, ...withBldg } : s)
+            : [withBldg, ...prev])
+        try { await upsertSupplier(withBldg) }
+        catch (err) { showToast('Erreur sauvegarde fournisseur: ' + err.message, 'error') }
+    }
+
+    async function removeSupplier(id) {
+        setSuppliers(prev => prev.filter(s => s.id !== id))
+        try { await deleteSupplier(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
+    }
+
+    async function saveMeeting(meeting) {
+        const bldgId = activeBuilding.id
+        const withBldg = { ...meeting, building_id: bldgId }
+        setMeetings(prev => prev.some(m => m.id === withBldg.id)
+            ? prev.map(m => m.id === withBldg.id ? { ...m, ...withBldg } : m)
+            : [withBldg, ...prev])
+        // Keep localStorage write for ResidentPortal "Prochaine AG" banner
+        try { localStorage.setItem(`sp_meetings_${bldgId}`, JSON.stringify(
+            meetings.some(m => m.id === withBldg.id)
+                ? meetings.map(m => m.id === withBldg.id ? { ...m, ...withBldg } : m)
+                : [withBldg, ...meetings]
+        )) } catch { }
+        try { await upsertMeeting(withBldg) }
+        catch (err) { showToast('Erreur sauvegarde assemblée: ' + err.message, 'error') }
+    }
+
+    async function removeMeeting(id) {
+        setMeetings(prev => prev.filter(m => m.id !== id))
+        try { await deleteMeeting(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
+    }
+
     return (
         <div data-theme={themeMode} className="flex h-screen bg-navy-900 text-slate-100 font-sans overflow-hidden">
             <Sidebar
@@ -840,12 +1005,12 @@ function Dashboard() {
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
                     {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} themeMode={themeMode} />}
-                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} suppliers={suppliers} showToast={showToast} />}
-                    {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
-                    {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
-                    {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} showToast={showToast} />}
-                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} showToast={showToast} />}
-                    {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} showToast={showToast} />}
+                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
+                    {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} onSaveResident={saveResident} onDeleteResident={removeResident} showToast={showToast} />}
+                    {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} onSaveDispute={saveDispute} onDeleteDispute={removeDispute} showToast={showToast} />}
+                    {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} tickets={tickets} setTickets={setTickets} onSaveTicket={saveTicket} showToast={showToast} />}
+                    {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} onSaveMeeting={saveMeeting} onDeleteMeeting={removeMeeting} showToast={showToast} />}
+                    {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} onSaveSupplier={saveSupplier} onDeleteSupplier={removeSupplier} showToast={showToast} />}
                     {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} customTpls={customTpls} setCustomTpls={setCustomTpls} showToast={showToast} />}
                     {activeTab === 'users' && <UsersPage showToast={showToast} />}
                 </main>
@@ -873,6 +1038,10 @@ function Dashboard() {
                             }
                             localStorage.setItem(`sp_bank_${activeBuilding.id}`, JSON.stringify(bankFields))
                         } catch { }
+                        // Persist to Supabase (fire-and-forget, non-blocking)
+                        saveBuildingSettings(activeBuilding.id, overrides).catch(err =>
+                            showToast('Paramètres non sauvegardés en ligne: ' + err.message, 'error')
+                        )
                         setShowBldgSettings(false)
                     }}
                 />
@@ -2135,21 +2304,11 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
     win.document.close()
 }
 
-function FinancialsPage({ building, data, residents, setResidents, suppliers = [], showToast }) {
+function FinancialsPage({ building, data, residents, setResidents, expenseLog, setExpenseLog, onSaveExpense, onDeleteExpense, onSaveResident, suppliers = [], showToast }) {
     const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
 
     const [subTab, setSubTab] = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
     const [hoveredBar, setHoveredBar] = useState(null)
-    const [expenseLog, setExpenseLog] = useState(() => {
-        try {
-            const stored = JSON.parse(localStorage.getItem(`sp_expenses_${building.id}`) ?? 'null')
-            if (Array.isArray(stored)) return stored
-        } catch { }
-        return INITIAL_EXPENSE_LOG
-    })
-    useEffect(() => {
-        try { localStorage.setItem(`sp_expenses_${building.id}`, JSON.stringify(expenseLog)) } catch { }
-    }, [expenseLog, building.id])
     const [showAddExp, setShowAddExp] = useState(false)
     const [showRecPay, setShowRecPay] = useState(false)
     const [showAppelDF, setShowAppelDF] = useState(false)
@@ -2217,22 +2376,16 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
     })()
 
     function handleAddExpense(entry) {
-        setExpenseLog(prev => [{ ...entry, id: `el-${Date.now()}` }, ...prev])
+        const newEntry = { ...entry, id: `el-${Date.now()}` }
+        onSaveExpense(newEntry)
         showToast(`Dépense enregistrée — ${entry.amount.toLocaleString('fr-FR')} MAD`)
     }
 
     function handleMarkPaid({ residentId, months }) {
-        setResidents(prev => prev.map(r => {
-            if (r.id !== residentId) return r
-            const updated = { ...r, paidThrough: advancePaidThrough(r.paidThrough, months) }
-            // Persist for portal real-time sync
-            try {
-                const key = `sp_payments_${building.id}`
-                const map = JSON.parse(localStorage.getItem(key) ?? '{}')
-                localStorage.setItem(key, JSON.stringify({ ...map, [residentId]: updated.paidThrough }))
-            } catch { }
-            return updated
-        }))
+        const r = residents.find(x => x.id === residentId)
+        if (!r) return
+        const updated = { ...r, paidThrough: advancePaidThrough(r.paidThrough, months) }
+        onSaveResident(updated)
         showToast(`Paiement enregistré — ${months} mois couverts`)
     }
 
@@ -3888,15 +4041,11 @@ function ManageCustomTemplatesModal({ customTpls, setCustomTpls, onClose, showTo
     )
 }
 
-function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
+function FournisseursPage({ building, suppliers, setSuppliers, onSaveSupplier, onDeleteSupplier, showToast }) {
     const [search, setSearch] = useState('')
     const [catFilter, setCatFilter] = useState('all')
     const [showAdd, setShowAdd] = useState(false)
     const [editing, setEditing] = useState(null)
-
-    useEffect(() => {
-        try { localStorage.setItem(`sp_suppliers_${building.id}`, JSON.stringify(suppliers)) } catch { }
-    }, [suppliers, building.id])
 
     const filtered = suppliers.filter(s => {
         const matchCat = catFilter === 'all' || s.category === catFilter
@@ -3909,19 +4058,19 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
         : '—'
 
     function handleAdd(s) {
-        setSuppliers(prev => [{ ...s, id: `sup-${Date.now()}` }, ...prev])
+        onSaveSupplier({ ...s, id: `sup-${Date.now()}` })
         showToast(`${s.name} ajouté`)
     }
 
     function handleSave(updated) {
-        setSuppliers(prev => prev.map(s => s.id === updated.id ? updated : s))
+        onSaveSupplier(updated)
         setEditing(null)
         showToast(`${updated.name} — modifications enregistrées`)
     }
 
     function handleDelete(id) {
         const s = suppliers.find(x => x.id === id)
-        setSuppliers(prev => prev.filter(x => x.id !== id))
+        onDeleteSupplier(id)
         setEditing(null)
         showToast(`${s?.name} supprimé`)
     }
@@ -4191,7 +4340,7 @@ function getPageNumbers(current, total) {
     return pages
 }
 
-function ResidentsPage({ building, data, residents, setResidents, showToast }) {
+function ResidentsPage({ building, data, residents, setResidents, onSaveResident, onDeleteResident, showToast }) {
     const [search, setSearch] = useState('')
     const [activeFilters, setActiveFilters] = useState([])
     const [page, setPage] = useState(1)
@@ -4203,42 +4352,14 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const [showPortalCodes, setShowPortalCodes] = useState(false)
 
     function handleEditResident(updated) {
-        setResidents(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
-        // Persist paidThrough correction for portal sync
-        if (updated.paidThrough) {
-            try {
-                const key = `sp_payments_${building.id}`
-                const map = JSON.parse(localStorage.getItem(key) ?? '{}')
-                localStorage.setItem(key, JSON.stringify({ ...map, [updated.id]: updated.paidThrough }))
-            } catch { }
-        }
-        // Sync extras localStorage so portal PIN changes take effect immediately
-        try {
-            const eKey = `sp_residents_extra_${building.id}`
-            const existing = JSON.parse(localStorage.getItem(eKey) ?? '[]')
-            if (existing.some(x => x.id === updated.id)) {
-                localStorage.setItem(eKey, JSON.stringify(existing.map(x => x.id === updated.id ? { ...x, ...updated } : x)))
-            }
-        } catch { }
+        onSaveResident(updated)
         setEditingResident(null)
         showToast(`${updated.name} — modifications enregistrées`)
     }
 
     function handleDeleteResident(id) {
         const r = residents.find(x => x.id === id)
-        setResidents(prev => prev.filter(x => x.id !== id))
-        // Remove from extras localStorage (runtime-added residents)
-        try {
-            const eKey = `sp_residents_extra_${building.id}`
-            const existing = JSON.parse(localStorage.getItem(eKey) ?? '[]')
-            localStorage.setItem(eKey, JSON.stringify(existing.filter(x => x.id !== id)))
-        } catch { }
-        // Add to revocation list so portal access is denied (covers mock data residents too)
-        try {
-            const rKey = `sp_revoked_${building.id}`
-            const revoked = JSON.parse(localStorage.getItem(rKey) ?? '[]')
-            if (!revoked.includes(id)) localStorage.setItem(rKey, JSON.stringify([...revoked, id]))
-        } catch { }
+        onDeleteResident(id)
         setEditingResident(null)
         showToast(`${r?.name} supprimé(e)`)
     }
@@ -4292,13 +4413,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     }
 
     function handleAddResident(r) {
-        setResidents(prev => [r, ...prev])
-        // Persist to localStorage so the portal login can validate this new resident's code
-        try {
-            const key = `sp_residents_extra_${building.id}`
-            const existing = JSON.parse(localStorage.getItem(key) ?? '[]')
-            localStorage.setItem(key, JSON.stringify([...existing, r]))
-        } catch { }
+        onSaveResident(r)
         showToast(`${r.name} ajouté(e) — invitation WhatsApp envoyée`)
         setTimeout(() => setResidents(prev => prev.map(x => x.id === r.id ? { ...x, isNew: false } : x)), 5000)
     }
@@ -4649,7 +4764,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
 /* ══════════════════════════════════════════
    DISPUTES PAGE
 ══════════════════════════════════════════ */
-function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
+function DisputesPage({ building, data, disputes, setDisputes, onSaveDispute, onDeleteDispute, showToast }) {
     const STATUS_INFO = {
         open: { label: 'Ouvert', cls: 'bg-red-500/15 text-red-400 border-red-500/20', btnCls: 'border-red-500/40 text-red-400 bg-red-500/10' },
         mediation: { label: 'Médiation', cls: 'bg-amber-500/15 text-amber-400 border-amber-500/20', btnCls: 'border-amber-500/40 text-amber-400 bg-amber-500/10' },
@@ -4663,10 +4778,6 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
     const [showAdd, setShowAdd] = useState(false)
     const [editingDispute, setEditingDispute] = useState(null)
 
-    useEffect(() => {
-        try { localStorage.setItem(`sp_disputes_${building.id}`, JSON.stringify(disputes)) } catch { }
-    }, [disputes, building.id])
-
     const filtered = filter === 'all' ? disputes : disputes.filter(d => d.status === filter)
 
     function handleAdd(d) {
@@ -4674,21 +4785,18 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
         const newId = `${prefix}-${String(disputes.length + 1).padStart(3, '0')}`
         const now = new Date()
         const dateStr = `${now.getDate()} ${MONTH_LABELS[now.getMonth()]} ${now.getFullYear()}`
-        setDisputes(prev => [{
-            ...d, id: newId, date: dateStr,
-            ai_suggestion: 'Nouveau litige enregistré. Analyse IA en cours selon la Loi 18-00.',
-        }, ...prev])
+        onSaveDispute({ ...d, id: newId, date: dateStr, ai_suggestion: 'Nouveau litige enregistré. Analyse IA en cours selon la Loi 18-00.' })
         showToast(`Litige "${d.title}" créé`)
     }
 
     function handleSaveEdit(d) {
-        setDisputes(prev => prev.map(x => x.id === d.id ? d : x))
+        onSaveDispute(d)
         showToast('Litige mis à jour')
         setEditingDispute(null)
     }
 
     function handleDelete(id) {
-        setDisputes(prev => prev.filter(x => x.id !== id))
+        onDeleteDispute(id)
         showToast('Litige supprimé', 'error')
         setEditingDispute(null)
     }
@@ -5385,15 +5493,15 @@ function EditTicketModal({ ticket, onSave, onClose }) {
     )
 }
 
-function PlanningPage({ building, data, showToast }) {
-    const [tickets, setTickets] = useState(data.tickets)
+function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showToast }) {
     const [filter, setFilter] = useState('all')
     const [search, setSearch] = useState('')
     const [activeId, setActiveId] = useState(null)
     const [editingTicket, setEditingTicket] = useState(null)
 
     function handleSaveEdit(form) {
-        setTickets(prev => prev.map(t => t.id === editingTicket.id ? { ...t, ...form } : t))
+        const updated = { ...editingTicket, ...form }
+        onSaveTicket(updated)
         setEditingTicket(null)
         showToast('Tâche mise à jour')
     }
@@ -5423,7 +5531,8 @@ function PlanningPage({ building, data, showToast }) {
         if (!over || active.id === over.id) return
         const newStatus = over.id
         if (!['in_progress', 'scheduled', 'done'].includes(newStatus)) return
-        setTickets(prev => prev.map(t => t.id === active.id ? { ...t, status: newStatus } : t))
+        const ticket = tickets.find(t => t.id === active.id)
+        if (ticket) onSaveTicket({ ...ticket, status: newStatus })
     }
 
     function handleDragCancel() { setActiveId(null) }
@@ -7828,7 +7937,7 @@ ${meeting.notes ? `<h2>Notes</h2><p style="font-size:12px;color:#374151;line-hei
 /* ══════════════════════════════════════════
    ASSEMBLÉES PAGE
 ══════════════════════════════════════════ */
-function AssembliesPage({ building, residents, meetings, setMeetings, showToast }) {
+function AssembliesPage({ building, residents, meetings, setMeetings, onSaveMeeting, onDeleteMeeting, showToast }) {
     const [filter, setFilter] = useState('all')
     const [showAdd, setShowAdd] = useState(false)
     const [editingMeeting, setEditingMeeting] = useState(null)
@@ -7852,18 +7961,18 @@ function AssembliesPage({ building, residents, meetings, setMeetings, showToast 
 
     function handleAdd(m) {
         const newId = `ag-${building.id.replace('bld-', '')}-${Date.now().toString(36)}`
-        setMeetings(prev => [{ ...m, id: newId, status: 'upcoming', convocationSent: false, votes: [], attendance: null, notes: '' }, ...prev])
+        onSaveMeeting({ ...m, id: newId, status: 'upcoming', convocationSent: false, votes: [], attendance: null, notes: '' })
         showToast(`AG "${m.title}" planifiée`)
     }
 
     function handleSaveEdit(m) {
-        setMeetings(prev => prev.map(x => x.id === m.id ? m : x))
+        onSaveMeeting(m)
         showToast('AG mise à jour')
         setEditingMeeting(null)
     }
 
     function handleDelete(id) {
-        setMeetings(prev => prev.filter(x => x.id !== id))
+        onDeleteMeeting(id)
         showToast('AG supprimée', 'error')
         setEditingMeeting(null)
     }
