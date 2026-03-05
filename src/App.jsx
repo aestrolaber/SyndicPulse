@@ -8604,7 +8604,7 @@ function UsersPage({ showToast }) {
                             </span>
                             <span className="text-xs text-slate-400">{u.accessible_building_ids?.length ?? 0} bâtiment{(u.accessible_building_ids?.length ?? 0) > 1 ? 's' : ''}</span>
                             <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isDemo ? 'bg-slate-700 text-slate-400 border border-white/8' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20'}`}>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDemo ? 'demo-badge bg-slate-700 text-slate-400 border-white/8' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'}`}>
                                     {isDemo ? 'Démo' : 'Actif'}
                                 </span>
                             </div>
@@ -8624,19 +8624,23 @@ function UsersPage({ showToast }) {
    CREATE USER MODAL  (super_admin only)
 ══════════════════════════════════════════ */
 function CreateUserModal({ onClose, onCreated }) {
-    const [form, setForm] = useState({ fullName: '', syndicName: '', buildingIds: '' })
+    const [form, setForm] = useState({ fullName: '', syndicName: '', buildingIds: [] })
     const [saving, setSaving] = useState(false)
     const [done, setDone] = useState(null) // { email, password }
     const [showPwd, setShowPwd] = useState(false)
     const [copied, setCopied] = useState(false)
 
-    // Auto-derive email from syndicName
+    // Auto-derive email: firstname@syndicname.ma
     const emailSlug = form.syndicName.trim()
         .toLowerCase()
         .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
         .replace(/[^a-z0-9]+/g, '')
         || 'syndic'
-    const derivedEmail = `syndic_manager@${emailSlug}.ma`
+    const nameSlug = (form.fullName.trim().split(/\s+/)[0] || '')
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '')
+    const derivedEmail = `${nameSlug || 'gestionnaire'}@${emailSlug}.ma`
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -8661,15 +8665,15 @@ function CreateUserModal({ onClose, onCreated }) {
         await new Promise(r => setTimeout(r, 800))
 
         const pwd = generatePassword()
-        const bldIds = form.buildingIds.split(',').map(s => s.trim()).filter(Boolean)
+        const bldIds = form.buildingIds.length ? form.buildingIds : ['bld-1']
         const newUser = {
             id: `usr-${Date.now()}`,
             email: derivedEmail,
             password: pwd,
-            full_name: form.fullName.trim() || derivedEmail,
+            full_name: form.fullName.trim() || form.syndicName.trim() || derivedEmail,
             role: 'syndic_manager',
             org_id: `org-${Date.now()}`,
-            accessible_building_ids: bldIds.length ? bldIds : ['bld-1'],
+            accessible_building_ids: bldIds,
             avatar_bg: '0d1629',
             avatar_color: '06b6d4',
         }
@@ -8709,16 +8713,37 @@ function CreateUserModal({ onClose, onCreated }) {
                             className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
                     </div>
                     <div>
-                        <label className="block text-xs font-semibold text-slate-400 mb-1.5">IDs de bâtiments accessibles</label>
-                        <input type="text" value={form.buildingIds} onChange={e => set('buildingIds', e.target.value)}
-                            placeholder="ex : bld-1, bld-2"
-                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
-                        <p className="text-[11px] text-slate-500 mt-1">Séparez les IDs par une virgule. Défaut : bld-1</p>
+                        <label className="block text-xs font-semibold text-slate-400 mb-2">Accès aux bâtiments <span className="text-red-400">*</span></label>
+                        <div className="space-y-2">
+                            {BUILDINGS.map(b => {
+                                const checked = form.buildingIds.includes(b.id)
+                                return (
+                                    <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${checked ? 'bg-sp/8 border-sp/30' : 'bg-navy-700/50 border-white/8 hover:border-white/15'}`}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={e => setForm(f => ({
+                                                ...f,
+                                                buildingIds: e.target.checked
+                                                    ? [...f.buildingIds, b.id]
+                                                    : f.buildingIds.filter(id => id !== b.id)
+                                            }))}
+                                            className="w-3.5 h-3.5 accent-cyan-400 flex-shrink-0"
+                                        />
+                                        <span className="text-sm text-slate-200 font-medium">{b.name}</span>
+                                        <span className="text-[11px] text-slate-500 ml-auto">{b.city}</span>
+                                    </label>
+                                )
+                            })}
+                        </div>
+                        {form.buildingIds.length === 0 && (
+                            <p className="text-[11px] text-amber-400 mt-1.5">Sélectionnez au moins un bâtiment</p>
+                        )}
                     </div>
 
                     <div className="rounded-xl bg-sp/5 border border-sp/15 p-3">
                         <p className="text-[11px] text-slate-400 leading-relaxed">
-                            <span className="text-sp font-bold">Convention :</span> Email au format <span className="font-mono text-sp">syndic_manager@syndicname.ma</span>. Le mot de passe temporaire généré devra être communiqué au gestionnaire.
+                            <span className="text-sp font-bold">Convention :</span> Email au format <span className="font-mono text-sp">prenom@syndic.ma</span>. Le mot de passe temporaire devra être communiqué de façon sécurisée.
                         </p>
                     </div>
 
@@ -8727,7 +8752,7 @@ function CreateUserModal({ onClose, onCreated }) {
                             className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
                             Annuler
                         </button>
-                        <button type="submit" disabled={saving || !form.syndicName.trim()}
+                        <button type="submit" disabled={saving || !form.syndicName.trim() || form.buildingIds.length === 0}
                             className="flex-1 py-2.5 bg-sp hover:bg-sp-dark disabled:opacity-50 text-navy-900 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
                             {saving
                                 ? <><span className="w-4 h-4 border-2 border-navy-900/30 border-t-navy-900 rounded-full animate-spin" /> Création…</>
