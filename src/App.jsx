@@ -3024,7 +3024,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
     }
 
     function handleAdd(circ) {
-        setCirculaires(prev => [circ, ...prev])
+        setCirculaires(prev => {
+            const next = [circ, ...prev]
+            if (circ.template === 'objet_trouve') {
+                const objets = next.filter(c => c.template === 'objet_trouve')
+                if (objets.length > 200) {
+                    const oldestId = objets[objets.length - 1].id
+                    return next.filter(c => c.id !== oldestId)
+                }
+            }
+            return next
+        })
         showToast('Circulaire enregistrée', 'success')
     }
     function handleDelete(id) {
@@ -3052,6 +3062,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
         setCirculaires(prev => prev.map(c => c.id === updated.id ? updated : c))
         showToast('Circulaire modifiée', 'success')
         setEditingCirc(null)
+    }
+    function handleReclame(id) {
+        setCirculaires(prev => prev.map(c =>
+            c.id === id ? { ...c, status: 'réclamé', reclameAt: new Date().toISOString() } : c
+        ))
+        showToast('Réclamé — Pensez à sauvegarder la photo localement avant suppression automatique', 'warning')
+    }
+    function daysUntilDelete(reclameAt) {
+        if (!reclameAt) return null
+        const elapsed = Math.floor((Date.now() - new Date(reclameAt).getTime()) / 86400000)
+        return Math.max(0, 14 - elapsed)
     }
 
     const thisMonth = new Date().toISOString().slice(0, 7)
@@ -3116,57 +3137,80 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                 </div>
             </div>
 
-            {/* Objets trouvés — full module preview (coming soon) */}
-            <div className="glass-card overflow-hidden">
-                <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                        <span className="text-lg">🔍</span>
-                        <p className="text-sm font-semibold text-white">Objets trouvés</p>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">Prochaine version</span>
-                    </div>
-                    <button disabled title="Disponible prochainement"
-                        className="flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-400/50 px-3 py-1.5 rounded-xl text-xs font-semibold cursor-not-allowed opacity-60">
-                        <Plus size={12} /> Signaler un objet
-                    </button>
-                </div>
-                <div className="p-4">
-                    <p className="text-xs text-slate-500 mb-4">
-                        Gérez les objets trouvés dans la résidence depuis un registre centralisé — avec photo, statut de récupération et notification automatique aux résidents.
-                    </p>
-                    {/* Mock item cards */}
-                    <div className="grid grid-cols-3 gap-3">
-                        {[
-                            { icon: '🔑', objet: 'Clés de voiture', lieu: 'Hall principal – RDC', date: '01 Mars 2026', status: 'En attente', statusColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-                            { icon: '🎒', objet: 'Sac à dos noir', lieu: 'Parking B2', date: '28 Fév. 2026', status: 'Réclamé', statusColor: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20' },
-                            { icon: '📱', objet: 'Téléphone portable', lieu: 'Ascenseur – Tour A', date: '02 Mars 2026', status: 'En attente', statusColor: 'text-amber-400 bg-amber-500/10 border-amber-500/20' },
-                        ].map((item, i) => (
-                            <div key={i} className="relative rounded-xl bg-navy-700/40 border border-white/6 p-4 opacity-70">
-                                <div className="absolute inset-0 rounded-xl bg-navy-900/20 backdrop-blur-[1px]" />
-                                <div className="relative">
-                                    <div className="flex items-start justify-between mb-2">
-                                        <span className="text-2xl">{item.icon}</span>
-                                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${item.statusColor}`}>{item.status}</span>
-                                    </div>
-                                    <p className="text-sm font-semibold text-white mb-1">{item.objet}</p>
-                                    <p className="text-xs text-slate-400 flex items-center gap-1">
-                                        <MapPin size={9} className="flex-shrink-0" /> {item.lieu}
-                                    </p>
-                                    <p className="text-[10px] text-slate-500 mt-1">{item.date}</p>
-                                    <button disabled className="mt-3 w-full text-[11px] font-medium py-1.5 rounded-lg bg-white/4 border border-white/8 text-slate-500 cursor-not-allowed">
-                                        Contacter le gardien
-                                    </button>
-                                </div>
+            {/* Objets trouvés — table opérationnelle */}
+            {(() => {
+                const objetsTrouves = circulaires
+                    .filter(c => c.template === 'objet_trouve')
+                    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                return (
+                    <div className="glass-card overflow-hidden">
+                        <div className="px-5 py-3.5 border-b border-white/5 flex items-center justify-between">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-lg">🔍</span>
+                                <p className="text-sm font-semibold text-white">Objets trouvés</p>
+                                <span className="text-[10px] text-slate-500">{objetsTrouves.length} / 200</span>
                             </div>
-                        ))}
+                            <div className="flex items-center gap-3">
+                                <span className="text-[10px] text-slate-500 italic">📷 Photos : prochaine version</span>
+                                <button onClick={() => setShowAdd({ defaultTemplate: 'objet_trouve' })}
+                                    className="flex items-center gap-1.5 bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/25 text-orange-400 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors">
+                                    <Plus size={12} /> Signaler un objet
+                                </button>
+                            </div>
+                        </div>
+                        {objetsTrouves.length === 0 ? (
+                            <div className="py-10 text-center">
+                                <p className="text-2xl mb-2">🔍</p>
+                                <p className="text-sm text-slate-400">Aucun objet enregistré</p>
+                                <p className="text-xs text-slate-500 mt-1">Les objets trouvés dans la résidence apparaîtront ici</p>
+                            </div>
+                        ) : (
+                            <div className="divide-y divide-white/5">
+                                {objetsTrouves.map(circ => {
+                                    const v = circ.vars
+                                    const remaining = daysUntilDelete(circ.reclameAt)
+                                    const isArchived = circ.status === 'réclamé' && remaining === 0
+                                    return (
+                                        <div key={circ.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-navy-700/30 transition-colors">
+                                            <span className="text-xl flex-shrink-0">🔍</span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-semibold text-white truncate">{v.objet || '—'}</p>
+                                                <p className="text-xs text-slate-400 truncate">{[v.lieu, v.date ? fmtDate(v.date) : null].filter(Boolean).join(' · ')}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0">
+                                                {circ.status === 'en_attente' || !circ.status ? (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">En attente</span>
+                                                ) : isArchived ? (
+                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-500 border border-white/8">Archivé</span>
+                                                ) : (
+                                                    <>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Réclamé</span>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">⏳ {remaining}j</span>
+                                                    </>
+                                                )}
+                                                {(!circ.status || circ.status === 'en_attente') && (
+                                                    <button onClick={() => handleReclame(circ.id)}
+                                                        title="Marquer comme réclamé"
+                                                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors">
+                                                        ✓ Réclamé
+                                                    </button>
+                                                )}
+                                                <button onClick={() => handleDelete(circ.id)} title="Supprimer"
+                                                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-transparent hover:border-white/8 transition-colors">
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
                     </div>
-                    <p className="text-[11px] text-slate-600 text-center mt-4 italic">
-                        Aperçu — Ce module sera disponible dans une prochaine version de SyndicPulse
-                    </p>
-                </div>
-            </div>
+                )
+            })()}
 
             {/* History */}
-            {circulaires.length === 0 ? (
+            {circulaires.filter(c => c.template !== 'objet_trouve').length === 0 ? (
                 <div className="glass-card p-12 text-center">
                     <div className="text-5xl mb-4">📢</div>
                     <p className="text-slate-400 text-sm">Aucune circulaire pour l'instant.</p>
@@ -3175,10 +3219,10 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
             ) : (
                 <div className="glass-card overflow-hidden">
                     <div className="px-5 py-3.5 border-b border-white/5">
-                        <p className="text-sm font-semibold text-white">Historique ({circulaires.length})</p>
+                        <p className="text-sm font-semibold text-white">Historique ({circulaires.filter(c => c.template !== 'objet_trouve').length})</p>
                     </div>
                     <div className="divide-y divide-white/5">
-                        {circulaires.map(circ => {
+                        {circulaires.filter(c => c.template !== 'objet_trouve').map(circ => {
                             const tmpl = allTemplates.find(t => t.key === circ.template) ?? { icon: '📝', label: 'Avis' }
                             const summary = (() => {
                                 const v = circ.vars
@@ -3308,6 +3352,7 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
                 vars,
                 createdAt: new Date().toISOString(),
                 diffuse: false,
+                ...(selectedTemplate === 'objet_trouve' ? { status: 'en_attente', reclameAt: null } : {}),
             })
         }
         onClose()
