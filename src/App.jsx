@@ -22,7 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
-    BookOpen, HelpCircle, MapPin, Camera,
+    BookOpen, HelpCircle, MapPin, Camera, Palette,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -637,6 +637,8 @@ function Dashboard() {
     const [extraBuildings, setExtraBuildings] = useState([])  // user-added buildings
     const [showBldgSettings, setShowBldgSettings] = useState(false)
     const [showAddBuilding, setShowAddBuilding] = useState(false)
+    const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'navy')
+    useEffect(() => { localStorage.setItem('sp_theme', themeMode) }, [themeMode])
 
     const buildingData = getBuildingData(activeBuilding?.id)
 
@@ -751,7 +753,7 @@ function Dashboard() {
     }
 
     return (
-        <div className="flex h-screen bg-navy-900 text-slate-100 font-sans overflow-hidden">
+        <div data-theme={themeMode} className="flex h-screen bg-navy-900 text-slate-100 font-sans overflow-hidden">
             <Sidebar
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
@@ -773,7 +775,7 @@ function Dashboard() {
             />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} showToast={showToast} />
+                <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
                     {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} suppliers={suppliers} showToast={showToast} />}
@@ -1525,7 +1527,7 @@ function UserGuideModal({ onClose }) {
 /* ══════════════════════════════════════════
    TOP BAR
 ══════════════════════════════════════════ */
-function TopBar({ activeTab, activeBuilding, showToast }) {
+function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast }) {
     const pageLabel = NAV.find(n => n.id === activeTab)?.label ?? activeTab
     const [showGuide, setShowGuide] = useState(false)
     return (
@@ -1544,6 +1546,16 @@ function TopBar({ activeTab, activeBuilding, showToast }) {
                 <h1 className="text-xl font-bold text-white">{pageLabel}</h1>
             </div>
             <div className="flex items-center gap-3">
+                <button
+                    onClick={() => setThemeMode(t => t === 'navy' ? 'gold' : 'navy')}
+                    title={themeMode === 'navy' ? 'Passer au thème Indigo/Or' : 'Passer au thème Marine/Cyan'}
+                    className="relative p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-white/5 transition-colors group"
+                >
+                    <Palette size={17} className="text-slate-400 group-hover:text-sp transition-colors" />
+                    {themeMode === 'gold' && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full border border-navy-800" />
+                    )}
+                </button>
                 <button
                     onClick={() => setShowGuide(true)}
                     title="Guide utilisateur"
@@ -2217,7 +2229,7 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                         { label: 'Budget mensuel', value: `${monthlyBudget.toLocaleString('fr-FR')} MAD`, sub: `${budgetUsedPct}% utilisé ce mois`, color: 'cyan' },
                         { label: 'Fonds de réserve', value: `${(building.reserve_fund_mad / 1000).toFixed(0)} 000 MAD`, sub: monthlySurplus >= 0 ? `+${monthlySurplus.toLocaleString('fr-FR')} ce mois` : `${monthlySurplus.toLocaleString('fr-FR')} ce mois`, color: 'violet' },
                     ].map(s => (
-                        <div key={s.label} className="glass-card p-5">
+                        <StatCard key={s.label} className="glass-card p-5">
                             <p className="text-xs text-slate-400 mb-2 font-medium">{s.label}</p>
                             <p className={`text-xl font-bold ${s.color === 'emerald' ? 'text-emerald-400' :
                                     s.color === 'red' ? 'text-red-400' :
@@ -2225,7 +2237,7 @@ function FinancialsPage({ building, data, residents, setResidents, suppliers = [
                                             'text-violet-400'
                                 }`}>{s.value}</p>
                             <p className="text-[11px] text-slate-500 mt-1">{s.sub}</p>
-                        </div>
+                        </StatCard>
                     ))}
                 </div>
 
@@ -3108,10 +3120,10 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                     { label: 'Objets trouvés', val: countObjets, color: 'text-orange-400' },
                     { label: 'Total archivés', val: circulaires.length, color: 'text-slate-300' },
                 ].map(s => (
-                    <div key={s.label} className="glass-card p-4">
+                    <StatCard key={s.label} className="glass-card p-4">
                         <p className="text-xs text-slate-400 mb-1">{s.label}</p>
                         <p className={`text-2xl font-bold ${s.color}`}>{s.val}</p>
-                    </div>
+                    </StatCard>
                 ))}
             </div>
 
@@ -3853,27 +3865,27 @@ function FournisseursPage({ building, suppliers, setSuppliers, showToast }) {
         <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-                <div className="glass-card p-4 flex items-center gap-3">
+                <StatCard className="glass-card p-4 flex items-center gap-3">
                     <Truck size={20} className="text-sp flex-shrink-0" />
                     <div>
                         <p className="text-2xl font-bold text-white">{suppliers.length}</p>
                         <p className="text-xs text-slate-400">Fournisseurs</p>
                     </div>
-                </div>
-                <div className="glass-card p-4 flex items-center gap-3">
+                </StatCard>
+                <StatCard className="glass-card p-4 flex items-center gap-3">
                     <Star size={20} className="text-amber-400 flex-shrink-0" />
                     <div>
                         <p className="text-2xl font-bold text-white">{avgRating}</p>
                         <p className="text-xs text-slate-400">Note moyenne</p>
                     </div>
-                </div>
-                <div className="glass-card p-4 flex items-center gap-3">
+                </StatCard>
+                <StatCard className="glass-card p-4 flex items-center gap-3">
                     <CheckCircle2 size={20} className="text-emerald-400 flex-shrink-0" />
                     <div>
                         <p className="text-2xl font-bold text-white">{suppliers.filter(s => s.contractRef).length}</p>
                         <p className="text-xs text-slate-400">Sous contrat</p>
                     </div>
-                </div>
+                </StatCard>
             </div>
 
             {/* Action bar */}
@@ -4578,7 +4590,7 @@ function DisputesPage({ building, data, disputes, setDisputes, showToast }) {
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4">
                 {['open', 'mediation', 'resolved', 'closed'].map(s => (
-                    <div key={s} className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:border-white/10 transition-colors" onClick={() => setFilter(s)}>
+                    <div key={s} className="glass-card p-4 flex items-center gap-3 cursor-pointer select-none hover:bg-white/[0.025] hover:border-white/15 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200" onClick={() => setFilter(s)}>
                         <div className={`text-2xl font-bold ${STATUS_INFO[s].cls.split(' ').find(c => c.startsWith('text-'))}`}>
                             {disputes.filter(d => d.status === s).length}
                         </div>
@@ -5323,10 +5335,10 @@ function PlanningPage({ building, data, showToast }) {
                     { label: 'Planifié', value: counts.scheduled, color: 'text-amber-400', border: 'border-amber-400/20' },
                     { label: 'Terminé', value: counts.done, color: 'text-emerald-400', border: 'border-emerald-400/20' },
                 ].map(s => (
-                    <div key={s.label} className={`glass-card p-5 border ${s.border}`}>
+                    <StatCard key={s.label} className={`glass-card p-5 border ${s.border}`}>
                         <div className={`text-3xl font-bold ${s.color} mb-1`}>{s.value}</div>
                         <p className="text-sm text-slate-400 font-medium">{s.label}</p>
-                    </div>
+                    </StatCard>
                 ))}
             </div>
 
@@ -7136,17 +7148,25 @@ function BuildingAvatar({ building, size = 'sm' }) {
 }
 
 function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
+    const [selected, setSelected] = useState(false)
     const colorMap = {
-        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
-        cyan: { bg: 'bg-sp/10', border: 'border-sp/20', text: 'text-sp' },
-        amber: { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
-        violet: { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400' },
+        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', selBg: 'bg-emerald-500/15', selBorder: 'border-emerald-500/50' },
+        cyan:    { bg: 'bg-sp/10', border: 'border-sp/20', text: 'text-sp', selBg: 'bg-sp/15', selBorder: 'border-sp/50' },
+        amber:   { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', selBg: 'bg-amber-500/15', selBorder: 'border-amber-500/50' },
+        violet:  { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400', selBg: 'bg-violet-500/15', selBorder: 'border-violet-500/50' },
     }
     const c = colorMap[color] ?? colorMap.cyan
     return (
-        <div className="glass-card p-5 group hover:border-sp/20 transition-all relative">
+        <div
+            onClick={() => setSelected(s => !s)}
+            className={`glass-card p-5 group cursor-pointer select-none transition-all duration-200 relative
+                ${selected
+                    ? `${c.selBg} ${c.selBorder} border-2 scale-[1.02] shadow-lg`
+                    : 'hover:bg-white/[0.025] hover:scale-[1.01] hover:border-white/15'
+                }`}
+        >
             <div className="flex items-start justify-between mb-4">
-                <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} group-hover:scale-110 transition-transform`}>
+                <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} transition-transform duration-200 ${selected ? 'scale-110' : 'group-hover:scale-105'}`}>
                     <Icon size={18} className={c.text} strokeWidth={1.5} />
                 </div>
                 {up !== null ? (
@@ -7163,13 +7183,30 @@ function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
             {/* ⓘ button — only rendered when onInfo is provided */}
             {onInfo && (
                 <button
-                    onClick={onInfo}
+                    onClick={e => { e.stopPropagation(); onInfo() }}
                     title="Comment ce score est calculé"
                     className="absolute bottom-3.5 right-3.5 w-6 h-6 rounded-full flex items-center justify-center bg-violet-500/10 border border-violet-500/20 text-violet-400/60 hover:text-violet-300 hover:bg-violet-500/20 hover:border-violet-500/40 transition-all opacity-0 group-hover:opacity-100"
                 >
                     <Info size={12} />
                 </button>
             )}
+        </div>
+    )
+}
+
+/* ── StatCard — hover + click highlight for flat stat cards ── */
+function StatCard({ children, className = '', onClick }) {
+    const [selected, setSelected] = useState(false)
+    return (
+        <div
+            onClick={() => { setSelected(s => !s); onClick?.() }}
+            className={`cursor-pointer select-none transition-all duration-200
+                ${selected
+                    ? 'bg-white/[0.04] border-white/25 scale-[1.02] shadow-md'
+                    : 'hover:bg-white/[0.025] hover:scale-[1.01] hover:border-white/15'
+                } ${className}`}
+        >
+            {children}
         </div>
     )
 }
@@ -7605,27 +7642,27 @@ function AssembliesPage({ building, residents, meetings, setMeetings, showToast 
 
             {/* Stats */}
             <div className="grid grid-cols-3 gap-4">
-                <div onClick={() => setFilter('upcoming')} className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:border-sp/20 transition-colors">
+                <div onClick={() => setFilter('upcoming')} className="glass-card p-4 flex items-center gap-3 cursor-pointer select-none hover:bg-white/[0.025] hover:border-sp/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200">
                     <CalendarCheck size={22} className="text-sp flex-shrink-0" />
                     <div>
                         <p className="text-xl font-bold text-sp">{upcoming.length}</p>
                         <p className="text-xs text-slate-400">À venir</p>
                     </div>
                 </div>
-                <div onClick={() => setFilter('completed')} className="glass-card p-4 flex items-center gap-3 cursor-pointer hover:border-emerald-500/20 transition-colors">
+                <div onClick={() => setFilter('completed')} className="glass-card p-4 flex items-center gap-3 cursor-pointer select-none hover:bg-white/[0.025] hover:border-emerald-500/25 hover:scale-[1.01] active:scale-[0.99] transition-all duration-200">
                     <ClipboardList size={22} className="text-emerald-400 flex-shrink-0" />
                     <div>
                         <p className="text-xl font-bold text-emerald-400">{completed.length}</p>
                         <p className="text-xs text-slate-400">Terminées</p>
                     </div>
                 </div>
-                <div className="glass-card p-4 flex items-center gap-3">
+                <StatCard className="glass-card p-4 flex items-center gap-3">
                     <Calendar size={22} className="text-amber-400 flex-shrink-0" />
                     <div>
                         <p className="text-sm font-bold text-amber-400">{next ? fmtDate(next.date) : '—'}</p>
                         <p className="text-xs text-slate-400">{next ? `Prochaine · ${daysUntil(next.date)}` : 'Aucune planifiée'}</p>
                     </div>
-                </div>
+                </StatCard>
             </div>
 
             {/* Filter tabs */}

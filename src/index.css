@@ -32,7 +32,7 @@ body {
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #06b6d4;
+  background: var(--accent);
 }
 
 /* ── SyndicPulse CSS Variables ── */
@@ -54,11 +54,61 @@ body {
   --navy-800: #0d1629;
   --navy-700: #111d35;
   --navy-600: #152343;
+
+  /* ── Theme variables (default = Navy/Cyan) ── */
+  --accent:        #06b6d4;
+  --accent-glow:   rgba(6, 182, 212, 0.25);
+  --accent-soft:   rgba(6, 182, 212, 0.15);
+  --accent-faint:  rgba(6, 182, 212, 0.05);
+  --accent-border: rgba(6, 182, 212, 0.08);
+  --bg-primary:    #0a0f1e;
+  --bg-sidebar:    #0d1629;
+  --bg-card:       rgba(17, 29, 53, 0.8);
 }
+
+/* ── Indigo/Gold theme override ── */
+[data-theme="gold"] {
+  --accent:        #f59e0b;
+  --accent-glow:   rgba(245, 158, 11, 0.25);
+  --accent-soft:   rgba(245, 158, 11, 0.15);
+  --accent-faint:  rgba(245, 158, 11, 0.05);
+  --accent-border: rgba(245, 158, 11, 0.08);
+  --bg-primary:    #0c0a1e;
+  --bg-sidebar:    #110f28;
+  --bg-card:       rgba(23, 20, 58, 0.8);
+}
+
+/* Tailwind navy class overrides for gold theme */
+[data-theme="gold"] .bg-navy-900                { background-color: #0c0a1e !important; }
+[data-theme="gold"] .bg-navy-900\/80             { background-color: rgba(12,10,30,0.8) !important; }
+[data-theme="gold"] .bg-navy-800                { background-color: #110f28 !important; }
+[data-theme="gold"] .bg-navy-750                { background-color: #140d32 !important; }
+[data-theme="gold"] .bg-navy-700                { background-color: #17143a !important; }
+[data-theme="gold"] .bg-navy-700\/30             { background-color: rgba(23,20,58,0.3) !important; }
+[data-theme="gold"] .bg-navy-700\/40             { background-color: rgba(23,20,58,0.4) !important; }
+[data-theme="gold"] .bg-navy-700\/60             { background-color: rgba(23,20,58,0.6) !important; }
+[data-theme="gold"] .bg-navy-600                { background-color: #1e1945 !important; }
+[data-theme="gold"] .hover\:bg-navy-700:hover   { background-color: #17143a !important; }
+[data-theme="gold"] .hover\:bg-navy-600:hover   { background-color: #1e1945 !important; }
+
+/* Tailwind sp (accent) class overrides for gold theme */
+[data-theme="gold"] .text-sp                    { color: #f59e0b !important; }
+[data-theme="gold"] .bg-sp                      { background-color: #f59e0b !important; }
+[data-theme="gold"] .border-sp                  { border-color: #f59e0b !important; }
+[data-theme="gold"] .bg-sp\/10                  { background-color: rgba(245,158,11,0.1) !important; }
+[data-theme="gold"] .bg-sp\/15                  { background-color: rgba(245,158,11,0.15) !important; }
+[data-theme="gold"] .bg-sp\/20                  { background-color: rgba(245,158,11,0.2) !important; }
+[data-theme="gold"] .bg-sp\/25                  { background-color: rgba(245,158,11,0.25) !important; }
+[data-theme="gold"] .border-sp\/20              { border-color: rgba(245,158,11,0.2) !important; }
+[data-theme="gold"] .border-sp\/30              { border-color: rgba(245,158,11,0.3) !important; }
+[data-theme="gold"] .hover\:text-sp:hover       { color: #f59e0b !important; }
+[data-theme="gold"] .hover\:bg-sp\/20:hover     { background-color: rgba(245,158,11,0.2) !important; }
+[data-theme="gold"] .hover\:border-sp\/20:hover { border-color: rgba(245,158,11,0.2) !important; }
+[data-theme="gold"] .group:hover .group-hover\:text-sp { color: #f59e0b !important; }
 
 /* ── Glow utilities ── */
 .glow-cyan {
-  box-shadow: 0 0 24px rgba(6, 182, 212, 0.25);
+  box-shadow: 0 0 24px var(--accent-glow);
 }
 .glow-green {
   box-shadow: 0 0 24px rgba(34, 197, 94, 0.25);
@@ -66,10 +116,10 @@ body {
 
 /* ── Glassmorphism card ── */
 .glass-card {
-  background: rgba(17, 29, 53, 0.8);
+  background: var(--bg-card);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(6, 182, 212, 0.08);
+  border: 1px solid var(--accent-border);
   border-radius: 1rem;
 }
 
@@ -83,8 +133,8 @@ body {
 
 /* ── Sidebar active glow ── */
 .nav-active {
-  background: linear-gradient(90deg, rgba(6,182,212,0.15) 0%, rgba(6,182,212,0.05) 100%);
-  border-left: 2px solid #06b6d4;
+  background: linear-gradient(90deg, var(--accent-soft) 0%, var(--accent-faint) 100%);
+  border-left: 2px solid var(--accent);
 }
 
 /* ── Pulse animation ── */
