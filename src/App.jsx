@@ -149,17 +149,28 @@ function getResidentPortalPin(r, buildingId) {
 /* ── WhatsApp — send portal credentials to a resident ── */
 function openPortalWhatsApp(r, building) {
     const num = r.phone.replace(/[^0-9]/g, '')
+    if (!num) return
     const firstName = r.name.split(' ')[0]
     const pin = getResidentPortalPin(r, building.id)
     const msg =
-`Bonjour ${firstName},
+`Bonjour ${firstName} 👋
 
-Voici vos accès personnels à l'espace résident SyndicPulse — *${building.name}* :
+Bienvenue dans votre espace résident SyndicPulse — *${building.name}* !
 
+Vous pouvez désormais suivre en toute transparence vos paiements de charges, consulter les avis de la résidence et accéder aux convocations d'assemblée générale.
+
+🔑 *Vos identifiants personnels d'accès :*
 🏠 Code résidence : *${building.accessCode ?? '—'}*
 🔐 Votre PIN personnel : *${pin ?? '—'}*
 
-Connectez-vous sur https://syndicpulse.vercel.app, puis cliquez sur « Espace Résident ».
+*Pour vous connecter :*
+1. Ouvrez https://syndicpulse.vercel.app
+2. Cliquez sur « Espace Résident »
+3. Saisissez votre code résidence puis votre PIN
+
+⚠️ Ces identifiants sont *strictement personnels*. Veuillez les noter en lieu sûr et ne jamais les partager avec des tiers.
+
+Pour toute question, n'hésitez pas à nous contacter.
 
 Cordialement,
 — Le syndic de ${building.name}`
@@ -6297,6 +6308,7 @@ function AddResidentModal({ onClose, onAdd, building }) {
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
+    const [sendWA, setSendWA] = useState(true)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -6308,7 +6320,7 @@ function AddResidentModal({ onClose, onAdd, building }) {
         if (Object.keys(errs).length) { setErrors(errs); return }
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
-        onAdd({
+        const newResident = {
             id: `r-${Date.now()}`,
             unit: form.unit.toUpperCase(),
             name: form.name.trim(),
@@ -6320,15 +6332,19 @@ function AddResidentModal({ onClose, onAdd, building }) {
             monthly_fee: parseInt(form.monthly_fee) || 250,
             portalPin: generatePortalPin(),
             isNew: true,
-        })
+        }
+        onAdd(newResident)
+        if (sendWA && form.phone.trim()) openPortalWhatsApp(newResident, building)
         setSaving(false)
         onClose()
     }
 
+    const hasPhone = form.phone.trim().length > 0
+
     return (
         <Modal
             title="Ajouter un résident"
-            subtitle="Une invitation sera envoyée automatiquement par WhatsApp"
+            subtitle="Renseignez les informations du nouveau résident"
             onClose={onClose}
         >
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -6412,12 +6428,30 @@ function AddResidentModal({ onClose, onAdd, building }) {
                     </div>
                 </div>
 
-                <div className="flex items-start gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3">
-                    <Phone size={14} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-emerald-300 leading-relaxed">
-                        Un message WhatsApp sera envoyé pour inviter le résident à accéder à son espace personnel.
-                    </p>
-                </div>
+                {/* WhatsApp send toggle */}
+                <button
+                    type="button"
+                    onClick={() => hasPhone && setSendWA(v => !v)}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left
+                        ${!hasPhone ? 'opacity-40 cursor-not-allowed border-white/8 bg-white/[0.02]' :
+                          sendWA ? 'bg-emerald-500/8 border-emerald-500/25 cursor-pointer hover:bg-emerald-500/12' :
+                          'bg-white/[0.02] border-white/8 cursor-pointer hover:bg-white/[0.04]'}`}
+                >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center flex-shrink-0 transition-all ${sendWA && hasPhone ? 'bg-emerald-500 border-emerald-500' : 'border-white/25'}`}>
+                        {sendWA && hasPhone && <Check size={10} className="text-white" strokeWidth={3} />}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <p className={`text-[11px] font-medium transition-colors ${sendWA && hasPhone ? 'text-emerald-300' : 'text-slate-500'}`}>
+                            Envoyer les accès portail par WhatsApp
+                        </p>
+                        <p className="text-[10px] text-slate-600 mt-0.5">
+                            {hasPhone
+                                ? 'Code résidence + PIN — WhatsApp s\'ouvrira avec le message pré-rempli'
+                                : 'Saisissez un numéro de téléphone pour activer'}
+                        </p>
+                    </div>
+                    <MessageCircle size={14} className={`flex-shrink-0 transition-colors ${sendWA && hasPhone ? 'text-emerald-400' : 'text-slate-600'}`} />
+                </button>
 
                 <div className="flex gap-3 pt-1">
                     <button type="button" onClick={onClose}
@@ -6426,7 +6460,10 @@ function AddResidentModal({ onClose, onAdd, building }) {
                     </button>
                     <button type="submit" disabled={saving}
                         className="flex-1 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all disabled:opacity-60 flex items-center justify-center gap-2">
-                        {saving ? <Spinner /> : <><Plus size={15} /> Ajouter</>}
+                        {saving ? <Spinner /> : sendWA && hasPhone
+                            ? <><Plus size={15} /> Ajouter & Envoyer WA</>
+                            : <><Plus size={15} /> Ajouter</>
+                        }
                     </button>
                 </div>
             </form>
