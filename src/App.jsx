@@ -90,7 +90,7 @@ function formatMonth(ym) {
 }
 
 /* ── WhatsApp helper — opens wa.me link with pre-filled message ── */
-function openWhatsApp(phone, name, unit, buildingName, status, paidThrough) {
+function openWhatsApp(phone, name, unit, buildingName, status, paidThrough, monthlyFee) {
     const num = phone.replace(/[^0-9]/g, '')
     let msg
     if (status === 'overdue') {
@@ -110,6 +110,8 @@ function openWhatsApp(phone, name, unit, buildingName, status, paidThrough) {
             const [py, pm] = (paidThrough || '2000-01').split('-').map(Number)
             return `${MONTH_NAMES_FR[pm - 1]} ${py}`
         })()
+        const fee = monthlyFee ?? 250
+        const totalDue = fee * count
         msg =
             `Bonjour ${name},
 
@@ -117,6 +119,8 @@ Nous vous rappelons que votre cotisation de syndic pour l'appartement ${unit} pr
 
 📅 Dernière cotisation enregistrée : ${lastPaidLabel}
 ❌ Mois${plural} en retard (${count}) : ${unpaidMonths.join(', ')}
+
+💰 Montant dû : *${totalDue.toLocaleString('fr-FR')} MAD* (${count} × ${fee.toLocaleString('fr-FR')} MAD/mois)
 
 Merci de régulariser votre situation dans les meilleurs délais par virement bancaire :
 
@@ -4513,7 +4517,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                             title={computeStatus(r.paidThrough) === 'overdue'
                                                 ? 'Envoyer un rappel de paiement WhatsApp'
                                                 : 'Ouvrir une conversation WhatsApp'}
-                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough), r.paidThrough)}
+                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough), r.paidThrough, r.monthly_fee)}
                                         />
                                         <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
                                         <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
