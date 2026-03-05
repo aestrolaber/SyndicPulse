@@ -23,8 +23,13 @@ export function AuthProvider({ children }) {
     const [loginError,      setLoginError]      = useState('')
 
     // ── Derive accessible buildings from user role ───────────────────────────
+    // Include extra buildings persisted in localStorage (added via AddBuildingModal)
+    const extraBldgs = (() => {
+        try { return JSON.parse(localStorage.getItem('sp_extra_buildings') ?? '[]') } catch { return [] }
+    })()
+    const allKnownBuildings = [...BUILDINGS, ...extraBldgs]
     const accessibleBuildings = user
-        ? BUILDINGS.filter(b => user.accessible_building_ids.includes(b.id))
+        ? allKnownBuildings.filter(b => user.accessible_building_ids.includes(b.id))
         : []
 
     const canSwitchBuildings = user?.role === 'super_admin'
@@ -53,8 +58,11 @@ export function AuthProvider({ children }) {
     }, [])
 
     function initBuilding(u) {
-        // Set default active building based on user's accessible buildings
-        const buildings = BUILDINGS.filter(b => u.accessible_building_ids.includes(b.id))
+        // Set default active building — includes extra buildings from localStorage
+        const extra = (() => {
+            try { return JSON.parse(localStorage.getItem('sp_extra_buildings') ?? '[]') } catch { return [] }
+        })()
+        const buildings = [...BUILDINGS, ...extra].filter(b => u.accessible_building_ids.includes(b.id))
         if (buildings.length > 0) setActiveBuilding(buildings[0])
     }
 

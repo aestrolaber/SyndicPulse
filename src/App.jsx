@@ -705,7 +705,9 @@ function Dashboard() {
     const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
     const [meetingsByBldg, setMeetingsByBldg] = useState({})  // shared across tabs
     const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState({})  // logo + name overrides per building
-    const [extraBuildings, setExtraBuildings] = useState([])  // user-added buildings
+    const [extraBuildings, setExtraBuildings] = useState(() => {
+        try { return JSON.parse(localStorage.getItem('sp_extra_buildings') ?? '[]') } catch { return [] }
+    })  // user-added buildings, persisted across sessions
     const [showBldgSettings, setShowBldgSettings] = useState(false)
     const [showAddBuilding, setShowAddBuilding] = useState(false)
     const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'navy')
@@ -714,6 +716,7 @@ function Dashboard() {
     const [dbLoading, setDbLoading] = useState(false)
     const loadedBldgIds = useRef(new Set())                     // tracks which buildings have been fetched
     useEffect(() => { localStorage.setItem('sp_theme', themeMode) }, [themeMode])
+    useEffect(() => { localStorage.setItem('sp_extra_buildings', JSON.stringify(extraBuildings)) }, [extraBuildings])
 
     // ── Supabase data loading ─────────────────────────────────────────────────
     useEffect(() => {
@@ -1012,7 +1015,7 @@ function Dashboard() {
                     {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} onSaveMeeting={saveMeeting} onDeleteMeeting={removeMeeting} showToast={showToast} />}
                     {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} onSaveSupplier={saveSupplier} onDeleteSupplier={removeSupplier} showToast={showToast} />}
                     {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} customTpls={customTpls} setCustomTpls={setCustomTpls} showToast={showToast} />}
-                    {activeTab === 'users' && <UsersPage showToast={showToast} />}
+                    {activeTab === 'users' && <UsersPage showToast={showToast} allBuildings={allBuildings} />}
                 </main>
             </div>
 
@@ -1050,11 +1053,46 @@ function Dashboard() {
             {showAddBuilding && (
                 <AddBuildingModal
                     onClose={() => setShowAddBuilding(false)}
-                    onSave={(newBld) => {
+                    onSave={async (newBld) => {
                         setExtraBuildings(prev => [...prev, newBld])
                         setActiveBuilding(newBld)
                         setShowAddBuilding(false)
                         setActiveTab('dashboard')
+                        if (newBld.copyFrom) {
+                            showToast('Copie des données démo en cours…')
+                            const srcData = getBuildingData(newBld.copyFrom)
+                            const newId = newBld.id
+                            const ts = Date.now()
+                            const newResidents = srcData.residents.map((r, i) => ({ ...r, id: `${newId}-r${i}-${ts}`, building_id: newId }))
+                            const newTickets   = srcData.tickets.map((t, i)   => ({ ...t, id: `${newId}-t${i}-${ts}`, building_id: newId }))
+                            const newDisputes  = srcData.disputes.map((d, i)  => ({ ...d, id: `${newId}-d${i}-${ts}`, building_id: newId, attachments: [] }))
+                            const newSuppliers = srcData.suppliers.map((s, i) => ({ ...s, id: `${newId}-s${i}-${ts}`, building_id: newId }))
+                            const newMeetings  = srcData.meetings.map((m, i)  => ({ ...m, id: `${newId}-m${i}-${ts}`, building_id: newId }))
+                            const srcExpenses  = expensesByBldg[newBld.copyFrom] ?? []
+                            const newExpenses  = srcExpenses.map((e, i) => ({ ...e, id: `${newId}-e${i}-${ts}`, building_id: newId }))
+                            setResidentsByBldg(p => ({ ...p, [newId]: newResidents }))
+                            setTicketsByBldg(p   => ({ ...p, [newId]: newTickets }))
+                            setDisputesByBldg(p  => ({ ...p, [newId]: newDisputes }))
+                            setSuppliersByBldg(p => ({ ...p, [newId]: newSuppliers }))
+                            setMeetingsByBldg(p  => ({ ...p, [newId]: newMeetings }))
+                            if (newExpenses.length > 0) setExpensesByBldg(p => ({ ...p, [newId]: newExpenses }))
+                            loadedBldgIds.current.add(newId)
+                            try {
+                                await Promise.all([
+                                    ...newResidents.map(r => upsertResident(r)),
+                                    ...newTickets.map(t => upsertTicket(t)),
+                                    ...newDisputes.map(d => upsertDispute(d)),
+                                    ...newSuppliers.map(s => upsertSupplier(s)),
+                                    ...newMeetings.map(m => upsertMeeting(m)),
+                                    ...newExpenses.map(e => upsertExpense(e)),
+                                ])
+                                const srcName = BUILDINGS.find(b => b.id === newBld.copyFrom)?.name ?? newBld.copyFrom
+                                showToast(`Données démo copiées depuis ${srcName} ✓`)
+                            } catch (err) {
+                                console.error('[seed]', err)
+                                showToast('Données chargées localement — sync Supabase partiel', 'error')
+                            }
+                        }
                     }}
                 />
             )}
@@ -7447,6 +7485,7 @@ function AddBuildingModal({ onClose, onSave }) {
         total_units: '', monthly_charge: '',
         color: BUILDING_COLORS[0],
         logo: null,
+        copyFrom: '',
     })
     const [saving, setSaving] = useState(false)
     const [logoPreview, setLogoPreview] = useState(null)
@@ -7475,11 +7514,13 @@ function AddBuildingModal({ onClose, onSave }) {
             manager: form.manager.trim(),
             total_units: Number(form.total_units) || 0,
             monthly_charge_mad: Number(form.monthly_charge) || 0,
+            monthly_fee: Number(form.monthly_charge) || 850,
             reserve_fund_mad: 0,
             color: form.color,
             icon: 'Building2',
             logo: form.logo,
             collection_rate: 100,
+            copyFrom: form.copyFrom || null,
         })
     }
 
@@ -7561,6 +7602,25 @@ function AddBuildingModal({ onClose, onSave }) {
                             <input type="number" min="0" value={form.monthly_charge} onChange={e => set('monthly_charge', e.target.value)} placeholder="ex. 1500"
                                 className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-sp/50" />
                         </div>
+                    </div>
+
+                    {/* ── Données de démarrage ───────────────────────── */}
+                    <div>
+                        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1.5">
+                            Données de démarrage
+                        </label>
+                        <select value={form.copyFrom} onChange={e => set('copyFrom', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-sp/50">
+                            <option value="">Démarrer vide (aucune donnée)</option>
+                            {BUILDINGS.map(b => (
+                                <option key={b.id} value={b.id}>
+                                    Copier les données démo — {b.name} ({b.city})
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-slate-500 mt-1">
+                            Copie résidents, tickets, dépenses et fournisseurs depuis une propriété démo.
+                        </p>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-1">
@@ -8541,7 +8601,7 @@ function EditAGModal({ meeting, onClose, onSave, onDelete }) {
 /* ══════════════════════════════════════════
    USERS PAGE  (super_admin only)
 ══════════════════════════════════════════ */
-function UsersPage({ showToast }) {
+function UsersPage({ showToast, allBuildings = BUILDINGS }) {
     const [showCreate, setShowCreate] = useState(false)
     const [, forceUpdate] = useState(0)
 
@@ -8614,7 +8674,7 @@ function UsersPage({ showToast }) {
             </div>
 
             <AnimatePresence>
-                {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} />}
+                {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} allBuildings={allBuildings} />}
             </AnimatePresence>
         </div>
     )
@@ -8623,7 +8683,7 @@ function UsersPage({ showToast }) {
 /* ══════════════════════════════════════════
    CREATE USER MODAL  (super_admin only)
 ══════════════════════════════════════════ */
-function CreateUserModal({ onClose, onCreated }) {
+function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
     const [form, setForm] = useState({ fullName: '', syndicName: '', buildingIds: [] })
     const [saving, setSaving] = useState(false)
     const [done, setDone] = useState(null) // { email, password }
@@ -8715,7 +8775,7 @@ function CreateUserModal({ onClose, onCreated }) {
                     <div>
                         <label className="block text-xs font-semibold text-slate-400 mb-2">Accès aux bâtiments <span className="text-red-400">*</span></label>
                         <div className="space-y-2">
-                            {BUILDINGS.map(b => {
+                            {allBuildings.map(b => {
                                 const checked = form.buildingIds.includes(b.id)
                                 return (
                                     <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${checked ? 'bg-sp/8 border-sp/30' : 'bg-navy-700/50 border-white/8 hover:border-white/15'}`}>
