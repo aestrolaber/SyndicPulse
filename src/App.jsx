@@ -93,8 +93,12 @@ function formatMonth(ym) {
 }
 
 /* ── WhatsApp helper — opens wa.me link with pre-filled message ── */
-function openWhatsApp(phone, name, unit, buildingName, status, paidThrough, monthlyFee) {
+function openWhatsApp(phone, name, unit, building, status, paidThrough, monthlyFee) {
     const num = phone.replace(/[^0-9]/g, '')
+    const buildingName = building?.name ?? building ?? ''
+    const bankName    = building?.payment_bank           || '[NOM BANQUE]'
+    const rib         = building?.payment_rib            || '[XXXX XXXX XXXX XXXX XXXX XX]'
+    const holder      = building?.payment_account_holder || buildingName
     let msg
     if (status === 'overdue') {
         // Compute list of unpaid months from (paidThrough + 1) up to CURRENT_MONTH
@@ -127,9 +131,9 @@ Nous vous rappelons que votre cotisation de syndic pour l'appartement ${unit} pr
 
 Merci de régulariser votre situation dans les meilleurs délais par virement bancaire :
 
-🏦 Banque : [NOM BANQUE]
-📋 RIB : [XXXX XXXX XXXX XXXX XXXX XX]
-👤 Titulaire : ${buildingName} — Syndic
+🏦 Banque : ${bankName}
+📋 RIB : ${rib}
+👤 Titulaire : ${holder}
 
 Pour toute question, n'hésitez pas à nous contacter.
 
@@ -4540,7 +4544,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                             title={computeStatus(r.paidThrough) === 'overdue'
                                                 ? 'Envoyer un rappel de paiement WhatsApp'
                                                 : 'Ouvrir une conversation WhatsApp'}
-                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building.name, computeStatus(r.paidThrough), r.paidThrough, r.monthly_fee)}
+                                            onClick={() => openWhatsApp(r.phone, r.name, r.unit, building, computeStatus(r.paidThrough), r.paidThrough, r.monthly_fee)}
                                         />
                                         <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
                                         <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
@@ -6036,6 +6040,9 @@ function RecordPaymentModal({ building, residents, onClose, onRecord, presetResi
    WHATSAPP GROUP REMINDER MODAL
 ══════════════════════════════════════════ */
 function WhatsAppGroupModal({ overdueResidents, building, onClose }) {
+    const bankName = building.payment_bank           || '[NOM BANQUE]'
+    const rib      = building.payment_rib            || '[XXXX XXXX XXXX XXXX XXXX XX]'
+    const holder   = building.payment_account_holder || building.name
     const defaultMsg =
         `Bonjour,
 
@@ -6043,9 +6050,9 @@ Nous vous rappelons que votre cotisation de syndic est actuellement en retard de
 
 Merci de régulariser votre situation dans les meilleurs délais par virement bancaire :
 
-🏦 Banque : [NOM BANQUE]
-📋 RIB : [XXXX XXXX XXXX XXXX XXXX XX]
-👤 Titulaire : ${building.name} — Syndic
+🏦 Banque : ${bankName}
+📋 RIB : ${rib}
+👤 Titulaire : ${holder}
 
 Pour toute question, n'hésitez pas à nous contacter.
 
