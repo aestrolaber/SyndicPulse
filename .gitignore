@@ -38,3 +38,4 @@ temp/
 
 # Local-only memory files (kept in global claude config, not in repo)
 memory.md
+.vercel
