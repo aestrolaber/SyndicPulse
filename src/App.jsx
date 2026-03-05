@@ -7393,25 +7393,17 @@ function BuildingAvatar({ building, size = 'sm' }) {
 }
 
 function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
-    const [selected, setSelected] = useState(false)
     const colorMap = {
-        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', selBg: 'bg-emerald-500/15', selBorder: 'border-emerald-500/50' },
-        cyan:    { bg: 'bg-sp/10', border: 'border-sp/20', text: 'text-sp', selBg: 'bg-sp/15', selBorder: 'border-sp/50' },
-        amber:   { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', selBg: 'bg-amber-500/15', selBorder: 'border-amber-500/50' },
-        violet:  { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400', selBg: 'bg-violet-500/15', selBorder: 'border-violet-500/50' },
+        emerald: { bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400' },
+        cyan:    { bg: 'bg-sp/10', border: 'border-sp/20', text: 'text-sp' },
+        amber:   { bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400' },
+        violet:  { bg: 'bg-violet-500/10', border: 'border-violet-500/20', text: 'text-violet-400' },
     }
     const c = colorMap[color] ?? colorMap.cyan
     return (
-        <div
-            onClick={() => setSelected(s => !s)}
-            className={`glass-card p-5 group cursor-pointer select-none transition-all duration-200 relative
-                ${selected
-                    ? `${c.selBg} ${c.selBorder} border-2 scale-[1.02] shadow-lg`
-                    : 'hover:bg-white/[0.025] hover:scale-[1.01] hover:border-white/15'
-                }`}
-        >
+        <div className="glass-card p-5 group transition-all duration-200 hover:bg-white/[0.025] hover:scale-[1.01] hover:border-white/15 relative">
             <div className="flex items-start justify-between mb-4">
-                <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} transition-transform duration-200 ${selected ? 'scale-110' : 'group-hover:scale-105'}`}>
+                <div className={`p-2.5 rounded-xl ${c.bg} border ${c.border} transition-transform duration-200 group-hover:scale-105`}>
                     <Icon size={18} className={c.text} strokeWidth={1.5} />
                 </div>
                 {up !== null ? (
@@ -7439,14 +7431,16 @@ function KpiCard({ label, value, delta, up, icon: Icon, color, onInfo }) {
     )
 }
 
-/* ── StatCard — hover + click highlight for flat stat cards ── */
+/* ── StatCard — hover always; click-selected only when onClick is provided ── */
 function StatCard({ children, className = '', onClick }) {
     const [selected, setSelected] = useState(false)
+    const isSelected = !!onClick && selected
     return (
         <div
-            onClick={() => { setSelected(s => !s); onClick?.() }}
-            className={`cursor-pointer select-none transition-all duration-200
-                ${selected
+            onClick={onClick ? () => { setSelected(s => !s); onClick() } : undefined}
+            className={`transition-all duration-200
+                ${onClick ? 'cursor-pointer select-none' : ''}
+                ${isSelected
                     ? 'bg-white/[0.04] border-white/25 scale-[1.02] shadow-md'
                     : 'hover:bg-white/[0.025] hover:scale-[1.01] hover:border-white/15'
                 } ${className}`}
