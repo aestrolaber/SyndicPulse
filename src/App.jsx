@@ -138,6 +138,34 @@ Cordialement,
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
+/* ── Portal PIN lookup (index-derived fallback for mock data residents) ── */
+function getResidentPortalPin(r, buildingId) {
+    if (r.portalPin) return r.portalPin
+    const src = { 'bld-1': RESIDENTS_BLD1, 'bld-2': RESIDENTS_BLD2, 'bld-3': RESIDENTS_BLD3 }[buildingId] ?? []
+    const idx = src.findIndex(or => or.id === r.id)
+    return idx >= 0 ? String(1000 + idx) : null
+}
+
+/* ── WhatsApp — send portal credentials to a resident ── */
+function openPortalWhatsApp(r, building) {
+    const num = r.phone.replace(/[^0-9]/g, '')
+    const firstName = r.name.split(' ')[0]
+    const pin = getResidentPortalPin(r, building.id)
+    const msg =
+`Bonjour ${firstName},
+
+Voici vos accès personnels à l'espace résident SyndicPulse — *${building.name}* :
+
+🏠 Code résidence : *${building.accessCode ?? '—'}*
+🔐 Votre PIN personnel : *${pin ?? '—'}*
+
+Connectez-vous sur https://syndicpulse.vercel.app, puis cliquez sur « Espace Résident ».
+
+Cordialement,
+— Le syndic de ${building.name}`
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
+}
+
 /* ── Nav items ── */
 const NAV = [
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
@@ -4139,6 +4167,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     const [showGroupWA, setShowGroupWA] = useState(false)
     const [editingResident, setEditingResident] = useState(null)
     const [copiedCode, setCopiedCode] = useState(null)
+    const [showPortalCodes, setShowPortalCodes] = useState(false)
 
     function handleEditResident(updated) {
         setResidents(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
@@ -4330,9 +4359,22 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 <table className="w-full text-sm">
                     <thead>
                         <tr className="text-[11px] text-slate-500 uppercase tracking-wider border-b border-white/5">
-                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Solde dû', 'Code portail', 'Actions'].map(h => (
+                            {['Unité', 'Résident', 'Téléphone', 'Étage', 'Depuis', 'Statut', 'Solde dû'].map(h => (
                                 <th key={h} className="text-left px-6 py-4 font-semibold">{h}</th>
                             ))}
+                            <th className="text-left px-6 py-4 font-semibold">
+                                <div className="flex items-center gap-1.5">
+                                    <span>Accès portail</span>
+                                    <button
+                                        onClick={() => setShowPortalCodes(v => !v)}
+                                        title={showPortalCodes ? 'Masquer les codes' : 'Révéler les codes'}
+                                        className="p-1 rounded hover:bg-white/10 transition-colors text-slate-600 hover:text-slate-300"
+                                    >
+                                        {showPortalCodes ? <EyeOff size={12} /> : <Eye size={12} />}
+                                    </button>
+                                </div>
+                            </th>
+                            <th className="text-left px-6 py-4 font-semibold">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-white/4">
@@ -4399,21 +4441,48 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                                 </td>
                                 <td className="px-6 py-3.5">
                                     {(() => {
-                                        const code = generateResidentCode(r, building)
+                                        const code = building.accessCode ?? '—'
+                                        const pin = getResidentPortalPin(r, building.id)
                                         const justCopied = copiedCode === r.id
                                         return (
-                                            <button
-                                                onClick={() => {
-                                                    navigator.clipboard.writeText(code).catch(() => {})
-                                                    setCopiedCode(r.id)
-                                                    setTimeout(() => setCopiedCode(null), 2000)
-                                                }}
-                                                title="Copier le code portail"
-                                                className="flex items-center gap-1.5 font-mono text-[11px] font-bold text-sp/80 hover:text-sp bg-sp/5 hover:bg-sp/10 border border-sp/15 hover:border-sp/30 rounded-lg px-2 py-1 transition-all group/code"
-                                            >
-                                                {justCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
-                                                <span>{justCopied ? 'Copié !' : code}</span>
-                                            </button>
+                                            <div className="flex items-center gap-2">
+                                                {/* Code + PIN stacked */}
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-wider w-5">RES</span>
+                                                        <code className="font-mono text-[11px] text-sp font-bold tracking-wide">
+                                                            {showPortalCodes ? code : '•'.repeat(Math.min(code.length, 10))}
+                                                        </code>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <span className="text-[8px] font-bold text-slate-600 uppercase tracking-wider w-5">PIN</span>
+                                                        <code className="font-mono text-[11px] text-amber-400 font-bold tracking-widest">
+                                                            {showPortalCodes ? (pin ?? '—') : '••••'}
+                                                        </code>
+                                                    </div>
+                                                </div>
+                                                {/* Buttons */}
+                                                <div className="flex flex-col gap-1">
+                                                    <button
+                                                        onClick={() => {
+                                                            navigator.clipboard.writeText(`Code: ${code}  PIN: ${pin ?? '—'}`).catch(() => {})
+                                                            setCopiedCode(r.id)
+                                                            setTimeout(() => setCopiedCode(null), 2000)
+                                                        }}
+                                                        title="Copier code et PIN"
+                                                        className="p-1 rounded-md bg-sp/5 hover:bg-sp/15 border border-sp/15 hover:border-sp/30 text-sp/60 hover:text-sp transition-all"
+                                                    >
+                                                        {justCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => openPortalWhatsApp(r, building)}
+                                                        title="Envoyer les accès portail par WhatsApp"
+                                                        className="p-1 rounded-md bg-emerald-500/5 hover:bg-emerald-500/15 border border-emerald-500/15 hover:border-emerald-500/30 text-emerald-500/50 hover:text-emerald-400 transition-all"
+                                                    >
+                                                        <MessageCircle size={10} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         )
                                     })()}
                                 </td>
