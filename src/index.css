@@ -124,17 +124,28 @@ body {
 }
 
 /* Backgrounds */
+[data-theme="white"] .bg-navy-950              { background-color: #e2e8f0 !important; }
+[data-theme="white"] .bg-navy-950\/80          { background-color: rgba(226,232,240,0.85) !important; }
 [data-theme="white"] .bg-navy-900              { background-color: #f1f5f9 !important; }
+[data-theme="white"] .bg-navy-900\/60          { background-color: rgba(248,250,252,0.9) !important; }
 [data-theme="white"] .bg-navy-900\/80          { background-color: rgba(241,245,249,0.8) !important; }
 [data-theme="white"] .bg-navy-800              { background-color: #ffffff !important; }
 [data-theme="white"] .bg-navy-750              { background-color: #f8fafc !important; }
 [data-theme="white"] .bg-navy-700              { background-color: #f1f5f9 !important; }
-[data-theme="white"] .bg-navy-700\/30          { background-color: rgba(241,245,249,0.7) !important; }
-[data-theme="white"] .bg-navy-700\/40          { background-color: rgba(241,245,249,0.8) !important; }
-[data-theme="white"] .bg-navy-700\/60          { background-color: rgba(241,245,249,0.9) !important; }
+[data-theme="white"] .bg-navy-700\/30          { background-color: rgba(226,232,240,0.5) !important; }
+[data-theme="white"] .bg-navy-700\/40          { background-color: rgba(226,232,240,0.6) !important; }
+[data-theme="white"] .bg-navy-700\/50          { background-color: rgba(226,232,240,0.7) !important; }
+[data-theme="white"] .bg-navy-700\/60          { background-color: rgba(226,232,240,0.8) !important; }
 [data-theme="white"] .bg-navy-600              { background-color: #e2e8f0 !important; }
 [data-theme="white"] .hover\:bg-navy-700:hover { background-color: #f1f5f9 !important; }
 [data-theme="white"] .hover\:bg-navy-600:hover { background-color: #e2e8f0 !important; }
+
+/* Slate semi-transparent icon backgrounds */
+[data-theme="white"] .bg-slate-600\/30         { background-color: rgba(100,116,139,0.1) !important; }
+[data-theme="white"] .bg-slate-700\/30         { background-color: rgba(71,85,105,0.08) !important; }
+
+/* Modal backdrop — keep it dark (overlays need contrast on light bg) */
+[data-theme="white"] .bg-black\/75             { background-color: rgba(15,23,42,0.45) !important; }
 
 /* Text — light-on-dark → dark-on-light */
 [data-theme="white"] .text-white               { color: #0f172a !important; }
