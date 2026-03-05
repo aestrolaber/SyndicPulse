@@ -6,7 +6,7 @@
 import { useState } from 'react'
 import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check, Home } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
-import { DEMO_USERS, validateResidentAccess, validateResidentCodeDirect } from '../lib/mockData.js'
+import { DEMO_USERS, validateResidentAccess } from '../lib/mockData.js'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // Demo credentials hint shown in development
@@ -16,12 +16,12 @@ const DEMO_HINTS = [
     { label: 'Sara (Atlas)',    email: 'sara@atlas.ma',         password: 'sara',  badge: 'Syndic'   },
 ]
 
-// Individual resident portal codes — opaque random per-resident codes
+// Demo portal hints: building access code + personal 4-digit PIN
 const RESIDENT_HINTS = [
-    { code: 'NW-4K8MRX', unit: '',        bldg: 'Norwest · Ahmed Benjelloun (Apt 1A)' },
-    { code: 'NW-P6HJRW', unit: '',        bldg: 'Norwest · Nadia El Fassi (Apt 1D)' },
-    { code: 'AT-K5MJWQ', unit: '',        bldg: 'Atlas · Rachid Berrada (Apt A-02)' },
-    { code: 'NRWST-2026', unit: 'Apt 1A', bldg: 'Code résidence Norwest (ancien mode)' },
+    { code: 'NRWST-2026',  pin: '1000', bldg: 'Norwest · Ahmed Benjelloun (Apt 1A)' },
+    { code: 'NRWST-2026',  pin: '1003', bldg: 'Norwest · Nadia El Fassi (Apt 1D)' },
+    { code: 'ATLAS-2026',  pin: '1000', bldg: 'Atlas · Rachid Berrada (Apt A-02)' },
+    { code: 'JARDINS-2026', pin: '1000', bldg: 'Jardins du Roi · Abdellah Benali (Villa V-01)' },
 ]
 
 const IS_DEV = import.meta.env.DEV
@@ -52,14 +52,14 @@ export default function LoginPage({ onResidentLogin }) {
     // Resident portal
     const [showResident,    setShowResident]    = useState(false)
     const [residentCode,    setResidentCode]    = useState('')
-    const [residentUnit,    setResidentUnit]    = useState('')
+    const [residentPin,     setResidentPin]     = useState('')
     const [residentError,   setResidentError]   = useState('')
     const [residentLoading, setResidentLoading] = useState(false)
 
     function openForgot() { setShowForgot(true); setForgotEmail(email); setForgotStatus(null); setTempPwd('') }
     function closeForgot() { setShowForgot(false); setForgotStatus(null) }
 
-    function openResident() { setShowResident(true); setResidentCode(''); setResidentUnit(''); setResidentError('') }
+    function openResident() { setShowResident(true); setResidentCode(''); setResidentPin(''); setResidentError('') }
     function closeResident() { setShowResident(false); setResidentError('') }
 
     async function handleForgotSubmit(e) {
@@ -85,12 +85,9 @@ export default function LoginPage({ onResidentLogin }) {
         setResidentError('')
         setResidentLoading(true)
         await new Promise(r => setTimeout(r, 800))
-        // 1st try: individual resident portal code (e.g. NW-4K8MRX) — no unit needed
-        let result = validateResidentCodeDirect(residentCode)
-        // 2nd try: building access code + unit number
-        if (!result && residentUnit.trim()) result = validateResidentAccess(residentCode, residentUnit)
+        const result = validateResidentAccess(residentCode, residentPin)
         if (!result) {
-            setResidentError('Code invalide. Utilisez votre code personnel (ex : NW-4K8MRX) ou le code de la résidence + votre numéro d\'appartement.')
+            setResidentError('Code ou PIN incorrect. Vérifiez le code de votre résidence et votre PIN à 4 chiffres.')
             setResidentLoading(false)
             return
         }
@@ -225,7 +222,7 @@ export default function LoginPage({ onResidentLogin }) {
                                 <h2 className="text-2xl font-bold text-white">Espace Résident</h2>
                             </div>
                             <p className="text-slate-400 text-sm leading-relaxed">
-                                Entrez le code de votre résidence et votre numéro d'appartement pour accéder à l'espace de transparence.
+                                Entrez le code de votre résidence et votre PIN personnel (4 chiffres) pour accéder à l'espace de transparence.
                             </p>
                         </div>
 
@@ -235,10 +232,11 @@ export default function LoginPage({ onResidentLogin }) {
                                 <p className="text-[10px] text-sp font-bold uppercase tracking-wider mb-2">Accès démo résidents</p>
                                 <div className="space-y-1.5">
                                     {RESIDENT_HINTS.map(h => (
-                                        <button key={h.code} onClick={() => { setResidentCode(h.code); setResidentUnit(h.unit) }}
+                                        <button key={h.code + h.pin} onClick={() => { setResidentCode(h.code); setResidentPin(h.pin); setResidentError('') }}
                                             className="w-full flex items-center gap-2 text-left px-2 py-1.5 rounded-lg hover:bg-navy-700 transition-colors">
                                             <span className="text-[10px] font-mono text-sp bg-sp/10 px-1.5 py-0.5 rounded">{h.code}</span>
-                                            <span className="text-[11px] text-slate-400">{h.bldg} · {h.unit}</span>
+                                            <span className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{h.pin}</span>
+                                            <span className="text-[11px] text-slate-400">{h.bldg}</span>
                                         </button>
                                     ))}
                                 </div>
@@ -248,23 +246,26 @@ export default function LoginPage({ onResidentLogin }) {
                         <form onSubmit={handleResidentSubmit} className="space-y-4">
                             <div>
                                 <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-                                    Votre code d'accès
+                                    Code de la résidence
                                 </label>
                                 <input type="text" value={residentCode}
                                     onChange={e => { setResidentCode(e.target.value.toUpperCase()); setResidentError('') }}
-                                    placeholder="ex : NW-4K8MRX ou NRWST-2026"
+                                    placeholder="ex : NRWST-2026"
                                     required
                                     className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 font-mono focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
-                                <p className="text-[10px] text-slate-600 mt-1.5">Code personnel (fourni par votre syndic) ou code de la résidence</p>
+                                <p className="text-[10px] text-slate-600 mt-1.5">Code partagé de votre immeuble (fourni par le syndic)</p>
                             </div>
                             <div>
                                 <label className="block text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">
-                                    Numéro d'appartement <span className="normal-case font-normal text-slate-600">(si code résidence)</span>
+                                    PIN personnel <span className="normal-case font-normal text-slate-600">— 4 chiffres</span>
                                 </label>
-                                <input type="text" value={residentUnit}
-                                    onChange={e => { setResidentUnit(e.target.value); setResidentError('') }}
-                                    placeholder="ex : Apt 1A"
-                                    className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
+                                <input type="password" inputMode="numeric" maxLength={4} pattern="[0-9]{4}"
+                                    value={residentPin}
+                                    onChange={e => { setResidentPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setResidentError('') }}
+                                    placeholder="••••"
+                                    required
+                                    className="w-full bg-navy-800 border border-white/8 rounded-xl px-4 py-3 text-sm text-slate-100 placeholder-slate-600 tracking-widest text-center font-mono focus:outline-none focus:border-sp/50 focus:bg-navy-700 transition-all" />
+                                <p className="text-[10px] text-slate-600 mt-1.5">PIN à 4 chiffres communiqué par votre syndic</p>
                             </div>
 
                             {residentError && (
@@ -284,7 +285,7 @@ export default function LoginPage({ onResidentLogin }) {
                         </form>
 
                         <p className="mt-6 text-center text-[11px] text-slate-600">
-                            Votre code personnel vous a été fourni par votre syndic.
+                            Votre PIN personnel vous a été communiqué par votre syndic via WhatsApp.
                         </p>
                     </motion.div>
                 )}

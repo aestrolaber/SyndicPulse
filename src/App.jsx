@@ -22,7 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
-    BookOpen, HelpCircle, MapPin, Camera, Palette,
+    BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -43,8 +43,12 @@ import {
     SUPPLIERS_BLD1, SUPPLIERS_BLD2, SUPPLIERS_BLD3,
     DEMO_USERS,
     generateResidentCode,
-    generatePortalCode,
 } from './lib/mockData.js'
+
+// Generate a random 4-digit PIN for resident portal access
+function generatePortalPin() {
+    return String(Math.floor(1000 + Math.random() * 9000))
+}
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
 // Current billing month — update this when connecting real backend
@@ -5977,11 +5981,13 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
         type: resident.type ?? 'proprietaire',
         paidThrough: resident.paidThrough ?? '',
         monthly_fee: resident.monthly_fee?.toString() ?? '',
+        portalPin: resident.portalPin ?? '',
     })
     const [saving, setSaving] = useState(false)
     const [confirmSave, setConfirmSave] = useState(false)
     const [confirmDel, setConfirmDel] = useState(false)
     const [errors, setErrors] = useState({})
+    const [pinCopied, setPinCopied] = useState(false)
 
     function set(k, v) {
         setForm(f => ({ ...f, [k]: v }))
@@ -6009,6 +6015,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
             type: form.type,
             paidThrough: form.paidThrough || resident.paidThrough,
             monthly_fee: form.monthly_fee ? parseInt(form.monthly_fee) : resident.monthly_fee,
+            ...(form.portalPin ? { portalPin: form.portalPin } : {}),
         })
     }
 
@@ -6094,6 +6101,41 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold">MAD/mois</span>
                     </div>
+                </div>
+
+                {/* ── PIN Portail Résident ── */}
+                <div className="border-t border-white/8 pt-4">
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                        PIN portail résident
+                        <span className="ml-2 text-[10px] font-normal text-slate-500">— 4 chiffres, communiqué par WhatsApp</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                        <code className="flex-1 bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-sp tracking-[0.3em] text-center select-all">
+                            {form.portalPin || '—'}
+                        </code>
+                        <button type="button"
+                            title="Copier le PIN"
+                            onClick={() => {
+                                if (!form.portalPin) return
+                                navigator.clipboard.writeText(form.portalPin).catch(() => {})
+                                setPinCopied(true)
+                                setTimeout(() => setPinCopied(false), 2000)
+                            }}
+                            className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-sp/30 transition-colors flex-shrink-0"
+                        >
+                            {pinCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-slate-400" />}
+                        </button>
+                        <button type="button"
+                            title="Générer un nouveau PIN"
+                            onClick={() => { set('portalPin', generatePortalPin()); setConfirmSave(false) }}
+                            className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-amber-400/30 hover:text-amber-400 text-slate-400 transition-colors flex-shrink-0"
+                        >
+                            <RefreshCw size={14} />
+                        </button>
+                    </div>
+                    {!form.portalPin && (
+                        <p className="text-[10px] text-amber-400/70 mt-1.5">Aucun PIN — cliquez sur ↻ pour en générer un.</p>
+                    )}
                 </div>
 
                 {/* ── Correction du paiement ── */}
@@ -6207,7 +6249,7 @@ function AddResidentModal({ onClose, onAdd, building }) {
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
             monthly_fee: parseInt(form.monthly_fee) || 250,
-            portalCode: generatePortalCode(building?.shortCode ?? 'XX'),
+            portalPin: generatePortalPin(),
             isNew: true,
         })
         setSaving(false)

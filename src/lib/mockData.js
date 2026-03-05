@@ -579,19 +579,20 @@ export function validateResidentCodeDirect(code) {
     return null
 }
 
-export function validateResidentAccess(accessCode, unitInput) {
+export function validateResidentAccess(accessCode, pinInput) {
     const building = BUILDINGS.find(
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
     )
     if (!building) return null
-    const normalizedUnit = unitInput.toLowerCase().trim()
+    const normalizedPin = pinInput.trim()
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []
-    const resident = residents.find(r => r.unit.toLowerCase() === normalizedUnit)
+    // Match by stored portalPin; fall back to index-derived demo PIN (1000, 1001, …)
+    const resident = residents.find((r, i) => (r.portalPin ?? String(1000 + i)) === normalizedPin)
     if (resident) return { building, resident }
     // Also check runtime-added residents persisted by handleAddResident
     try {
         const extras = JSON.parse(localStorage.getItem(`sp_residents_extra_${building.id}`) ?? '[]')
-        const extra = extras.find(r => r.unit.toLowerCase() === normalizedUnit)
+        const extra = extras.find(r => r.portalPin === normalizedPin)
         if (extra) return { building, resident: extra }
     } catch { }
     return null
