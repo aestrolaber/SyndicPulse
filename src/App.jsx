@@ -1609,13 +1609,16 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast 
             </div>
             <div className="flex items-center gap-3">
                 <button
-                    onClick={() => setThemeMode(t => t === 'navy' ? 'gold' : 'navy')}
-                    title={themeMode === 'navy' ? 'Passer au thème Indigo/Or' : 'Passer au thème Marine/Cyan'}
+                    onClick={() => setThemeMode(t => t === 'navy' ? 'gold' : t === 'gold' ? 'white' : 'navy')}
+                    title={themeMode === 'navy' ? 'Passer au thème Indigo/Or' : themeMode === 'gold' ? 'Passer au thème Blanc Pro' : 'Passer au thème Marine/Cyan'}
                     className="relative p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-white/5 transition-colors group"
                 >
                     <Palette size={17} className="text-slate-400 group-hover:text-sp transition-colors" />
                     {themeMode === 'gold' && (
                         <span className="absolute top-1 right-1 w-2 h-2 bg-amber-400 rounded-full border border-navy-800" />
+                    )}
+                    {themeMode === 'white' && (
+                        <span className="absolute top-1 right-1 w-2 h-2 bg-blue-600 rounded-full border border-slate-200" />
                     )}
                 </button>
                 <button
