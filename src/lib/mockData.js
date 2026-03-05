@@ -585,14 +585,17 @@ export function validateResidentAccess(accessCode, pinInput) {
     )
     if (!building) return null
     const normalizedPin = pinInput.trim()
+    // Load revocation list — residents deleted by the syndic must not access the portal
+    let revoked = []
+    try { revoked = JSON.parse(localStorage.getItem(`sp_revoked_${building.id}`) ?? '[]') } catch { }
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []
     // Match by stored portalPin; fall back to index-derived demo PIN (1000, 1001, …)
-    const resident = residents.find((r, i) => (r.portalPin ?? String(1000 + i)) === normalizedPin)
+    const resident = residents.find((r, i) => !revoked.includes(r.id) && (r.portalPin ?? String(1000 + i)) === normalizedPin)
     if (resident) return { building, resident }
     // Also check runtime-added residents persisted by handleAddResident
     try {
         const extras = JSON.parse(localStorage.getItem(`sp_residents_extra_${building.id}`) ?? '[]')
-        const extra = extras.find(r => r.portalPin === normalizedPin)
+        const extra = extras.find(r => !revoked.includes(r.id) && r.portalPin === normalizedPin)
         if (extra) return { building, resident: extra }
     } catch { }
     return null

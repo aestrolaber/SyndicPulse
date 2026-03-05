@@ -46,8 +46,11 @@ import {
 } from './lib/mockData.js'
 
 // Generate a random 4-digit PIN for resident portal access
-function generatePortalPin() {
-    return String(Math.floor(1000 + Math.random() * 9000))
+function generatePortalPin(existingPins = []) {
+    const used = new Set(existingPins)
+    let pin
+    do { pin = String(Math.floor(1000 + Math.random() * 9000)) } while (used.has(pin))
+    return pin
 }
 
 /* ── Payment tracking helpers ─────────────────────────────────────────── */
@@ -4202,6 +4205,14 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                 localStorage.setItem(key, JSON.stringify({ ...map, [updated.id]: updated.paidThrough }))
             } catch { }
         }
+        // Sync extras localStorage so portal PIN changes take effect immediately
+        try {
+            const eKey = `sp_residents_extra_${building.id}`
+            const existing = JSON.parse(localStorage.getItem(eKey) ?? '[]')
+            if (existing.some(x => x.id === updated.id)) {
+                localStorage.setItem(eKey, JSON.stringify(existing.map(x => x.id === updated.id ? { ...x, ...updated } : x)))
+            }
+        } catch { }
         setEditingResident(null)
         showToast(`${updated.name} — modifications enregistrées`)
     }
@@ -4209,6 +4220,18 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
     function handleDeleteResident(id) {
         const r = residents.find(x => x.id === id)
         setResidents(prev => prev.filter(x => x.id !== id))
+        // Remove from extras localStorage (runtime-added residents)
+        try {
+            const eKey = `sp_residents_extra_${building.id}`
+            const existing = JSON.parse(localStorage.getItem(eKey) ?? '[]')
+            localStorage.setItem(eKey, JSON.stringify(existing.filter(x => x.id !== id)))
+        } catch { }
+        // Add to revocation list so portal access is denied (covers mock data residents too)
+        try {
+            const rKey = `sp_revoked_${building.id}`
+            const revoked = JSON.parse(localStorage.getItem(rKey) ?? '[]')
+            if (!revoked.includes(id)) localStorage.setItem(rKey, JSON.stringify([...revoked, id]))
+        } catch { }
         setEditingResident(null)
         showToast(`${r?.name} supprimé(e)`)
     }
@@ -4590,7 +4613,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
             {/* Modals */}
             <AnimatePresence>
                 {showAddResident && (
-                    <AddResidentModal onClose={() => setShowAddResident(false)} onAdd={handleAddResident} building={building} />
+                    <AddResidentModal onClose={() => setShowAddResident(false)} onAdd={handleAddResident} building={building} residents={residents} />
                 )}
                 {showImportCSV && (
                     <ImportCSVModal onClose={() => setShowImportCSV(false)} onImport={handleImport} />
@@ -4608,6 +4631,7 @@ function ResidentsPage({ building, data, residents, setResidents, showToast }) {
                         onSave={handleEditResident}
                         onDelete={handleDeleteResident}
                         onClose={() => setEditingResident(null)}
+                        allResidents={residents}
                     />
                 )}
             </AnimatePresence>
@@ -6064,7 +6088,7 @@ Cordialement,
     )
 }
 
-function EditResidentModal({ resident, onSave, onDelete, onClose }) {
+function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents = [] }) {
     const [form, setForm] = useState({
         name: resident.name,
         phone: resident.phone === '—' ? '' : resident.phone,
@@ -6219,7 +6243,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
                         </button>
                         <button type="button"
                             title="Générer un nouveau PIN"
-                            onClick={() => { set('portalPin', generatePortalPin()); setConfirmSave(false) }}
+                            onClick={() => { set('portalPin', generatePortalPin(allResidents.filter(x => x.id !== resident.id).map(r => r.portalPin).filter(Boolean))); setConfirmSave(false) }}
                             className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-amber-400/30 hover:text-amber-400 text-slate-400 transition-colors flex-shrink-0"
                         >
                             <RefreshCw size={14} />
@@ -6309,7 +6333,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose }) {
     )
 }
 
-function AddResidentModal({ onClose, onAdd, building }) {
+function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
     const [form, setForm] = useState({
         name: '',
         phone: '',
@@ -6342,7 +6366,7 @@ function AddResidentModal({ onClose, onAdd, building }) {
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
             monthly_fee: parseInt(form.monthly_fee) || 250,
-            portalPin: generatePortalPin(),
+            portalPin: generatePortalPin(residents.map(r => getResidentPortalPin(r, building.id)).filter(Boolean)),
             isNew: true,
         }
         onAdd(newResident)
