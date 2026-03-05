@@ -4425,6 +4425,39 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
         setTimeout(() => setResidents(prev => prev.map(x => ids.has(x.id) ? { ...x, isNew: false } : x)), 5000)
     }
 
+    function exportResidentsExcel() {
+        const STATUS_LABELS = { paid: 'Payé', pending: 'En attente', overdue: 'En retard' }
+        const rows = filtered.map(r => {
+            const st = computeStatus(r.paidThrough)
+            const fee = rFee(r)
+            const unpaidMonths = getUnpaidMonthsCount(r.paidThrough)
+            return {
+                'Unité':           r.unit,
+                'Nom':             r.name,
+                'Téléphone':       r.phone || '—',
+                'Étage':           r.floor ?? 0,
+                'Depuis':          r.since || '—',
+                'Statut':          STATUS_LABELS[st] ?? st,
+                'Payé jusqu\'à':   r.paidThrough ? formatMonth(r.paidThrough) : '—',
+                'Cotisation (MAD)':fee,
+                'Solde dû (MAD)':  st === 'paid' ? 0 : unpaidMonths * fee,
+                'Mois impayés':    st === 'paid' ? 0 : unpaidMonths,
+                'PIN Portail':     r.portalPin ?? r.portal_pin ?? '—',
+            }
+        })
+        const ws = XLSX.utils.json_to_sheet(rows)
+        // Column widths
+        ws['!cols'] = [
+            { wch: 10 }, { wch: 24 }, { wch: 16 }, { wch: 7 },
+            { wch: 10 }, { wch: 13 }, { wch: 14 }, { wch: 16 },
+            { wch: 14 }, { wch: 13 }, { wch: 11 },
+        ]
+        const wb = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(wb, ws, 'Résidents')
+        const date = new Date().toISOString().slice(0, 10)
+        XLSX.writeFile(wb, `Résidents_${building.name}_${date}.xlsx`)
+    }
+
     return (
         <div className="space-y-6">
             {/* Stats — clickable filter cards (Ctrl+clic = multi-select) */}
@@ -4493,6 +4526,13 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                     className="flex items-center gap-2 px-4 py-2.5 bg-navy-700 hover:bg-navy-600 text-slate-200 rounded-xl text-sm font-semibold transition-all border border-white/8 flex-shrink-0"
                 >
                     <Upload size={15} /> Importer CSV / Excel
+                </button>
+                <button
+                    onClick={exportResidentsExcel}
+                    title={`Exporter ${filtered.length} résident${filtered.length > 1 ? 's' : ''} (Excel)`}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-xl text-sm font-semibold transition-all border border-emerald-500/20 flex-shrink-0"
+                >
+                    <Download size={15} /> Exporter Excel
                 </button>
                 {counts.overdue > 0 && (
                     <button
