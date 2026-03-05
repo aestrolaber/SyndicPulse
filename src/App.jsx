@@ -839,7 +839,7 @@ function Dashboard() {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
-                    {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} />}
+                    {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} themeMode={themeMode} />}
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} showToast={showToast} />}
                     {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} showToast={showToast} />}
@@ -1646,7 +1646,7 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast 
 /* ══════════════════════════════════════════
    DASHBOARD PAGE
 ══════════════════════════════════════════ */
-function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab, showToast }) {
+function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab, showToast, themeMode }) {
     const [showWAModal, setShowWAModal] = useState(false)
     const [showTransparenceModal, setShowTransparenceModal] = useState(false)
     const overdueResidents = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
