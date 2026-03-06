@@ -333,6 +333,9 @@ export default function LoginPage({ onResidentLogin }) {
                         <p className="mt-5 text-center text-[11px]" style={{ color: 'rgba(148,163,200,0.4)' }}>
                             Votre PIN vous a été communiqué par votre syndic via WhatsApp.
                         </p>
+                        <p className="mt-1.5 text-center text-[10px]" style={{ color: 'rgba(148,163,200,0.28)' }}>
+                            Démo — <span className="font-mono">NRWST-2026</span> / PIN <span className="font-mono">100001</span>
+                        </p>
                     </motion.div>
                 )}
 

@@ -165,7 +165,7 @@ function getResidentPortalPin(r, buildingId) {
     if (r.portalPin) return r.portalPin
     const src = { 'bld-1': RESIDENTS_BLD1, 'bld-2': RESIDENTS_BLD2, 'bld-3': RESIDENTS_BLD3 }[buildingId] ?? []
     const idx = src.findIndex(or => or.id === r.id)
-    return idx >= 0 ? String(1000 + idx) : null
+    return idx >= 0 ? String(100000 + idx) : null
 }
 
 /* ── Default portal WA template (with {variable} placeholders) ── */

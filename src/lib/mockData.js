@@ -618,8 +618,8 @@ export async function validateResidentAccess(accessCode, pinInput, runtimeReside
     let revoked = []
     try { revoked = JSON.parse(localStorage.getItem(`sp_revoked_${building.id}`) ?? '[]') } catch { }
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []
-    // Match by stored portalPin; fall back to index-derived demo PIN (1000, 1001, …)
-    const resident = residents.find((r, i) => !revoked.includes(r.id) && (r.portalPin ?? String(1000 + i)) === normalizedPin)
+    // Match by stored portalPin; fall back to index-derived demo PIN (100000, 100001, …)
+    const resident = residents.find((r, i) => !revoked.includes(r.id) && (r.portalPin ?? String(100000 + i)) === normalizedPin)
     if (resident) return { building, resident }
     return null
 }
