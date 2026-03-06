@@ -27,6 +27,12 @@ export async function hashPassword(plain) {
     return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+// Salted PIN hash — salt = residentId prevents rainbow-table attacks across residents
+// e.g. hashPin('123456', 'res-001') → SHA-256('res-001:123456')
+export async function hashPin(pin, residentId) {
+    return hashPassword(`${residentId}:${pin}`)
+}
+
 // ── Auth mock ──────────────────────────────────────────────────────────────────
 const auth = {
     async signInWithPassword({ email, password }) {
