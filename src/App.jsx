@@ -701,6 +701,7 @@ function Dashboard() {
     const [activeTab, setActiveTab] = useState('dashboard')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const [showBuildingMenu, setShowBuildingMenu] = useState(false)
+    const [bldgSearch, setBldgSearch] = useState('')
     const [toast, setToast] = useState(null) // { message, type }
     const [residentsByBldg, setResidentsByBldg] = useState({})  // shared across tabs
     const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
@@ -996,6 +997,7 @@ function Dashboard() {
                 onSwitchBuilding={(b) => {
                     setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b)
                     setShowBuildingMenu(false)
+                    setBldgSearch('')
                     setActiveTab('dashboard')
                 }}
                 setIsVoiceOpen={setIsVoiceOpen}
@@ -1167,8 +1169,10 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
     useEffect(() => {
         function handleClick(e) {
-            if (menuRef.current && !menuRef.current.contains(e.target))
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
                 setShowBuildingMenu(false)
+                setBldgSearch('')
+            }
         }
         document.addEventListener('mousedown', handleClick)
         return () => document.removeEventListener('mousedown', handleClick)
@@ -1182,8 +1186,22 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
             {/* Platform brand */}
             <div className="px-5 py-5 border-b border-white/5">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-sp flex items-center justify-center shadow-glow-cyan">
-                        <Zap size={15} className="text-white" strokeWidth={2.5} />
+                    <div className="w-7 h-7 rounded-lg bg-sp/10 border border-sp/30 flex items-center justify-center shadow-glow-cyan">
+                        {/* Stylized apartment building — 2 towers */}
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="5" width="6" height="10" rx="0.6" fill="#06b6d4" fillOpacity="0.35" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="9" y="2" width="6" height="13" rx="0.6" fill="#06b6d4" fillOpacity="0.55" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="2.5" y="7" width="1.5" height="1.5" rx="0.2" fill="#06b6d4"/>
+                            <rect x="5" y="7" width="1.5" height="1.5" rx="0.2" fill="#06b6d4"/>
+                            <rect x="2.5" y="10" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="5" y="10" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="10.5" y="4" width="1.5" height="1.5" rx="0.2" fill="#06b6d4"/>
+                            <rect x="13" y="4" width="1.5" height="1.5" rx="0.2" fill="#06b6d4"/>
+                            <rect x="10.5" y="7.5" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.8"/>
+                            <rect x="13" y="7.5" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.8"/>
+                            <rect x="10.5" y="11" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="13" y="11" width="1.5" height="1.5" rx="0.2" fill="#06b6d4" fillOpacity="0.6"/>
+                        </svg>
                     </div>
                     <span className="text-base font-bold tracking-tight text-white">
                         Syndic<span className="text-sp">Pulse</span>
@@ -1219,22 +1237,56 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
                         {showBuildingMenu && (
                             <div className="mt-2 rounded-xl bg-navy-700 border border-white/8 overflow-hidden shadow-2xl">
-                                {buildings.map(b => (
-                                    <button
-                                        key={b.id}
-                                        onClick={() => onSwitchBuilding(b)}
-                                        className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-navy-600 transition-colors text-left ${b.id === activeBuilding.id ? 'bg-navy-600' : ''}`}
-                                    >
-                                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-white truncate">{b.name}</p>
-                                            <p className="text-[11px] text-slate-400">{b.city} · {b.total_units} unités</p>
-                                        </div>
-                                        {b.id === activeBuilding.id && <CheckCircle2 size={13} className="text-sp flex-shrink-0" />}
-                                    </button>
-                                ))}
+                                {/* Search input */}
+                                <div className="px-2 pt-2 pb-1">
+                                    <div className="relative">
+                                        <Search size={11} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                                        <input
+                                            autoFocus
+                                            type="text"
+                                            value={bldgSearch}
+                                            onChange={e => setBldgSearch(e.target.value)}
+                                            placeholder="Rechercher une propriété..."
+                                            className="w-full bg-navy-600 border border-white/8 rounded-lg pl-7 pr-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/30 transition-colors"
+                                        />
+                                        {bldgSearch && (
+                                            <button onClick={() => setBldgSearch('')} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300">
+                                                <X size={10} />
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                {/* Scrollable list */}
+                                <div className="max-h-[200px] overflow-y-auto">
+                                    {buildings
+                                        .filter(b => {
+                                            const q = bldgSearch.toLowerCase()
+                                            return !q || b.name.toLowerCase().includes(q) || b.city?.toLowerCase().includes(q)
+                                        })
+                                        .map(b => (
+                                            <button
+                                                key={b.id}
+                                                onClick={() => { onSwitchBuilding(b); setBldgSearch('') }}
+                                                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-navy-600 transition-colors text-left ${b.id === activeBuilding.id ? 'bg-navy-600' : ''}`}
+                                            >
+                                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-white truncate">{b.name}</p>
+                                                    <p className="text-[11px] text-slate-400">{b.city} · {b.total_units} unités</p>
+                                                </div>
+                                                {b.id === activeBuilding.id && <CheckCircle2 size={13} className="text-sp flex-shrink-0" />}
+                                            </button>
+                                        ))
+                                    }
+                                    {buildings.filter(b => {
+                                        const q = bldgSearch.toLowerCase()
+                                        return !q || b.name.toLowerCase().includes(q) || b.city?.toLowerCase().includes(q)
+                                    }).length === 0 && (
+                                        <p className="text-[11px] text-slate-500 text-center py-3 px-3">Aucune propriété trouvée</p>
+                                    )}
+                                </div>
                                 <div className="border-t border-white/5 px-3 py-2">
-                                    <button onClick={() => { setShowBuildingMenu(false); onAddBuilding?.() }}
+                                    <button onClick={() => { setShowBuildingMenu(false); setBldgSearch(''); onAddBuilding?.() }}
                                         className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
                                         <Building2 size={11} /> Ajouter une propriété
                                     </button>
