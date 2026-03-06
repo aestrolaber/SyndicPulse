@@ -117,7 +117,12 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                             {DEMO_SESSIONS.map((s, i) => (
                                 <button
                                     key={i}
-                                    onClick={() => { setSessionIndex(i); handleReset() }}
+                                    onClick={() => {
+                                        setSessionIndex(i)
+                                        setPhase('idle')
+                                        setTranscript('')
+                                        setResponse('')
+                                    }}
                                     className={`flex-shrink-0 text-[10px] px-2.5 py-1.5 rounded-lg font-medium transition-all ${
                                         sessionIndex === i
                                             ? 'bg-sp/15 text-sp border border-sp/30'
