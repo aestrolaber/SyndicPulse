@@ -2193,6 +2193,7 @@ function PortfolioDashboard({ allBuildings, residentsByBldg, disputesByBldg, tic
 function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab, showToast, themeMode }) {
     const [showWAModal, setShowWAModal] = useState(false)
     const [showTransparenceModal, setShowTransparenceModal] = useState(false)
+    const [showTicketsModal, setShowTicketsModal] = useState(false)
     const overdueResidents = residents.filter(r => computeStatus(r.paidThrough) === 'overdue')
 
     // ── Transparence score (computed from live data) ──
@@ -2263,7 +2264,7 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
                         <KpiCard
                             key={k.label}
                             {...k}
-                            onInfo={k.label === 'Transparence' ? () => setShowTransparenceModal(true) : undefined}
+                            onInfo={k.label === 'Transparence' ? () => setShowTransparenceModal(true) : k.label === 'Tickets ouverts' ? () => setShowTicketsModal(true) : undefined}
                         />
                     ))}
                 </div>
@@ -2274,6 +2275,14 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
                         tier={transTier}
                         breakdown={transBreakdown}
                         onClose={() => setShowTransparenceModal(false)}
+                    />
+                )}
+
+                {showTicketsModal && (
+                    <TicketsInfoModal
+                        tickets={data.tickets}
+                        onClose={() => setShowTicketsModal(false)}
+                        onGoToPlanning={() => { setShowTicketsModal(false); setActiveTab('planning') }}
                     />
                 )}
 
@@ -8249,6 +8258,95 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
                             )
                         })}
                     </div>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+/* ── Tickets Info Modal ── */
+function TicketsInfoModal({ tickets, onClose, onGoToPlanning }) {
+    const inProgress = tickets.filter(t => t.status === 'in_progress')
+    const scheduled  = tickets.filter(t => t.status === 'scheduled')
+    const done       = tickets.filter(t => t.status === 'done')
+    const urgent     = tickets.filter(t => t.priority === 'urgent' && t.status !== 'done')
+    const openCount  = inProgress.length + scheduled.length
+
+    const rows = [
+        { label: 'En cours d\'intervention', count: inProgress.length, color: 'text-sp',          dot: 'bg-sp',           desc: 'Technicien ou prestataire actuellement mobilisé' },
+        { label: 'Planifiés',                 count: scheduled.length,  color: 'text-slate-300',    dot: 'bg-slate-400',    desc: 'Intervention programmée à une date future' },
+        { label: 'Terminés (historique)',     count: done.length,       color: 'text-emerald-400',  dot: 'bg-emerald-500',  desc: 'Interventions clôturées et archivées' },
+    ]
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                onClick={e => e.stopPropagation()}>
+
+                {/* Header */}
+                <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+                    <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+                            <Wrench size={18} className="text-amber-400" strokeWidth={1.5} />
+                        </div>
+                        <div>
+                            <p className="text-sm font-bold text-white">Tickets de maintenance</p>
+                            <p className="text-[11px] text-slate-500">Qu'est-ce qu'un ticket ouvert ?</p>
+                        </div>
+                    </div>
+                    <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/8 transition-colors">
+                        <X size={15} />
+                    </button>
+                </div>
+
+                {/* Definition */}
+                <div className="px-5 py-4 border-b border-white/8">
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                        Un <span className="text-white font-semibold">ticket de maintenance</span> est une intervention technique enregistrée pour la résidence — réparation, entretien, contrôle ou travaux. Il est considéré <span className="text-amber-400 font-semibold">ouvert</span> tant qu'il n'est pas marqué <span className="text-emerald-400 font-semibold">Terminé</span>.
+                    </p>
+                    <div className="mt-3 flex items-center gap-3">
+                        <div className="flex-1 bg-white/5 rounded-xl p-3 text-center border border-white/8">
+                            <p className="text-2xl font-bold text-amber-400">{openCount}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">ouverts</p>
+                        </div>
+                        {urgent.length > 0 && (
+                            <div className="flex-1 bg-red-500/8 rounded-xl p-3 text-center border border-red-500/20">
+                                <p className="text-2xl font-bold text-red-400">{urgent.length}</p>
+                                <p className="text-[10px] text-red-400/70 mt-0.5">urgents</p>
+                            </div>
+                        )}
+                        <div className="flex-1 bg-white/5 rounded-xl p-3 text-center border border-white/8">
+                            <p className="text-2xl font-bold text-emerald-400">{done.length}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">terminés</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Status breakdown */}
+                <div className="px-5 py-4 space-y-3">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Statuts des tickets</p>
+                    {rows.map(r => (
+                        <div key={r.label} className="flex items-center gap-3">
+                            <div className={`w-2 h-2 rounded-full flex-shrink-0 ${r.dot}`} />
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-[12px] font-semibold ${r.color}`}>{r.label}</p>
+                                <p className="text-[10px] text-slate-500">{r.desc}</p>
+                            </div>
+                            <span className={`text-sm font-bold ${r.color}`}>{r.count}</span>
+                        </div>
+                    ))}
+                </div>
+
+                {/* CTA */}
+                <div className="px-5 py-4 border-t border-white/8 bg-white/2">
+                    <button
+                        onClick={onGoToPlanning}
+                        className="w-full flex items-center justify-center gap-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-400 text-xs font-semibold py-2.5 rounded-xl transition-colors"
+                    >
+                        <Calendar size={13} />
+                        Gérer les interventions → Planning
+                    </button>
                 </div>
             </div>
         </div>
