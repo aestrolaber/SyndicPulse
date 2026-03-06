@@ -311,7 +311,7 @@ function buildCirculaireMessage(templateKey, vars, buildingName) {
         case 'proprete':
             return `Avis — Propreté & Règlement intérieur\n\nLe bureau du syndic de ${buildingName} attire votre attention sur : ${vars.sujet || '—'}.${vars.rappel ? `\n\nRappel : ${vars.rappel}` : ''}${vars.sanction ? `\n\nSanction prévue : ${vars.sanction}` : ''}\n\nNous comptons sur votre civisme et coopération.${closing}`
         case 'objet_trouve': {
-            const photoNote = vars.photo_b64 ? '\n\n📸 Une photo de l\'objet est disponible — à joindre manuellement dans WhatsApp.' : ''
+            const photoNote = vars.photo_b64 ? '\n\n📸 Photo disponible, aussi accessible via votre portail.' : ''
             return `Avis — Objet trouvé\n\nLe bureau du syndic de ${buildingName} informe les résidents qu'un objet a été trouvé :\n\n📦 Objet : ${vars.objet || '—'}\n📍 Lieu : ${vars.lieu || '—'}\n📅 Date : ${fmtDate(vars.date)}\n\n${vars.contact ? `Pour récupérer votre bien, contactez : ${vars.contact}` : 'Contactez le bureau du syndic ou la garderie pour récupérer votre bien.'}${photoNote}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
         }
         case 'avis_libre':
@@ -3801,6 +3801,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
     const [showAdd, setShowAdd] = useState(false)
     const [showManageTpls, setShowManageTpls] = useState(false)
     const [editingCirc, setEditingCirc] = useState(null)
+    const [editingObjetStatus, setEditingObjetStatus] = useState(null)
 
     const allTemplates = [...CIRCULAIRE_TEMPLATES, ...customTpls]
 
@@ -3816,7 +3817,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
             const next = [circ, ...prev]
             if (circ.template === 'objet_trouve') {
                 const objets = next.filter(c => c.template === 'objet_trouve')
-                if (objets.length > 200) {
+                if (objets.length > 60) {
                     const oldestId = objets[objets.length - 1].id
                     return next.filter(c => c.id !== oldestId)
                 }
@@ -3856,6 +3857,17 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
             c.id === id ? { ...c, status: 'réclamé', reclameAt: new Date().toISOString() } : c
         ))
         showToast('Réclamé — Pensez à sauvegarder la photo localement avant suppression automatique', 'warning')
+    }
+    function handleUpdateObjetStatus(id, newStatus) {
+        setCirculaires(prev => prev.map(c =>
+            c.id === id ? {
+                ...c,
+                status: newStatus,
+                reclameAt: newStatus === 'réclamé' ? (c.reclameAt ?? new Date().toISOString()) : null
+            } : c
+        ))
+        setEditingObjetStatus(null)
+        showToast(newStatus === 'réclamé' ? 'Marqué comme réclamé' : 'Remis en attente (ouvert)', 'success')
     }
     function daysUntilDelete(reclameAt) {
         if (!reclameAt) return null
@@ -3936,7 +3948,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                             <div className="flex items-center gap-2.5">
                                 <span className="text-lg">🔍</span>
                                 <p className="text-sm font-semibold text-white">Objets trouvés</p>
-                                <span className="text-[10px] text-slate-500">{objetsTrouves.length} / 200</span>
+                                <span className="text-[10px] text-slate-500">{objetsTrouves.length} / 60</span>
                             </div>
                             <div className="flex items-center gap-3">
                                 <button onClick={() => setShowAdd({ defaultTemplate: 'objet_trouve' })}
@@ -3992,8 +4004,8 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                                     className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/8 transition-colors">
                                                     <Copy size={13} />
                                                 </button>
-                                                {/* Edit object */}
-                                                <button onClick={() => setEditingCirc(circ)} title="Modifier l'objet trouvé"
+                                                {/* Change status */}
+                                                <button onClick={() => setEditingObjetStatus(circ)} title="Changer le statut"
                                                     className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-white/8 transition-colors">
                                                     <Pencil size={13} />
                                                 </button>
@@ -4114,6 +4126,39 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                     onClose={() => setShowManageTpls(false)}
                     showToast={showToast}
                 />
+            )}
+
+            {/* Objet trouvé — status picker modal */}
+            {editingObjetStatus && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-sm shadow-2xl p-5">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-2.5">
+                                <span className="text-lg">🔍</span>
+                                <p className="text-sm font-bold text-white">Statut de l'objet trouvé</p>
+                            </div>
+                            <button onClick={() => setEditingObjetStatus(null)} className="p-1 rounded-lg hover:bg-navy-700 text-slate-400 transition-colors"><X size={16} /></button>
+                        </div>
+                        <p className="text-xs text-slate-500 mb-0.5">Objet</p>
+                        <p className="text-sm font-semibold text-white mb-4 truncate">{editingObjetStatus.vars?.objet || '—'}</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Nouveau statut</p>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button
+                                onClick={() => handleUpdateObjetStatus(editingObjetStatus.id, 'en_attente')}
+                                className={`py-3 rounded-xl border text-sm font-semibold transition-colors flex flex-col items-center gap-1 ${(!editingObjetStatus.status || editingObjetStatus.status === 'en_attente') ? 'bg-amber-500/20 border-amber-500/40 text-amber-300' : 'bg-navy-700/60 border-white/10 text-slate-400 hover:border-amber-500/30 hover:text-amber-400'}`}>
+                                <span className="text-lg">📬</span>
+                                En attente
+                            </button>
+                            <button
+                                onClick={() => handleUpdateObjetStatus(editingObjetStatus.id, 'réclamé')}
+                                className={`py-3 rounded-xl border text-sm font-semibold transition-colors flex flex-col items-center gap-1 ${editingObjetStatus.status === 'réclamé' ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300' : 'bg-navy-700/60 border-white/10 text-slate-400 hover:border-emerald-500/30 hover:text-emerald-400'}`}>
+                                <span className="text-lg">✅</span>
+                                Réclamé
+                            </button>
+                        </div>
+                        <p className="text-[10px] text-slate-600 mt-3 text-center">Le statut actuel est mis en surbrillance</p>
+                    </div>
+                </div>
             )}
         </div>
     )
