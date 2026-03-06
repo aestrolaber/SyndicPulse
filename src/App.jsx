@@ -684,10 +684,26 @@ function LoadingScreen() {
     return (
         <div className="min-h-screen bg-navy-900 flex items-center justify-center">
             <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 rounded-xl bg-sp/15 border border-sp/20 flex items-center justify-center">
-                    <Zap size={20} className="text-sp animate-pulse" />
+                <div className="w-12 h-12 rounded-xl bg-sp/10 border border-sp/30 flex items-center justify-center animate-pulse">
+                    <svg width="22" height="22" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="1" y="5" width="6" height="10" rx="0.6" fill="#06b6d4" fillOpacity="0.35" stroke="#06b6d4" strokeWidth="1"/>
+                        <rect x="9" y="2" width="6" height="13" rx="0.6" fill="#06b6d4" fillOpacity="0.55" stroke="#06b6d4" strokeWidth="1"/>
+                        <rect x="2.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                        <rect x="5"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                        <rect x="2.5" y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                        <rect x="5"   y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                        <rect x="10.5" y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                        <rect x="13"   y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                        <rect x="10.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                        <rect x="13"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                        <rect x="10.5" y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                        <rect x="13"   y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                    </svg>
                 </div>
-                <p className="text-sm text-slate-400">Chargement de SyndicPulse...</p>
+                <div className="flex items-center gap-2">
+                    <span className="text-white font-bold text-sm">Syndic<span className="text-sp">Pulse</span></span>
+                    <span className="text-slate-500 text-sm">— chargement…</span>
+                </div>
             </div>
         </div>
     )
