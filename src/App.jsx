@@ -10227,6 +10227,19 @@ function ResidentPortal({ session, onLogout }) {
     const bldgData = getBuildingData(buildingId)
     const expenses = bldgData.expenses ?? []
 
+    // Fetch live Supabase residents for accurate collection rate + building stats
+    // Must be declared before any reference to liveResidentList below
+    const [liveResidentList, setLiveResidentList] = useState(null)
+    useEffect(() => {
+        fetchResidents(buildingId)
+            .then(r => { if (r.length > 0) setLiveResidentList(r) })
+            .catch(() => {})  // graceful fallback to mock data
+    }, [buildingId])
+
+    const [expandedCirc, setExpandedCirc] = useState(null)
+    const [copiedBankField, setCopiedBankField] = useState(null)
+    const [showPaymentPanel, setShowPaymentPanel] = useState(false)
+
     // Merge: fresh Supabase data (if loaded) → localStorage payment override → session snapshot
     const resident = (() => {
         const base = liveResidentList?.find(r => r.id === sessionResident.id) ?? sessionResident
@@ -10249,18 +10262,6 @@ function ResidentPortal({ session, onLogout }) {
     const status = computeStatus(resident.paidThrough)
 
     const nextAG = meetings.find(m => m.status === 'upcoming')
-
-    const [expandedCirc, setExpandedCirc] = useState(null)
-    const [copiedBankField, setCopiedBankField] = useState(null)
-    const [showPaymentPanel, setShowPaymentPanel] = useState(false)
-
-    // Fetch live Supabase residents for accurate collection rate + building stats
-    const [liveResidentList, setLiveResidentList] = useState(null)
-    useEffect(() => {
-        fetchResidents(buildingId)
-            .then(r => { if (r.length > 0) setLiveResidentList(r) })
-            .catch(() => {})  // graceful fallback to mock data
-    }, [buildingId])
 
     // ── Payment info (read localStorage override, fall back to building base data) ──
     const bankInfo = (() => {
