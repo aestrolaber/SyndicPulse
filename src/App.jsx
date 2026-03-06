@@ -310,8 +310,10 @@ function buildCirculaireMessage(templateKey, vars, buildingName) {
             return `Rappel — Assemblée Générale\n\nLe bureau du syndic de ${buildingName} vous rappelle que l'Assemblée Générale se tiendra le ${fmtDate(vars.date)} à ${vars.heure ?? '—'}.\n\nLieu : ${vars.lieu || '—'}${vars.odj ? `\n\nOrdre du jour :\n${vars.odj}` : ''}\n\nVotre présence est importante.${closing}`
         case 'proprete':
             return `Avis — Propreté & Règlement intérieur\n\nLe bureau du syndic de ${buildingName} attire votre attention sur : ${vars.sujet || '—'}.${vars.rappel ? `\n\nRappel : ${vars.rappel}` : ''}${vars.sanction ? `\n\nSanction prévue : ${vars.sanction}` : ''}\n\nNous comptons sur votre civisme et coopération.${closing}`
-        case 'objet_trouve':
-            return `Avis — Objet trouvé\n\nLe bureau du syndic de ${buildingName} informe les résidents qu'un objet a été trouvé :\n\n📦 Objet : ${vars.objet || '—'}\n📍 Lieu : ${vars.lieu || '—'}\n📅 Date : ${fmtDate(vars.date)}\n\n${vars.contact ? `Pour récupérer votre bien, contactez : ${vars.contact}` : 'Contactez le bureau du syndic ou la garderie pour récupérer votre bien.'}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
+        case 'objet_trouve': {
+            const photoNote = vars.photo_b64 ? '\n\n📸 Une photo de l\'objet est disponible — à joindre manuellement dans WhatsApp.' : ''
+            return `Avis — Objet trouvé\n\nLe bureau du syndic de ${buildingName} informe les résidents qu'un objet a été trouvé :\n\n📦 Objet : ${vars.objet || '—'}\n📍 Lieu : ${vars.lieu || '—'}\n📅 Date : ${fmtDate(vars.date)}\n\n${vars.contact ? `Pour récupérer votre bien, contactez : ${vars.contact}` : 'Contactez le bureau du syndic ou la garderie pour récupérer votre bien.'}${photoNote}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
+        }
         case 'avis_libre':
         default:
             return `${vars.titre ? `${vars.titre}\n\n` : ''}${vars.contenu || ''}\n\nCordialement,\nLe Bureau du Syndic — ${buildingName}`
@@ -3937,7 +3939,6 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                 <span className="text-[10px] text-slate-500">{objetsTrouves.length} / 200</span>
                             </div>
                             <div className="flex items-center gap-3">
-                                <span className="text-[10px] text-slate-500 italic">📷 Photos : prochaine version</span>
                                 <button onClick={() => setShowAdd({ defaultTemplate: 'objet_trouve' })}
                                     className="flex items-center gap-1.5 bg-orange-500/15 hover:bg-orange-500/25 border border-orange-500/25 text-orange-400 px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors">
                                     <Plus size={12} /> Signaler un objet
@@ -3957,8 +3958,13 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                     const remaining = daysUntilDelete(circ.reclameAt)
                                     const isArchived = circ.status === 'réclamé' && remaining === 0
                                     return (
-                                        <div key={circ.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-navy-700/30 transition-colors">
-                                            <span className="text-xl flex-shrink-0">🔍</span>
+                                        <div key={circ.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-navy-700/30 transition-colors">
+                                            {/* Thumbnail or icon */}
+                                            {v.photo_b64 ? (
+                                                <img src={v.photo_b64} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0 border border-white/10" />
+                                            ) : (
+                                                <span className="text-xl flex-shrink-0">🔍</span>
+                                            )}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm font-semibold text-white truncate">{v.objet || '—'}</p>
                                                 <p className="text-xs text-slate-400 truncate">{[v.lieu, v.date ? fmtDate(v.date) : null].filter(Boolean).join(' · ')}</p>
@@ -3981,6 +3987,16 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                                         ✓ Réclamé
                                                     </button>
                                                 )}
+                                                {/* WhatsApp prefill copy */}
+                                                <button onClick={() => handleCopyWA(circ)} title="Copier message WhatsApp"
+                                                    className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/8 transition-colors">
+                                                    <Copy size={13} />
+                                                </button>
+                                                {/* Edit object */}
+                                                <button onClick={() => setEditingCirc(circ)} title="Modifier l'objet trouvé"
+                                                    className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-cyan-500/20 text-slate-400 hover:text-cyan-400 border border-white/8 transition-colors">
+                                                    <Pencil size={13} />
+                                                </button>
                                                 <button onClick={() => handleDelete(circ.id)} title="Supprimer"
                                                     className="p-1.5 rounded-lg hover:bg-red-500/20 text-slate-500 hover:text-red-400 border border-transparent hover:border-white/8 transition-colors">
                                                     <Trash2 size={13} />
@@ -4151,6 +4167,38 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
         })
     }
 
+    function handlePhotoUpload(e) {
+        const file = e.target.files?.[0]
+        if (!file) return
+        if (!file.type.startsWith('image/')) { showToast('Format non valide — image uniquement (JPG, PNG)', 'error'); return }
+        const reader = new FileReader()
+        reader.onload = (ev) => {
+            const img = new Image()
+            img.onload = () => {
+                // Resize to max 600px — keeps base64 under ~100KB for localStorage safety
+                const MAX = 600
+                let { width, height } = img
+                if (width > MAX || height > MAX) {
+                    const ratio = Math.min(MAX / width, MAX / height)
+                    width = Math.round(width * ratio)
+                    height = Math.round(height * ratio)
+                }
+                const canvas = document.createElement('canvas')
+                canvas.width = width; canvas.height = height
+                canvas.getContext('2d').drawImage(img, 0, 0, width, height)
+                // Cascade quality to stay under ~130KB base64 (~97KB binary)
+                let q = 0.72
+                let dataUrl = canvas.toDataURL('image/jpeg', q)
+                if (dataUrl.length > 130000) dataUrl = canvas.toDataURL('image/jpeg', 0.50)
+                if (dataUrl.length > 130000) dataUrl = canvas.toDataURL('image/jpeg', 0.35)
+                if (dataUrl.length > 130000) dataUrl = canvas.toDataURL('image/jpeg', 0.20)
+                setVars(v => ({ ...v, photo_b64: dataUrl }))
+            }
+            img.src = ev.target.result
+        }
+        reader.readAsDataURL(file)
+    }
+
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
@@ -4243,18 +4291,31 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
                                 </div>
                             ))}
 
-                            {/* Photo field — objet trouvé only — coming soon */}
+                            {/* Photo field — objet trouvé */}
                             {selectedTemplate === 'objet_trouve' && (
-                                <div className="rounded-xl bg-navy-700/40 border border-dashed border-white/12 p-4">
-                                    <div className="flex items-center justify-between mb-3">
-                                        <p className="text-xs font-semibold text-slate-300">Photo de l'objet</p>
-                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/25">Prochaine version</span>
-                                    </div>
-                                    <div className="flex flex-col items-center justify-center gap-2 py-5 opacity-40 cursor-not-allowed select-none">
-                                        <Camera size={24} className="text-slate-400" />
-                                        <p className="text-xs text-slate-400">Joindre une photo de l'objet trouvé</p>
-                                        <p className="text-[10px] text-slate-500">Inclus dans la mise à niveau vers le module complet</p>
-                                    </div>
+                                <div>
+                                    <label className="block text-xs text-slate-400 mb-1.5">
+                                        Photo de l'objet <span className="text-slate-600">(optionnelle · max 1 Mo · redimensionnée auto)</span>
+                                    </label>
+                                    {vars.photo_b64 ? (
+                                        <div className="relative inline-block">
+                                            <img src={vars.photo_b64} alt="Aperçu" className="rounded-xl max-h-44 object-contain border border-white/10" />
+                                            <button
+                                                type="button"
+                                                onClick={() => setVars(v => ({ ...v, photo_b64: null }))}
+                                                className="absolute top-1.5 right-1.5 bg-black/70 hover:bg-red-500/80 rounded-full p-0.5 transition-colors"
+                                                title="Supprimer la photo">
+                                                <X size={12} className="text-white" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <label className="flex flex-col items-center justify-center gap-2 py-6 rounded-xl bg-navy-700/40 border border-dashed border-orange-500/25 hover:border-orange-500/50 cursor-pointer transition-colors">
+                                            <Camera size={22} className="text-orange-400" />
+                                            <p className="text-xs text-slate-300">Cliquez pour ajouter une photo</p>
+                                            <p className="text-[10px] text-slate-500">JPG / PNG · max 1 Mo · compressée à 600 px</p>
+                                            <input type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+                                        </label>
+                                    )}
                                 </div>
                             )}
 
@@ -10433,6 +10494,13 @@ function ResidentPortal({ session, onLogout }) {
                                                         {fullMsg}
                                                     </pre>
                                                 </div>
+                                                {/* Objet trouvé photo */}
+                                                {c.template === 'objet_trouve' && c.vars?.photo_b64 && (
+                                                    <div className="mt-3">
+                                                        <p className="text-[10px] text-amber-400/60 uppercase tracking-wider mb-1.5">📸 Photo de l'objet</p>
+                                                        <img src={c.vars.photo_b64} alt="Photo de l'objet trouvé" className="rounded-xl w-full max-h-52 object-contain bg-black/20 border border-amber-500/10" />
+                                                    </div>
+                                                )}
                                                 <p className="text-[10px] text-slate-600 mt-2 text-right">
                                                     Publié le {when} · {building.name}
                                                 </p>
