@@ -97,9 +97,9 @@ export default function LoginPage({ onResidentLogin }) {
                 if (liveResidents.length > 0) liveResidentsByBldg = { [matchedBuilding.id]: liveResidents }
             }
         } catch { /* fall through to mock validation */ }
-        const result = validateResidentAccess(residentCode, residentPin, liveResidentsByBldg)
+        const result = await validateResidentAccess(residentCode, residentPin, liveResidentsByBldg)
         if (!result) {
-            setResidentError('Code ou PIN incorrect. Vérifiez le code de votre résidence et votre PIN à 4 chiffres.')
+            setResidentError('Code ou PIN incorrect. Vérifiez le code de votre résidence et votre PIN à 6 chiffres.')
             setResidentLoading(false)
             return
         }

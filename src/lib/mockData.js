@@ -586,7 +586,7 @@ export function validateResidentCodeDirect(code) {
  * Supabase-loaded residents so newly-added residents can log in without a
  * page reload. Falls back to static mock data if Supabase is unavailable.
  */
-export function validateResidentAccess(accessCode, pinInput, runtimeResidentsByBldg = {}) {
+export async function validateResidentAccess(accessCode, pinInput, runtimeResidentsByBldg = {}) {
     const building = BUILDINGS.find(
         b => b.accessCode?.toLowerCase() === accessCode.toLowerCase().trim()
     )
@@ -596,15 +596,25 @@ export function validateResidentAccess(accessCode, pinInput, runtimeResidentsByB
     // 1. Check Supabase-loaded residents (passed by LoginPage)
     const live = runtimeResidentsByBldg[building.id] ?? []
     if (live.length > 0) {
-        const liveMatch = live.find(r =>
-            r.is_active !== false && (r.portal_pin ?? r.portalPin) === normalizedPin
-        )
-        if (liveMatch) return { building, resident: liveMatch }
-        // If we have live data but no match, deny (don't fall through to mock)
+        const { hashPin } = await import('./supabase.js')
+        for (const r of live) {
+            if (r.is_active === false) continue
+            const stored = r.portal_pin ?? r.portalPin
+            if (!stored) continue
+            // Detect hash (64-char hex) vs legacy plaintext — graceful migration
+            const isHash = /^[0-9a-f]{64}$/.test(stored)
+            if (isHash) {
+                const h = await hashPin(normalizedPin, r.id)
+                if (stored === h) return { building, resident: r }
+            } else {
+                if (stored === normalizedPin) return { building, resident: r }
+            }
+        }
+        // Live data loaded but no match → deny (don't fall through to mock)
         return null
     }
 
-    // 2. Static mock fallback (used when Supabase is unreachable)
+    // 2. Static mock fallback (used when Supabase is unreachable) — plaintext, unchanged
     let revoked = []
     try { revoked = JSON.parse(localStorage.getItem(`sp_revoked_${building.id}`) ?? '[]') } catch { }
     const residents = RESIDENTS_BY_BLDG[building.id] ?? []

@@ -30,7 +30,7 @@ import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/co
 import { useAuth } from './context/AuthContext.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import AIVoiceAgent from './components/AIVoiceAgent.jsx'
-import { hashPassword } from './lib/supabase.js'
+import { hashPassword, hashPin } from './lib/supabase.js'
 import {
     fetchResidents, upsertResident, deleteResident as dbDeleteResident,
     fetchExpenses, upsertExpense, deleteExpense,
@@ -55,11 +55,11 @@ import {
     generateResidentCode,
 } from './lib/mockData.js'
 
-// Generate a random 4-digit PIN for resident portal access
+// Generate a random 6-digit PIN for resident portal access (100000–999999)
 function generatePortalPin(existingPins = []) {
     const used = new Set(existingPins)
     let pin
-    do { pin = String(Math.floor(1000 + Math.random() * 9000)) } while (used.has(pin))
+    do { pin = String(Math.floor(100000 + Math.random() * 900000)) } while (used.has(pin))
     return pin
 }
 
@@ -6358,11 +6358,13 @@ function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents =
     const [confirmSave, setConfirmSave] = useState(false)
     const [confirmDel, setConfirmDel] = useState(false)
     const [errors, setErrors] = useState({})
+    // New PIN reset flow: newPlainPin holds the plaintext shown once, pinCopied tracks copy state
+    const [newPlainPin, setNewPlainPin] = useState(null)
     const [pinCopied, setPinCopied] = useState(false)
 
     function set(k, v) {
         setForm(f => ({ ...f, [k]: v }))
-        setConfirmSave(false) // reset confirm if user keeps editing
+        setConfirmSave(false)
     }
 
     function handleSubmit(e) {
@@ -6374,9 +6376,21 @@ function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents =
         setConfirmSave(true)
     }
 
+    async function handleGeneratePin() {
+        const plain = generatePortalPin(allResidents.filter(x => x.id !== resident.id).map(r => r.portalPin).filter(Boolean))
+        setNewPlainPin(plain)
+        setConfirmSave(false)
+        setPinCopied(false)
+    }
+
     async function doSave() {
         setSaving(true)
         await new Promise(r => setTimeout(r, 600))
+        // If a new PIN was generated, hash it before saving — never store plaintext
+        let pinUpdate = {}
+        if (newPlainPin) {
+            pinUpdate = { portalPin: await hashPin(newPlainPin, resident.id) }
+        }
         onSave({
             ...resident,
             name: form.name.trim(),
@@ -6386,7 +6400,7 @@ function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents =
             type: form.type,
             paidThrough: form.paidThrough || resident.paidThrough,
             monthly_fee: form.monthly_fee ? parseInt(form.monthly_fee) : resident.monthly_fee,
-            ...(form.portalPin ? { portalPin: form.portalPin } : {}),
+            ...pinUpdate,
         })
     }
 
@@ -6476,36 +6490,42 @@ function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents =
 
                 {/* ── PIN Portail Résident ── */}
                 <div className="border-t border-white/8 pt-4">
-                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-400 mb-2">
                         PIN portail résident
-                        <span className="ml-2 text-[10px] font-normal text-slate-500">— 4 chiffres, communiqué par WhatsApp</span>
+                        <span className="ml-2 text-[10px] font-normal text-slate-500">— 6 chiffres, communiqué par WhatsApp</span>
                     </label>
-                    <div className="flex items-center gap-2">
-                        <code className="flex-1 bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-bold text-sp tracking-[0.3em] text-center select-all">
-                            {form.portalPin || '—'}
-                        </code>
-                        <button type="button"
-                            title="Copier le PIN"
-                            onClick={() => {
-                                if (!form.portalPin) return
-                                navigator.clipboard.writeText(form.portalPin).catch(() => {})
-                                setPinCopied(true)
-                                setTimeout(() => setPinCopied(false), 2000)
-                            }}
-                            className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-sp/30 transition-colors flex-shrink-0"
-                        >
-                            {pinCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-slate-400" />}
-                        </button>
-                        <button type="button"
-                            title="Générer un nouveau PIN"
-                            onClick={() => { set('portalPin', generatePortalPin(allResidents.filter(x => x.id !== resident.id).map(r => r.portalPin).filter(Boolean))); setConfirmSave(false) }}
-                            className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-amber-400/30 hover:text-amber-400 text-slate-400 transition-colors flex-shrink-0"
-                        >
-                            <RefreshCw size={14} />
-                        </button>
-                    </div>
-                    {!form.portalPin && (
-                        <p className="text-[10px] text-amber-400/70 mt-1.5">Aucun PIN — cliquez sur ↻ pour en générer un.</p>
+                    {newPlainPin ? (
+                        /* New PIN generated — show once with copy button */
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-2 p-3 bg-emerald-500/8 border border-emerald-500/25 rounded-xl">
+                                <div className="flex-1">
+                                    <p className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider mb-0.5">Nouveau PIN — notez-le maintenant</p>
+                                    <code className="text-lg font-bold text-white tracking-[0.35em]">{newPlainPin}</code>
+                                </div>
+                                <button type="button" onClick={() => {
+                                    navigator.clipboard.writeText(newPlainPin).catch(() => {})
+                                    setPinCopied(true); setTimeout(() => setPinCopied(false), 2000)
+                                }} className="p-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors">
+                                    {pinCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-emerald-400" />}
+                                </button>
+                            </div>
+                            <p className="text-[10px] text-slate-500">Ce PIN ne sera plus visible après enregistrement. Transmettez-le au résident avant de sauvegarder.</p>
+                        </div>
+                    ) : (
+                        /* No new PIN yet — show locked state + generate button */
+                        <div className="flex items-center gap-2">
+                            <div className="flex-1 bg-navy-700 border border-white/8 rounded-xl px-3 py-2.5 flex items-center gap-2">
+                                <span className="text-slate-600 text-xs">●●●●●●</span>
+                                <span className="text-[11px] text-slate-500 italic">PIN actuel — chiffré, non lisible</span>
+                            </div>
+                            <button type="button" title="Générer un nouveau PIN" onClick={handleGeneratePin}
+                                className="p-2.5 bg-navy-700 border border-white/10 rounded-xl hover:border-amber-400/30 hover:text-amber-400 text-slate-400 transition-colors flex-shrink-0">
+                                <RefreshCw size={14} />
+                            </button>
+                        </div>
+                    )}
+                    {!resident.portalPin && !newPlainPin && (
+                        <p className="text-[10px] text-amber-400/70 mt-1.5">Aucun PIN enregistré — cliquez sur ↻ pour en générer un.</p>
                     )}
                 </div>
 
@@ -6612,8 +6632,11 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
         if (Object.keys(errs).length) { setErrors(errs); return }
         setSaving(true)
         await new Promise(r => setTimeout(r, 900))
+        const plainPin = generatePortalPin(residents.map(r => getResidentPortalPin(r, building.id)).filter(Boolean))
+        const resId = `r-${Date.now()}`
+        const hashedPin = await hashPin(plainPin, resId)
         const newResident = {
-            id: `r-${Date.now()}`,
+            id: resId,
             unit: form.unit.toUpperCase(),
             name: form.name.trim(),
             phone: form.phone || '—',
@@ -6622,11 +6645,12 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
             monthly_fee: parseInt(form.monthly_fee) || 250,
-            portalPin: generatePortalPin(residents.map(r => getResidentPortalPin(r, building.id)).filter(Boolean)),
+            portalPin: hashedPin,  // store hash; never store plaintext
             isNew: true,
         }
         onAdd(newResident)
-        if (sendWA && form.phone.trim()) openPortalWhatsApp(newResident, building)
+        // Pass plaintext PIN to WhatsApp message — shown once, never stored again
+        if (sendWA && form.phone.trim()) openPortalWhatsApp({ ...newResident, portalPin: plainPin }, building)
         setSaving(false)
         onClose()
     }
@@ -6863,6 +6887,8 @@ function ImportCSVModal({ onClose, onImport, building }) {
     const [parsedRows, setParsedRows] = useState([])
     const [parseError, setParseError] = useState('')
     const [importing, setImporting] = useState(false)
+    const [importedPins, setImportedPins] = useState([])   // [{ unit, name, pin }]
+    const [pinsCopied, setPinsCopied] = useState(false)
     const fileRef = useRef(null)
 
     const detectedCols = parsedRows.length > 0
@@ -6909,29 +6935,24 @@ function ImportCSVModal({ onClose, onImport, building }) {
         setImporting(true)
         await new Promise(r => setTimeout(r, 900))
         const buildingFee = building?.monthly_fee ?? 850
-        onImport(parsedRows.map((row, i) => {
-            // Resolve per-resident monthly fee (from row or building default)
+        const now = Date.now()
+
+        // Build base rows (need IDs before PIN hashing)
+        const baseRows = parsedRows.map((row, i) => {
             const rowFee = row.monthly_fee ? parseFloat(row.monthly_fee) : null
             const fee = rowFee || buildingFee
-
-            // Compute months paid upfront
             let moisPayes = 0
             if (row.mois_payes !== undefined && row.mois_payes !== '') {
                 moisPayes = Math.max(0, parseInt(row.mois_payes) || 0)
             } else if (row.montant_paye !== undefined && row.montant_paye !== '' && fee > 0) {
                 moisPayes = Math.max(0, Math.floor(parseFloat(row.montant_paye) / fee))
             }
-
-            // paidThrough: 0 months → pending (1 month behind); N months → N months from current
             const paidThrough = moisPayes > 0
                 ? advancePaidThrough(CURRENT_MONTH, moisPayes - 1)
                 : advancePaidThrough(CURRENT_MONTH, -1)
-
-            // since: use CSV column if provided, else current month
             const since = row.depuis && row.depuis.trim() ? row.depuis.trim() : formatMonth(CURRENT_MONTH)
-
             return {
-                id: `csv-${Date.now()}-${i}`,
+                id: `csv-${now}-${i}`,
                 unit: row.unite,
                 name: row.nom,
                 phone: row.telephone || '',
@@ -6944,7 +6965,21 @@ function ImportCSVModal({ onClose, onImport, building }) {
                 quota: row.quota ? parseFloat(row.quota) : null,
                 isNew: true,
             }
+        })
+
+        // Generate unique 6-digit PINs and hash them (salted with resident ID)
+        const usedPins = new Set()
+        const pinsInfo = []
+        const finalRows = await Promise.all(baseRows.map(async r => {
+            const plainPin = generatePortalPin([...usedPins])
+            usedPins.add(plainPin)
+            const hashedPin = await hashPin(plainPin, r.id)
+            pinsInfo.push({ unit: r.unit, name: r.name, pin: plainPin })
+            return { ...r, portalPin: hashedPin }
         }))
+
+        setImportedPins(pinsInfo)
+        onImport(finalRows)
         setImporting(false)
         setStep(3)
     }
@@ -7105,11 +7140,11 @@ function ImportCSVModal({ onClose, onImport, building }) {
 
             {/* Step 3: Success */}
             {step === 3 && (
-                <div className="text-center py-4 space-y-5">
-                    <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                        <CheckCircle2 size={32} className="text-emerald-400" />
-                    </div>
-                    <div>
+                <div className="py-2 space-y-5">
+                    <div className="text-center">
+                        <div className="w-14 h-14 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
+                            <CheckCircle2 size={28} className="text-emerald-400" />
+                        </div>
                         <p className="text-lg font-bold text-white">
                             {parsedRows.length} résident{parsedRows.length > 1 ? 's' : ''} importé{parsedRows.length > 1 ? 's' : ''} !
                         </p>
@@ -7118,15 +7153,53 @@ function ImportCSVModal({ onClose, onImport, building }) {
                             <span className="text-amber-400 font-semibold">En attente</span>.
                         </p>
                     </div>
-                    <div className="bg-navy-700 rounded-xl p-4 text-left space-y-2.5 border border-white/5 max-h-48 overflow-y-auto">
-                        {parsedRows.map((row, i) => (
-                            <div key={i} className="flex items-center gap-2.5 text-sm">
-                                <span className="font-mono text-[11px] text-sp bg-sp/10 px-1.5 py-0.5 rounded flex-shrink-0">{row.unite}</span>
-                                <span className="text-slate-200 truncate">{row.nom}</span>
-                                <CheckCircle2 size={13} className="text-emerald-400 ml-auto flex-shrink-0" />
+
+                    {/* PIN list — one-time display */}
+                    <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl p-4 space-y-3">
+                        <div className="flex items-start gap-2.5">
+                            <AlertTriangle size={15} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                            <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-amber-300">PINs portail — affichage unique</p>
+                                <p className="text-[11px] text-amber-400/80 mt-0.5">
+                                    Ces PINs ne seront plus visibles après fermeture. Communiquez-les à chaque résident via WhatsApp.
+                                </p>
                             </div>
-                        ))}
+                            <button
+                                onClick={() => {
+                                    const text = importedPins.map(p => `Apt. ${p.unit} — ${p.name}: ${p.pin}`).join('\n')
+                                    navigator.clipboard.writeText(text).then(() => { setPinsCopied(true); setTimeout(() => setPinsCopied(false), 2500) })
+                                }}
+                                className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 transition-colors flex-shrink-0"
+                            >
+                                {pinsCopied ? <><Check size={11} /> Copié</> : <><Copy size={11} /> Tout copier</>}
+                            </button>
+                        </div>
+                        <div className="rounded-lg border border-white/8 overflow-hidden">
+                            <div className="max-h-44 overflow-y-auto">
+                                <table className="w-full text-xs">
+                                    <thead className="sticky top-0 bg-navy-700">
+                                        <tr>
+                                            <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Unité</th>
+                                            <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Résident</th>
+                                            <th className="px-3 py-2 text-left text-[10px] font-semibold text-slate-500 uppercase tracking-wider">PIN portail</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-white/5">
+                                        {importedPins.map((p, i) => (
+                                            <tr key={i} className="bg-navy-800/40">
+                                                <td className="px-3 py-2 font-mono text-sp font-semibold">{p.unit}</td>
+                                                <td className="px-3 py-2 text-slate-300 truncate max-w-[120px]">{p.name}</td>
+                                                <td className="px-3 py-2">
+                                                    <span className="font-mono font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded tracking-widest">{p.pin}</span>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
+
                     <button onClick={onClose}
                         className="w-full py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all">
                         Fermer
