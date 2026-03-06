@@ -440,3 +440,17 @@ export async function fetchBackups(buildingId, limit = 5) {
     checkError(error, 'fetchBackups')
     return data ?? []
 }
+
+// ── BUILDING PURGE ─────────────────────────────────────────────────────────────
+
+/**
+ * Delete ALL Supabase rows for a building across every table.
+ * Called by deleteBuilding() after the building is removed from app state.
+ * Fire-and-forget is acceptable — orphans are cleaned by this function on next deletion.
+ */
+export async function purgeBuilding(buildingId) {
+    const tables = ['disputes', 'residents', 'expenses', 'tickets', 'suppliers', 'meetings', 'building_settings', 'backups']
+    await Promise.all(tables.map(table =>
+        db.from(table).delete().eq('building_id', buildingId)
+    ))
+}

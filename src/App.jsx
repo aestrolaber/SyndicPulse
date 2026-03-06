@@ -40,7 +40,7 @@ import {
     fetchSuppliers, upsertSupplier, deleteSupplier,
     fetchMeetings, upsertMeeting, deleteMeeting,
     fetchBuildingSettings, saveBuildingSettings,
-    createBackup, fetchBackups,
+    createBackup, fetchBackups, purgeBuilding,
 } from './lib/db.js'
 
 import {
@@ -1132,6 +1132,8 @@ function Dashboard() {
             const remaining = [...accessibleBuildings, ...extraBuildings.filter(b => b.id !== bldId)]
             if (remaining.length > 0) setActiveBuilding(remaining[0])
         }
+        // Purge all Supabase data for this building (fire-and-forget — non-blocking)
+        purgeBuilding(bldId).catch(() => {}) // silently ignore if offline
         setPendingDeleteBuilding(null)
         showToast('Propriété supprimée.', 'success')
     }
