@@ -215,7 +215,7 @@ const NAV = [
     { id: 'assemblees', label: 'Assemblées', icon: CalendarCheck },
     { id: 'fournisseurs', label: 'Fournisseurs', icon: Truck },
     { id: 'circulaires', label: 'Circulaires', icon: Megaphone },
-    { id: 'users', label: 'Utilisateurs', icon: UserCog, adminOnly: true },
+    { id: 'users', label: 'Utilisateurs', icon: UserCog },
 ]
 
 /* ── Circulaire templates ── */
@@ -8602,7 +8602,10 @@ function EditAGModal({ meeting, onClose, onSave, onDelete }) {
    USERS PAGE  (super_admin only)
 ══════════════════════════════════════════ */
 function UsersPage({ showToast, allBuildings = BUILDINGS }) {
+    const { user: currentUser, isSuperAdmin } = useAuth()
     const [showCreate, setShowCreate] = useState(false)
+    const [showEdit, setShowEdit] = useState(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState(null)
     const [, forceUpdate] = useState(0)
 
     function getAllUsers() {
@@ -8610,17 +8613,40 @@ function UsersPage({ showToast, allBuildings = BUILDINGS }) {
         return [...DEMO_USERS, ...created]
     }
 
-    const users = getAllUsers()
+    // Super admin sees all; syndic_manager sees only users that share a building with them
+    const allUsers = getAllUsers()
+    const users = isSuperAdmin
+        ? allUsers
+        : allUsers.filter(u => {
+            const myBlds = currentUser?.accessible_building_ids ?? []
+            return (u.accessible_building_ids ?? []).some(id => myBlds.includes(id))
+        })
 
     const ROLE_META = {
         super_admin: { label: 'Super Admin', cls: 'bg-violet-500/15 text-violet-400 border-violet-500/20' },
         syndic_manager: { label: 'Syndic', cls: 'bg-sp/15 text-sp border-sp/20' },
     }
 
-    function handleCreated() {
-        forceUpdate(n => n + 1)
-        showToast?.('Compte créé avec succès.', 'success')
+    // Demo accounts and super_admin accounts can only be touched by super_admin;
+    // a syndic_manager can only manage non-demo, non-admin users who share their building
+    function canManage(targetUser) {
+        if (DEMO_USERS.some(d => d.id === targetUser.id)) return false
+        if (isSuperAdmin) return true
+        if (targetUser.role === 'super_admin') return false
+        const myBlds = currentUser?.accessible_building_ids ?? []
+        return (targetUser.accessible_building_ids ?? []).some(id => myBlds.includes(id))
     }
+
+    function handleDelete(userId) {
+        const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        localStorage.setItem('sp_created_users', JSON.stringify(existing.filter(u => u.id !== userId)))
+        setConfirmDeleteId(null)
+        forceUpdate(n => n + 1)
+        showToast?.('Compte supprimé.', 'success')
+    }
+
+    function handleCreated() { forceUpdate(n => n + 1); showToast?.('Compte créé avec succès.', 'success') }
+    function handleSaved()   { forceUpdate(n => n + 1); setShowEdit(null); showToast?.('Compte mis à jour.', 'success') }
 
     return (
         <div className="space-y-6">
@@ -8630,25 +8656,32 @@ function UsersPage({ showToast, allBuildings = BUILDINGS }) {
                     <h1 className="text-2xl font-bold text-white">Utilisateurs</h1>
                     <p className="text-slate-400 text-sm mt-0.5">{users.length} compte{users.length > 1 ? 's' : ''} enregistré{users.length > 1 ? 's' : ''}</p>
                 </div>
-                <button onClick={() => setShowCreate(true)}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 font-bold text-sm rounded-xl transition-all shadow-glow-cyan">
-                    <Plus size={16} /> Créer un compte
-                </button>
+                {isSuperAdmin && (
+                    <button onClick={() => setShowCreate(true)}
+                        className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 font-bold text-sm rounded-xl transition-all shadow-glow-cyan">
+                        <Plus size={16} /> Créer un compte
+                    </button>
+                )}
             </div>
 
             {/* Users table */}
             <div className="glass-card rounded-2xl overflow-hidden">
-                <div className="grid grid-cols-[2fr_1.5fr_1fr_1fr] px-4 py-2.5 border-b border-white/5">
+                <div className="grid grid-cols-[2fr_1.2fr_1.8fr_1fr_auto] px-4 py-2.5 border-b border-white/5">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nom / Email</span>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Rôle</span>
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Accès bâtiments</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Bâtiments</span>
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Statut</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider pl-4">Actions</span>
                 </div>
                 {users.map(u => {
                     const meta = ROLE_META[u.role] ?? ROLE_META.syndic_manager
                     const isDemo = DEMO_USERS.some(d => d.id === u.id)
+                    const manageable = canManage(u)
+                    const bldNames = (u.accessible_building_ids ?? [])
+                        .map(id => allBuildings.find(b => b.id === id)?.name ?? id)
                     return (
-                        <div key={u.id} className="grid grid-cols-[2fr_1.5fr_1fr_1fr] px-4 py-3.5 border-b border-white/4 hover:bg-white/2 transition-colors items-center">
+                        <div key={u.id} className="grid grid-cols-[2fr_1.2fr_1.8fr_1fr_auto] px-4 py-3.5 border-b border-white/4 hover:bg-white/2 transition-colors items-center">
+                            {/* Name / email */}
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                                     style={{ background: `#${u.avatar_bg ?? '0d1629'}`, color: `#${u.avatar_color ?? '06b6d4'}`, border: `1px solid #${u.avatar_color ?? '06b6d4'}33` }}>
@@ -8659,14 +8692,50 @@ function UsersPage({ showToast, allBuildings = BUILDINGS }) {
                                     <p className="text-[11px] text-slate-500 truncate">{u.email}</p>
                                 </div>
                             </div>
+                            {/* Role badge */}
                             <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full border w-fit ${meta.cls}`}>
                                 {meta.label}
                             </span>
-                            <span className="text-xs text-slate-400">{u.accessible_building_ids?.length ?? 0} bâtiment{(u.accessible_building_ids?.length ?? 0) > 1 ? 's' : ''}</span>
-                            <div className="flex items-center gap-2">
+                            {/* Building chips */}
+                            <div className="flex flex-wrap gap-1">
+                                {bldNames.length === 0
+                                    ? <span className="text-xs text-slate-500">—</span>
+                                    : bldNames.map(n => (
+                                        <span key={n} className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/5 text-slate-400 border border-white/8 truncate max-w-[120px]">{n}</span>
+                                    ))
+                                }
+                            </div>
+                            {/* Status */}
+                            <div>
                                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${isDemo ? 'demo-badge bg-slate-700 text-slate-400 border-white/8' : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'}`}>
                                     {isDemo ? 'Démo' : 'Actif'}
                                 </span>
+                            </div>
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 pl-4 min-w-[76px]">
+                                {manageable && (
+                                    confirmDeleteId === u.id ? (
+                                        <div className="flex items-center gap-1">
+                                            <button onClick={() => handleDelete(u.id)}
+                                                className="px-2 py-1 text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/25 transition-colors whitespace-nowrap">
+                                                Confirmer
+                                            </button>
+                                            <button onClick={() => setConfirmDeleteId(null)}
+                                                className="px-2 py-1 text-[10px] text-slate-500 hover:text-white bg-white/5 rounded-lg transition-colors">✕</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <button onClick={() => { setConfirmDeleteId(null); setShowEdit(u) }} title="Modifier"
+                                                className="p-1.5 rounded-lg text-slate-500 hover:text-sp hover:bg-sp/10 transition-colors">
+                                                <Pencil size={13} />
+                                            </button>
+                                            <button onClick={() => setConfirmDeleteId(u.id)} title="Supprimer"
+                                                className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                                                <Trash2 size={13} />
+                                            </button>
+                                        </>
+                                    )
+                                )}
                             </div>
                         </div>
                     )
@@ -8675,6 +8744,9 @@ function UsersPage({ showToast, allBuildings = BUILDINGS }) {
 
             <AnimatePresence>
                 {showCreate && <CreateUserModal onClose={() => setShowCreate(false)} onCreated={handleCreated} allBuildings={allBuildings} />}
+                {showEdit && <EditUserModal user={showEdit} onClose={() => setShowEdit(null)} onSaved={handleSaved}
+                    allBuildings={allBuildings} isSuperAdmin={isSuperAdmin}
+                    currentUserBuildingIds={currentUser?.accessible_building_ids ?? []} />}
             </AnimatePresence>
         </div>
     )
@@ -8855,6 +8927,148 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
                     </button>
                 </div>
             )}
+        </Modal>
+    )
+}
+
+/* ══════════════════════════════════════════
+   EDIT USER MODAL
+══════════════════════════════════════════ */
+function EditUserModal({ user, onClose, onSaved, allBuildings, isSuperAdmin, currentUserBuildingIds }) {
+    // Buildings the current user is allowed to assign
+    const assignableBuildings = isSuperAdmin
+        ? allBuildings
+        : allBuildings.filter(b => currentUserBuildingIds.includes(b.id))
+
+    const [form, setForm] = useState({
+        fullName: user.full_name ?? '',
+        buildingIds: user.accessible_building_ids ?? [],
+    })
+    const [generatedPwd, setGeneratedPwd] = useState(null)
+    const [showPwd, setShowPwd] = useState(false)
+    const [confirmSave, setConfirmSave] = useState(false)
+    const [saving, setSaving] = useState(false)
+
+    function set(k, v) { setForm(f => ({ ...f, [k]: v })); setConfirmSave(false) }
+
+    function generatePassword() {
+        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        const lower = 'abcdefghjkmnpqrstuvwxyz'
+        const digits = '23456789'
+        const pwd = (
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)] +
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)]
+        )
+        setGeneratedPwd(pwd)
+        setConfirmSave(false)
+    }
+
+    async function doSave() {
+        setSaving(true)
+        await new Promise(r => setTimeout(r, 500))
+        const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        const updated = existing.map(u2 => {
+            if (u2.id !== user.id) return u2
+            return {
+                ...u2,
+                full_name: form.fullName.trim() || u2.full_name,
+                accessible_building_ids: form.buildingIds,
+                ...(generatedPwd ? { password: generatedPwd } : {}),
+            }
+        })
+        localStorage.setItem('sp_created_users', JSON.stringify(updated))
+        setSaving(false)
+        onSaved()
+    }
+
+    const canSave = form.buildingIds.length > 0
+
+    return (
+        <Modal title="Modifier le compte" subtitle={user.email} onClose={onClose} width="max-w-md">
+            <div className="space-y-4">
+                {/* Full name */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Nom complet</label>
+                    <input type="text" value={form.fullName} onChange={e => set('fullName', e.target.value)}
+                        placeholder="Nom du gestionnaire"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+
+                {/* Buildings */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-2">Accès aux bâtiments <span className="text-red-400">*</span></label>
+                    <div className="space-y-2">
+                        {assignableBuildings.map(b => {
+                            const checked = form.buildingIds.includes(b.id)
+                            return (
+                                <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${checked ? 'bg-sp/8 border-sp/30' : 'bg-navy-700/50 border-white/8 hover:border-white/15'}`}>
+                                    <input type="checkbox" checked={checked}
+                                        onChange={e => { setForm(f => ({ ...f, buildingIds: e.target.checked ? [...f.buildingIds, b.id] : f.buildingIds.filter(id => id !== b.id) })); setConfirmSave(false) }}
+                                        className="w-3.5 h-3.5 accent-cyan-400 flex-shrink-0" />
+                                    <span className="text-sm text-slate-200 font-medium">{b.name}</span>
+                                    <span className="text-[11px] text-slate-500 ml-auto">{b.city}</span>
+                                </label>
+                            )
+                        })}
+                    </div>
+                    {form.buildingIds.length === 0 && (
+                        <p className="text-[11px] text-amber-400 mt-1.5">Sélectionnez au moins un bâtiment</p>
+                    )}
+                </div>
+
+                {/* Password reset */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Réinitialiser le mot de passe</label>
+                    {generatedPwd ? (
+                        <div className="flex items-center gap-3 bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5">
+                            <code className="font-mono text-sm font-bold text-white tracking-widest flex-1">
+                                {showPwd ? generatedPwd : '••••••'}
+                            </code>
+                            <button type="button" onClick={() => setShowPwd(v => !v)} className="text-slate-500 hover:text-slate-300 transition-colors">
+                                {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                            </button>
+                        </div>
+                    ) : (
+                        <button type="button" onClick={generatePassword}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-sp border border-sp/20 bg-sp/5 hover:bg-sp/10 rounded-xl transition-colors">
+                            <Key size={13} /> Générer un nouveau mot de passe
+                        </button>
+                    )}
+                    {generatedPwd && <p className="text-[11px] text-amber-400 mt-1">Notez ce mot de passe — il ne sera plus visible.</p>}
+                </div>
+
+                {/* 2-step save */}
+                {confirmSave ? (
+                    <div className="rounded-xl bg-sp/10 border border-sp/25 p-3 flex items-center justify-between gap-3">
+                        <p className="text-xs text-slate-300">Confirmer les modifications ?</p>
+                        <div className="flex gap-2">
+                            <button onClick={() => setConfirmSave(false)}
+                                className="px-3 py-1.5 text-xs font-medium text-slate-400 bg-white/5 rounded-lg hover:text-white transition-colors">
+                                Annuler
+                            </button>
+                            <button onClick={doSave} disabled={saving}
+                                className="px-3 py-1.5 text-xs font-bold bg-sp hover:bg-sp-dark text-navy-900 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                                {saving ? <span className="w-3 h-3 border border-navy-900/30 border-t-navy-900 rounded-full animate-spin" /> : <Check size={12} />} Enregistrer
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex gap-3 pt-1">
+                        <button type="button" onClick={onClose}
+                            className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                            Annuler
+                        </button>
+                        <button type="button" onClick={() => setConfirmSave(true)} disabled={!canSave}
+                            className="flex-1 py-2.5 bg-sp hover:bg-sp-dark disabled:opacity-50 text-navy-900 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                            <Check size={14} /> Enregistrer
+                        </button>
+                    </div>
+                )}
+            </div>
         </Modal>
     )
 }
