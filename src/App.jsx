@@ -3989,7 +3989,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                                 ) : (
                                                     <>
                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20">Réclamé</span>
-                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">⏳ {remaining}j</span>
+                                                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">⏳ Supprimé dans {remaining}j</span>
                                                     </>
                                                 )}
                                                 {/* WhatsApp prefill copy */}
