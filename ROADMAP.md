@@ -56,8 +56,9 @@
 
 **Reference:** Meta Cloud API docs — https://developers.facebook.com/docs/whatsapp/cloud-api
 
-### Journal d'activité — Audit log (super_admin)
+### 🔴 Journal d'activité — Audit log (super_admin)
 **Priority:** High — required before onboarding paying clients
+**Status:** Next to implement (post-PIN hardening)
 **Goal:** Append-only activity log giving the super_admin a tamper-evident record of every significant change across all buildings. Primary use case: support diagnosis and dispute resolution between syndic managers and co-owners.
 
 **Legal context:** Loi 18-00 (Maroc) and loi ALUR (France) require syndics to retain financial and administrative records. An audit trail is the platform's legal shield as well as the client's.
@@ -175,4 +176,4 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
-*Last updated: 6 Mars 2026 · SyndicPulse internal — Auth hardening shipped (SHA-256 + session TTL); production auth migration plan documented*
+*Last updated: 6 Mars 2026 · SyndicPulse internal — Portal PIN hashing shipped (salted SHA-256, 6-digit, CSV auto-gen); seed.sql migrated; login logo updated; Journal d'activité flagged as next high-priority*

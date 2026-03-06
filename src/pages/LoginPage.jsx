@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react'
-import { Zap, Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check, Home } from 'lucide-react'
+import { Eye, EyeOff, ArrowRight, Building2, ShieldCheck, Lock, DatabaseBackup, FileCheck, BadgeCheck, Mail, ChevronLeft, Copy, Check, Home } from 'lucide-react'
 import { useAuth } from '../context/AuthContext.jsx'
 import { DEMO_USERS, validateResidentAccess } from '../lib/mockData.js'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -139,8 +139,21 @@ export default function LoginPage({ onResidentLogin }) {
 
                 {/* Logo */}
                 <div className="flex items-center gap-3 relative z-10">
-                    <div className="w-9 h-9 rounded-xl bg-sp flex items-center justify-center shadow-glow-cyan">
-                        <Zap size={18} className="text-white" strokeWidth={2.5} />
+                    <div className="w-9 h-9 rounded-xl bg-sp/10 border border-sp/30 flex items-center justify-center shadow-glow-cyan">
+                        <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="5" width="6" height="10" rx="0.6" fill="#06b6d4" fillOpacity="0.35" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="9" y="2" width="6" height="13" rx="0.6" fill="#06b6d4" fillOpacity="0.55" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="2.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="5"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="2.5" y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="5"   y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="10.5" y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="13"   y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="10.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                            <rect x="13"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                            <rect x="10.5" y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                            <rect x="13"   y="10" width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.6"/>
+                        </svg>
                     </div>
                     <span className="text-xl font-bold tracking-tight text-white">
                         Syndic<span className="text-sp">Pulse</span>
@@ -205,8 +218,17 @@ export default function LoginPage({ onResidentLogin }) {
 
                 {/* Mobile logo */}
                 <div className="flex items-center gap-2 mb-10 lg:hidden">
-                    <div className="w-8 h-8 rounded-xl bg-sp flex items-center justify-center">
-                        <Zap size={16} className="text-white" strokeWidth={2.5} />
+                    <div className="w-8 h-8 rounded-xl bg-sp/10 border border-sp/30 flex items-center justify-center">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="1" y="5" width="6" height="10" rx="0.6" fill="#06b6d4" fillOpacity="0.35" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="9" y="2" width="6" height="13" rx="0.6" fill="#06b6d4" fillOpacity="0.55" stroke="#06b6d4" strokeWidth="1"/>
+                            <rect x="2.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="5"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="10.5" y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="13"   y="4"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4"/>
+                            <rect x="10.5" y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                            <rect x="13"   y="7"  width="1.5" height="1.5" rx="0.3" fill="#06b6d4" fillOpacity="0.85"/>
+                        </svg>
                     </div>
                     <span className="text-lg font-bold text-white">
                         Syndic<span className="text-sp">Pulse</span>

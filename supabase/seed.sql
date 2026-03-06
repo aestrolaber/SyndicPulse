@@ -6,60 +6,64 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- ── 1. RESIDENTS ─────────────────────────────────────────────────────────────
--- portal_pin uses index-based formula (1000 + array_index) matching
--- validateResidentAccess fallback in mockData.js: String(1000 + i)
+-- portal_pin: salted SHA-256 hash — SHA-256("residentId:originalPin")
+-- Original (plaintext) demo PINs were 1000..1011 per building index.
+-- Hashes computed with Node.js crypto (same algo as browser Web Crypto API).
 -- monthly_fee: bld-1 = 850 MAD, bld-2 = 1200 MAD, bld-3 = 1000 MAD
 
 -- Norwest (bld-1 · 12 résidents)
+-- Plain PINs for reference (never stored): r01→1000, r02→1001, ..., r12→1011
 INSERT INTO residents (id, building_id, unit, name, phone, paid_through, floor, since, quota, monthly_fee, portal_pin, portal_code, is_active) VALUES
-('r01', 'bld-1', 'Apt 1A',  'Ahmed Benjelloun',  '+212661234567', '2026-02', 1,  '2019', 2.08, 850, '1000', 'NW-4K8MRX', true),
-('r02', 'bld-1', 'Apt 1B',  'Khadija Moussaoui', '+212662345678', '2026-02', 1,  '2021', 2.08, 850, '1001', 'NW-B3TPZQ', true),
-('r03', 'bld-1', 'Apt 1C',  'Omar Chraibi',      '+212663456789', '2026-02', 1,  '2020', 2.08, 850, '1002', 'NW-7YCNV2', true),
-('r04', 'bld-1', 'Apt 1D',  'Nadia El Fassi',    '+212664567890', '2025-11', 1,  '2022', 2.08, 850, '1003', 'NW-P6HJRW', true),
-('r05', 'bld-1', 'Apt 2A',  'Youssef Alami',     '+212665678901', '2026-04', 2,  '2018', 2.08, 850, '1004', 'NW-M9KXQB', true),
-('r06', 'bld-1', 'Apt 2B',  'Sanae Bouazza',     '+212666789012', '2026-02', 2,  '2023', 2.08, 850, '1005', 'NW-X2RNFG', true),
-('r07', 'bld-1', 'Apt 4B',  'Hassan Idrissi',    '+212667890123', '2026-02', 4,  '2020', 2.08, 850, '1006', 'NW-5VZMKY', true),
-('r08', 'bld-1', 'Apt 6B',  'Mehdi Chraibi',     '+212668901234', '2026-01', 6,  '2021', 2.08, 850, '1007', 'NW-C8BWPJ', true),
-('r09', 'bld-1', 'Apt 7C',  'Rachid Bouazza',    '+212669012345', '2026-01', 7,  '2022', 2.08, 850, '1008', 'NW-Q4TXNR', true),
-('r10', 'bld-1', 'Apt 9A',  'Lamia Bensouda',    '+212661123456', '2026-02', 9,  '2019', 2.08, 850, '1009', 'NW-E7GZCA', true),
-('r11', 'bld-1', 'Apt 11C', 'Lamia Tazi',        '+212662234567', '2025-11', 11, '2023', 2.08, 850, '1010', 'NW-H3RVMX', true),
-('r12', 'bld-1', 'Apt 12A', 'Fatima Zouheir',    '+212663345678', '2026-02', 12, '2020', 2.08, 850, '1011', 'NW-W6YBNP', true)
+('r01', 'bld-1', 'Apt 1A',  'Ahmed Benjelloun',  '+212661234567', '2026-02', 1,  '2019', 2.08, 850, 'af9617e8f250d19c80ccdf422aab0cab7a74be60869c7be9b24a577b30e3ccb3', 'NW-4K8MRX', true),
+('r02', 'bld-1', 'Apt 1B',  'Khadija Moussaoui', '+212662345678', '2026-02', 1,  '2021', 2.08, 850, 'bf1f7eb0bb0c0d6b64890949291532255c71331d3762d3418fdab41a0e580ab5', 'NW-B3TPZQ', true),
+('r03', 'bld-1', 'Apt 1C',  'Omar Chraibi',      '+212663456789', '2026-02', 1,  '2020', 2.08, 850, '88f3a37d10f7c2c3c647b0315cfdadc57fe17872794ddc450aa1a437acb980d2', 'NW-7YCNV2', true),
+('r04', 'bld-1', 'Apt 1D',  'Nadia El Fassi',    '+212664567890', '2025-11', 1,  '2022', 2.08, 850, '554d33aab144c4fdf655416d3b7264dec727a4392c8d41cabd44db0199067bf9', 'NW-P6HJRW', true),
+('r05', 'bld-1', 'Apt 2A',  'Youssef Alami',     '+212665678901', '2026-04', 2,  '2018', 2.08, 850, 'f19e97f5e4c18fdc01c0c0a539d62b481e223959fd4f737ec918c0183278bbc0', 'NW-M9KXQB', true),
+('r06', 'bld-1', 'Apt 2B',  'Sanae Bouazza',     '+212666789012', '2026-02', 2,  '2023', 2.08, 850, '61b0fa95fc1555733fafa94c70cbd5023156f002b426f0c0fbea25a2d5c8f950', 'NW-X2RNFG', true),
+('r07', 'bld-1', 'Apt 4B',  'Hassan Idrissi',    '+212667890123', '2026-02', 4,  '2020', 2.08, 850, '6ebcbaac3f0ba7a6b172d98472279c43d7f157c6b359e548d61b5fcfc1f967a1', 'NW-5VZMKY', true),
+('r08', 'bld-1', 'Apt 6B',  'Mehdi Chraibi',     '+212668901234', '2026-01', 6,  '2021', 2.08, 850, '49290ccb5cea8cb79af3f506f2ac13da6534df82c2e16ecacc6ba87cef671600', 'NW-C8BWPJ', true),
+('r09', 'bld-1', 'Apt 7C',  'Rachid Bouazza',    '+212669012345', '2026-01', 7,  '2022', 2.08, 850, '1159fa20168d8ceb6cb058d4addbebdbd601d62e201d8f05027623d39ef7ca83', 'NW-Q4TXNR', true),
+('r10', 'bld-1', 'Apt 9A',  'Lamia Bensouda',    '+212661123456', '2026-02', 9,  '2019', 2.08, 850, '81df504cfd11d42ca1220add7141fe079cb3c9080f7be3189c25f25755da6831', 'NW-E7GZCA', true),
+('r11', 'bld-1', 'Apt 11C', 'Lamia Tazi',        '+212662234567', '2025-11', 11, '2023', 2.08, 850, 'aa53400c6e2fefd35ba66f6401691a746551b83a84c20054c2a14a42a403f83e', 'NW-H3RVMX', true),
+('r12', 'bld-1', 'Apt 12A', 'Fatima Zouheir',    '+212663345678', '2026-02', 12, '2020', 2.08, 850, '8f78c00b027408000eb7854337100860eb645383f0aebb1c0bd8e7341f3c427c', 'NW-W6YBNP', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Résidence Atlas (bld-2 · 16 résidents)
+-- Plain PINs for reference (never stored): a01→1000, a02→1001, ..., a16→1015
 INSERT INTO residents (id, building_id, unit, name, phone, paid_through, floor, since, quota, monthly_fee, portal_pin, portal_code, is_active) VALUES
-('a01', 'bld-2', 'Apt A-02', 'Rachid Berrada',    '+212661100001', '2026-02', 1, '2018', 0.83, 1200, '1000', 'AT-K5MJWQ', true),
-('a02', 'bld-2', 'Apt A-05', 'Houda Cherkaoui',   '+212661100002', '2026-02', 1, '2020', 0.83, 1200, '1001', 'AT-R9XBZN', true),
-('a03', 'bld-2', 'Apt B-01', 'Karim Lahlou',      '+212661100003', '2026-02', 2, '2019', 0.83, 1200, '1002', 'AT-2GYPVC', true),
-('a04', 'bld-2', 'Apt B-04', 'Zineb Kettani',     '+212661100004', '2025-11', 2, '2021', 0.83, 1200, '1003', 'AT-N7HKXM', true),
-('a05', 'bld-2', 'Apt C-02', 'Brahim Sabiri',     '+212661100005', '2026-05', 3, '2017', 0.83, 1200, '1004', 'AT-T4QWRB', true),
-('a06', 'bld-2', 'Apt C-07', 'Amina El Alami',    '+212661100006', '2026-01', 3, '2022', 0.83, 1200, '1005', 'AT-6CNFJZ', true),
-('a07', 'bld-2', 'Apt D-03', 'Yassine Benkirane', '+212661100007', '2026-02', 4, '2020', 0.83, 1200, '1006', 'AT-8VMKYP', true),
-('a08', 'bld-2', 'Apt D-09', 'Salma Fikri',       '+212661100008', '2026-02', 4, '2021', 0.83, 1200, '1007', 'AT-J3BXRW', true),
-('a09', 'bld-2', 'Apt E-01', 'Amine Ennaji',      '+212661100009', '2025-10', 5, '2023', 0.83, 1200, '1008', 'AT-D5TZNQ', true),
-('a10', 'bld-2', 'Apt E-06', 'Dounia Kabbaj',     '+212661100010', '2026-02', 5, '2019', 0.83, 1200, '1009', 'AT-P8GRXH', true),
-('a11', 'bld-2', 'Apt F-02', 'Mehdi Tahiri',      '+212661100011', '2026-01', 6, '2022', 0.83, 1200, '1010', 'AT-Y2WCVN', true),
-('a12', 'bld-2', 'Apt F-08', 'Nora Bensouda',     '+212661100012', '2026-02', 6, '2020', 0.83, 1200, '1011', 'AT-M7KBZJ', true),
-('a13', 'bld-2', 'Apt G-04', 'Khalid Tazi',       '+212661100013', '2026-02', 7, '2018', 0.83, 1200, '1012', 'AT-X4NRQP', true),
-('a14', 'bld-2', 'Apt G-10', 'Leila El Fassi',    '+212661100014', '2025-11', 7, '2023', 0.83, 1200, '1013', 'AT-3FHWYT', true),
-('a15', 'bld-2', 'Apt H-03', 'Saad Alaoui',       '+212661100015', '2026-02', 8, '2019', 0.83, 1200, '1014', 'AT-9VZXKM', true),
-('a16', 'bld-2', 'Apt H-07', 'Meryem Chraibi',    '+212661100016', '2026-02', 8, '2021', 0.83, 1200, '1015', 'AT-B6JCGR', true)
+('a01', 'bld-2', 'Apt A-02', 'Rachid Berrada',    '+212661100001', '2026-02', 1, '2018', 0.83, 1200, '101008e43f070f49724cacf1b9a38cb6ce02a7883f71d9fac0f38fb1748e9e87', 'AT-K5MJWQ', true),
+('a02', 'bld-2', 'Apt A-05', 'Houda Cherkaoui',   '+212661100002', '2026-02', 1, '2020', 0.83, 1200, 'c1e2be16795f27303619df6a8042e4b186005128f787e05e03f16a361782e75d', 'AT-R9XBZN', true),
+('a03', 'bld-2', 'Apt B-01', 'Karim Lahlou',      '+212661100003', '2026-02', 2, '2019', 0.83, 1200, '4476d24d7cff9b10f1e91a24954d91cc14e119f4506ab67d2c8148f52f72f43b', 'AT-2GYPVC', true),
+('a04', 'bld-2', 'Apt B-04', 'Zineb Kettani',     '+212661100004', '2025-11', 2, '2021', 0.83, 1200, '13ca39875c40f7db60773812acc0088190d24ba2b7817bdbd0a4ae86539d159b', 'AT-N7HKXM', true),
+('a05', 'bld-2', 'Apt C-02', 'Brahim Sabiri',     '+212661100005', '2026-05', 3, '2017', 0.83, 1200, '07b9a64f488c56e4ea23bff48e3313801ff40f8f1ca74134497e4092edccc66c', 'AT-T4QWRB', true),
+('a06', 'bld-2', 'Apt C-07', 'Amina El Alami',    '+212661100006', '2026-01', 3, '2022', 0.83, 1200, '217de22f15dabbd2ac9012ab42963ead6a775e7bf79db596d983ade42f4c90ea', 'AT-6CNFJZ', true),
+('a07', 'bld-2', 'Apt D-03', 'Yassine Benkirane', '+212661100007', '2026-02', 4, '2020', 0.83, 1200, '3cf606fb204f2cd20322489c16393e4ff9ae28818e2bb8d403425b9cd96bcc73', 'AT-8VMKYP', true),
+('a08', 'bld-2', 'Apt D-09', 'Salma Fikri',       '+212661100008', '2026-02', 4, '2021', 0.83, 1200, 'd2cc63976461ed1999fec457536868927d9d5e95b16245d22c551b2c156e6ff1', 'AT-J3BXRW', true),
+('a09', 'bld-2', 'Apt E-01', 'Amine Ennaji',      '+212661100009', '2025-10', 5, '2023', 0.83, 1200, '8e64e4761ab90bb8da2617feecfa454e07e996a73bfcc6209ee59a2a2d85013f', 'AT-D5TZNQ', true),
+('a10', 'bld-2', 'Apt E-06', 'Dounia Kabbaj',     '+212661100010', '2026-02', 5, '2019', 0.83, 1200, '9a261ed474d2706954d611ef9990d99fd43a8f29f2baa76e544c30b3f95d18cd', 'AT-P8GRXH', true),
+('a11', 'bld-2', 'Apt F-02', 'Mehdi Tahiri',      '+212661100011', '2026-01', 6, '2022', 0.83, 1200, '043fabe42d2d7e4123229673af5cb39a5802cea2cd4d43131b184953c279aab3', 'AT-Y2WCVN', true),
+('a12', 'bld-2', 'Apt F-08', 'Nora Bensouda',     '+212661100012', '2026-02', 6, '2020', 0.83, 1200, '2ff22286835180f68071fdffee9df2b3b3f6abace33649e51eac7746ecd90e23', 'AT-M7KBZJ', true),
+('a13', 'bld-2', 'Apt G-04', 'Khalid Tazi',       '+212661100013', '2026-02', 7, '2018', 0.83, 1200, 'f3cd395379bfc9e44d0017d8177cd57f69b7fec552f0617a164fb517c09c682a', 'AT-X4NRQP', true),
+('a14', 'bld-2', 'Apt G-10', 'Leila El Fassi',    '+212661100014', '2025-11', 7, '2023', 0.83, 1200, '0e3e66821d8147aae743ab70b4bf317077bb1e0d19b1283d7d59d46eeb4c9825', 'AT-3FHWYT', true),
+('a15', 'bld-2', 'Apt H-03', 'Saad Alaoui',       '+212661100015', '2026-02', 8, '2019', 0.83, 1200, 'e018d291adcf8ebe5d9249b98cbb016a85efbd7a2dccfa6c890751483877431a', 'AT-9VZXKM', true),
+('a16', 'bld-2', 'Apt H-07', 'Meryem Chraibi',    '+212661100016', '2026-02', 8, '2021', 0.83, 1200, '1878e74a0bcdf39f7ca87ebb1d267389b3f5b1ddea9fc448800ba3addc9b1a5e', 'AT-B6JCGR', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- Jardins du Roi (bld-3 · 12 résidents)
+-- Plain PINs for reference (never stored): j01→1000, j02→1001, ..., j12→1011
 INSERT INTO residents (id, building_id, unit, name, phone, paid_through, floor, since, quota, monthly_fee, portal_pin, portal_code, is_active) VALUES
-('j01', 'bld-3', 'Villa V-01', 'Abdellah Benali',     '+212662200001', '2026-02', 0, '2017', 1.56, 1000, '1000', 'JR-5KMWXB', true),
-('j02', 'bld-3', 'Villa V-02', 'Fatima Zhra Idrissi', '+212662200002', '2026-02', 0, '2018', 1.56, 1000, '1001', 'JR-T8PZNQ', true),
-('j03', 'bld-3', 'Apt T-01',   'Mohammed Lahlou',     '+212662200003', '2026-02', 1, '2020', 1.56, 1000, '1002', 'JR-2RYCVG', true),
-('j04', 'bld-3', 'Apt T-02',   'Hind Fikri',          '+212662200004', '2026-01', 1, '2021', 1.56, 1000, '1003', 'JR-N6XHJW', true),
-('j05', 'bld-3', 'Apt T-05',   'Hamid El Mansouri',   '+212662200005', '2026-02', 1, '2019', 1.56, 1000, '1004', 'JR-Q3BKRM', true),
-('j06', 'bld-3', 'Apt T-08',   'Souad Cherkaoui',     '+212662200006', '2026-02', 1, '2022', 1.56, 1000, '1005', 'JR-7WGFZP', true),
-('j07', 'bld-3', 'Apt R-02',   'Tarik Benkirane',     '+212662200007', '2025-11', 2, '2023', 1.56, 1000, '1006', 'JR-C4YXVN', true),
-('j08', 'bld-3', 'Apt R-04',   'Siham Kabbaj',        '+212662200008', '2026-02', 2, '2020', 1.56, 1000, '1007', 'JR-M9JQRB', true),
-('j09', 'bld-3', 'Apt R-07',   'Nabil Berrada',       '+212662200009', '2026-02', 2, '2019', 1.56, 1000, '1008', 'JR-H5WKZX', true),
-('j10', 'bld-3', 'Apt S-01',   'Loubna Alaoui',       '+212662200010', '2026-02', 3, '2021', 1.56, 1000, '1009', 'JR-R8CNPT', true),
-('j11', 'bld-3', 'Apt S-03',   'Youssef Sabiri',      '+212662200011', '2026-01', 3, '2022', 1.56, 1000, '1010', 'JR-6BMJWY', true),
-('j12', 'bld-3', 'Apt S-06',   'Rim Tazi',            '+212662200012', '2026-02', 3, '2018', 1.56, 1000, '1011', 'JR-D2VXQK', true)
+('j01', 'bld-3', 'Villa V-01', 'Abdellah Benali',     '+212662200001', '2026-02', 0, '2017', 1.56, 1000, '361c6fe28daa2deed4f769f54e72d46224eff0408e38bb06124a3e019fac5ade', 'JR-5KMWXB', true),
+('j02', 'bld-3', 'Villa V-02', 'Fatima Zhra Idrissi', '+212662200002', '2026-02', 0, '2018', 1.56, 1000, '91a81599b87bbc0a46cc768b2d8d1c8c351eb72cacac390818d6e2b4743502d3', 'JR-T8PZNQ', true),
+('j03', 'bld-3', 'Apt T-01',   'Mohammed Lahlou',     '+212662200003', '2026-02', 1, '2020', 1.56, 1000, 'c1f807293e643d1e8dfba9d4dd8550527cb225b17912750763ed8a40df6ea5de', 'JR-2RYCVG', true),
+('j04', 'bld-3', 'Apt T-02',   'Hind Fikri',          '+212662200004', '2026-01', 1, '2021', 1.56, 1000, '0be851fad03451cdf3b726409b28d44aabd43eb88aaa17891cb2b79644cdf510', 'JR-N6XHJW', true),
+('j05', 'bld-3', 'Apt T-05',   'Hamid El Mansouri',   '+212662200005', '2026-02', 1, '2019', 1.56, 1000, '21515497666789ad2d5fd949503c3e29c7fda0b88a1773665d8d6c82855a6837', 'JR-Q3BKRM', true),
+('j06', 'bld-3', 'Apt T-08',   'Souad Cherkaoui',     '+212662200006', '2026-02', 1, '2022', 1.56, 1000, '9b8278fdc15f6781412d9440ab9826d484361e4a5da45c32b8722cdd8bcf93bc', 'JR-7WGFZP', true),
+('j07', 'bld-3', 'Apt R-02',   'Tarik Benkirane',     '+212662200007', '2025-11', 2, '2023', 1.56, 1000, 'f3acdaede741ac58f08b785a6e796aa742d7e1c24e0a88c85a52918024449ff4', 'JR-C4YXVN', true),
+('j08', 'bld-3', 'Apt R-04',   'Siham Kabbaj',        '+212662200008', '2026-02', 2, '2020', 1.56, 1000, '38966c190531d41361e3d6bda593a41b6f71a75bb9e647a8a9bcd93558947461', 'JR-M9JQRB', true),
+('j09', 'bld-3', 'Apt R-07',   'Nabil Berrada',       '+212662200009', '2026-02', 2, '2019', 1.56, 1000, '37de33cdff248e1a32fa8886653740b6de1b1acc23a90abce83e19e2ce80f6dd', 'JR-H5WKZX', true),
+('j10', 'bld-3', 'Apt S-01',   'Loubna Alaoui',       '+212662200010', '2026-02', 3, '2021', 1.56, 1000, '21fca9b418acd72c5f7347e91b8913065bf98b60966ea90cab60f41dc90512f5', 'JR-R8CNPT', true),
+('j11', 'bld-3', 'Apt S-03',   'Youssef Sabiri',      '+212662200011', '2026-01', 3, '2022', 1.56, 1000, 'c324737dc0ba8e4249523667a912b597205310cff83ce492a761391c56f449eb', 'JR-6BMJWY', true),
+('j12', 'bld-3', 'Apt S-06',   'Rim Tazi',            '+212662200012', '2026-02', 3, '2018', 1.56, 1000, '47b08be1b9e5f71218ad24dbd23beab9433251d8dd94fc1a1e90d2f306b9610d', 'JR-D2VXQK', true)
 ON CONFLICT (id) DO NOTHING;
 
 -- ── 2. EXPENSES (individual log entries for the Dépenses tab) ─────────────────
@@ -284,3 +288,52 @@ ON CONFLICT (id) DO NOTHING;
 --   suppliers: 12 (5 + 4 + 3)
 --   meetings:   6 (2 + 2 + 2)
 -- ═══════════════════════════════════════════════════════════════════════════════
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- MIGRATION: Replace plaintext PINs with salted SHA-256 hashes
+-- Run this block if the DB was seeded BEFORE 2026-03-06 (when hashing was added).
+-- The INSERT above uses ON CONFLICT DO NOTHING so won't overwrite existing rows.
+-- This UPDATE block explicitly patches the portal_pin for each seed resident.
+-- Hash formula: SHA-256("residentId:plaintextPin") — same as the app's hashPin().
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+UPDATE residents SET portal_pin = 'af9617e8f250d19c80ccdf422aab0cab7a74be60869c7be9b24a577b30e3ccb3' WHERE id = 'r01' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'bf1f7eb0bb0c0d6b64890949291532255c71331d3762d3418fdab41a0e580ab5' WHERE id = 'r02' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '88f3a37d10f7c2c3c647b0315cfdadc57fe17872794ddc450aa1a437acb980d2' WHERE id = 'r03' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '554d33aab144c4fdf655416d3b7264dec727a4392c8d41cabd44db0199067bf9' WHERE id = 'r04' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'f19e97f5e4c18fdc01c0c0a539d62b481e223959fd4f737ec918c0183278bbc0' WHERE id = 'r05' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '61b0fa95fc1555733fafa94c70cbd5023156f002b426f0c0fbea25a2d5c8f950' WHERE id = 'r06' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '6ebcbaac3f0ba7a6b172d98472279c43d7f157c6b359e548d61b5fcfc1f967a1' WHERE id = 'r07' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '49290ccb5cea8cb79af3f506f2ac13da6534df82c2e16ecacc6ba87cef671600' WHERE id = 'r08' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '1159fa20168d8ceb6cb058d4addbebdbd601d62e201d8f05027623d39ef7ca83' WHERE id = 'r09' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '81df504cfd11d42ca1220add7141fe079cb3c9080f7be3189c25f25755da6831' WHERE id = 'r10' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'aa53400c6e2fefd35ba66f6401691a746551b83a84c20054c2a14a42a403f83e' WHERE id = 'r11' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '8f78c00b027408000eb7854337100860eb645383f0aebb1c0bd8e7341f3c427c' WHERE id = 'r12' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '101008e43f070f49724cacf1b9a38cb6ce02a7883f71d9fac0f38fb1748e9e87' WHERE id = 'a01' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'c1e2be16795f27303619df6a8042e4b186005128f787e05e03f16a361782e75d' WHERE id = 'a02' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '4476d24d7cff9b10f1e91a24954d91cc14e119f4506ab67d2c8148f52f72f43b' WHERE id = 'a03' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '13ca39875c40f7db60773812acc0088190d24ba2b7817bdbd0a4ae86539d159b' WHERE id = 'a04' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '07b9a64f488c56e4ea23bff48e3313801ff40f8f1ca74134497e4092edccc66c' WHERE id = 'a05' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '217de22f15dabbd2ac9012ab42963ead6a775e7bf79db596d983ade42f4c90ea' WHERE id = 'a06' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '3cf606fb204f2cd20322489c16393e4ff9ae28818e2bb8d403425b9cd96bcc73' WHERE id = 'a07' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'd2cc63976461ed1999fec457536868927d9d5e95b16245d22c551b2c156e6ff1' WHERE id = 'a08' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '8e64e4761ab90bb8da2617feecfa454e07e996a73bfcc6209ee59a2a2d85013f' WHERE id = 'a09' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '9a261ed474d2706954d611ef9990d99fd43a8f29f2baa76e544c30b3f95d18cd' WHERE id = 'a10' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '043fabe42d2d7e4123229673af5cb39a5802cea2cd4d43131b184953c279aab3' WHERE id = 'a11' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '2ff22286835180f68071fdffee9df2b3b3f6abace33649e51eac7746ecd90e23' WHERE id = 'a12' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'f3cd395379bfc9e44d0017d8177cd57f69b7fec552f0617a164fb517c09c682a' WHERE id = 'a13' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '0e3e66821d8147aae743ab70b4bf317077bb1e0d19b1283d7d59d46eeb4c9825' WHERE id = 'a14' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'e018d291adcf8ebe5d9249b98cbb016a85efbd7a2dccfa6c890751483877431a' WHERE id = 'a15' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '1878e74a0bcdf39f7ca87ebb1d267389b3f5b1ddea9fc448800ba3addc9b1a5e' WHERE id = 'a16' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '361c6fe28daa2deed4f769f54e72d46224eff0408e38bb06124a3e019fac5ade' WHERE id = 'j01' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '91a81599b87bbc0a46cc768b2d8d1c8c351eb72cacac390818d6e2b4743502d3' WHERE id = 'j02' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'c1f807293e643d1e8dfba9d4dd8550527cb225b17912750763ed8a40df6ea5de' WHERE id = 'j03' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '0be851fad03451cdf3b726409b28d44aabd43eb88aaa17891cb2b79644cdf510' WHERE id = 'j04' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '21515497666789ad2d5fd949503c3e29c7fda0b88a1773665d8d6c82855a6837' WHERE id = 'j05' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '9b8278fdc15f6781412d9440ab9826d484361e4a5da45c32b8722cdd8bcf93bc' WHERE id = 'j06' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'f3acdaede741ac58f08b785a6e796aa742d7e1c24e0a88c85a52918024449ff4' WHERE id = 'j07' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '38966c190531d41361e3d6bda593a41b6f71a75bb9e647a8a9bcd93558947461' WHERE id = 'j08' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '37de33cdff248e1a32fa8886653740b6de1b1acc23a90abce83e19e2ce80f6dd' WHERE id = 'j09' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '21fca9b418acd72c5f7347e91b8913065bf98b60966ea90cab60f41dc90512f5' WHERE id = 'j10' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = 'c324737dc0ba8e4249523667a912b597205310cff83ce492a761391c56f449eb' WHERE id = 'j11' AND length(portal_pin) < 64;
+UPDATE residents SET portal_pin = '47b08be1b9e5f71218ad24dbd23beab9433251d8dd94fc1a1e90d2f306b9610d' WHERE id = 'j12' AND length(portal_pin) < 64;
