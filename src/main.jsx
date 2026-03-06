@@ -11,3 +11,14 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         </AuthProvider>
     </React.StrictMode>,
 )
+
+// Fade out and remove the splash screen after React has painted
+requestAnimationFrame(() => {
+    setTimeout(() => {
+        const splash = document.getElementById('sp-splash')
+        if (splash) {
+            splash.classList.add('fade-out')
+            setTimeout(() => splash.remove(), 460)
+        }
+    }, 350)
+})

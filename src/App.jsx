@@ -728,7 +728,7 @@ function Dashboard() {
     })  // user-added buildings, persisted across sessions
     const [showBldgSettings, setShowBldgSettings] = useState(false)
     const [showAddBuilding, setShowAddBuilding] = useState(false)
-    const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'navy')
+    const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'gold')
     const [expensesByBldg, setExpensesByBldg] = useState({})   // individual expense log entries per building
     const [ticketsByBldg, setTicketsByBldg] = useState({})     // maintenance tickets per building
     const [dbLoading, setDbLoading] = useState(false)
