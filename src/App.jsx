@@ -8993,16 +8993,10 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
 /* ══════════════════════════════════════════
    EDIT USER MODAL
 ══════════════════════════════════════════ */
-function EditUserModal({ user, onClose, onSaved, allBuildings, isSuperAdmin, currentUserBuildingIds }) {
-    // Buildings the current user is allowed to assign
-    const assignableBuildings = isSuperAdmin
-        ? allBuildings
-        : allBuildings.filter(b => currentUserBuildingIds.includes(b.id))
-
+function EditUserModal({ user, onClose, onSaved, allBuildings }) {
     const [form, setForm] = useState({
         fullName: user.full_name ?? '',
         phone: user.phone ?? '',
-        buildingIds: user.accessible_building_ids ?? [],
     })
     const [generatedPwd, setGeneratedPwd] = useState(null)
     const [showPwd, setShowPwd] = useState(false)
@@ -9037,7 +9031,7 @@ function EditUserModal({ user, onClose, onSaved, allBuildings, isSuperAdmin, cur
                 ...u2,
                 full_name: form.fullName.trim() || u2.full_name,
                 phone: form.phone.trim() || null,
-                accessible_building_ids: form.buildingIds,
+                // accessible_building_ids is locked — assigned at creation, not editable
                 ...(generatedPwd ? { password: generatedPwd } : {}),
             }
         })
@@ -9046,7 +9040,7 @@ function EditUserModal({ user, onClose, onSaved, allBuildings, isSuperAdmin, cur
         onSaved()
     }
 
-    const canSave = form.buildingIds.length > 0
+    const canSave = form.fullName.trim().length > 0
 
     return (
         <Modal title="Modifier le compte" subtitle={user.email} onClose={onClose} width="max-w-md">
@@ -9067,26 +9061,24 @@ function EditUserModal({ user, onClose, onSaved, allBuildings, isSuperAdmin, cur
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors" />
                 </div>
 
-                {/* Buildings */}
+                {/* Buildings — read-only, assigned at creation */}
                 <div>
-                    <label className="block text-xs font-semibold text-slate-400 mb-2">Accès aux bâtiments <span className="text-red-400">*</span></label>
+                    <label className="block text-xs font-semibold text-slate-400 mb-2">Propriété assignée</label>
                     <div className="space-y-2">
-                        {assignableBuildings.map(b => {
-                            const checked = form.buildingIds.includes(b.id)
+                        {(user.accessible_building_ids ?? []).map(bldId => {
+                            const b = allBuildings.find(x => x.id === bldId)
+                            if (!b) return null
                             return (
-                                <label key={b.id} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${checked ? 'bg-sp/8 border-sp/30' : 'bg-navy-700/50 border-white/8 hover:border-white/15'}`}>
-                                    <input type="checkbox" checked={checked}
-                                        onChange={e => { setForm(f => ({ ...f, buildingIds: e.target.checked ? [...f.buildingIds, b.id] : f.buildingIds.filter(id => id !== b.id) })); setConfirmSave(false) }}
-                                        className="w-3.5 h-3.5 accent-cyan-400 flex-shrink-0" />
+                                <div key={bldId} className="flex items-center gap-3 p-2.5 rounded-xl border bg-sp/5 border-sp/20">
+                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: b.color ?? '#06b6d4' }} />
                                     <span className="text-sm text-slate-200 font-medium">{b.name}</span>
                                     <span className="text-[11px] text-slate-500 ml-auto">{b.city}</span>
-                                </label>
+                                    <span className="text-[10px] text-slate-600 bg-white/5 px-1.5 py-0.5 rounded-md">fixe</span>
+                                </div>
                             )
                         })}
                     </div>
-                    {form.buildingIds.length === 0 && (
-                        <p className="text-[11px] text-amber-400 mt-1.5">Sélectionnez au moins un bâtiment</p>
-                    )}
+                    <p className="text-[11px] text-slate-600 mt-1.5">La propriété est définie à la création du compte.</p>
                 </div>
 
                 {/* Password reset */}
