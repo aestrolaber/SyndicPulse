@@ -66,45 +66,57 @@ body {
   --bg-card:       rgba(17, 29, 53, 0.8);
 }
 
-/* ── Indigo/Gold theme override ── */
+/* ── Thème Marocain Premium — Terracotta chaud × Or brûlé ── */
 [data-theme="gold"] {
-  --accent:        #f59e0b;
-  --accent-glow:   rgba(245, 158, 11, 0.25);
-  --accent-soft:   rgba(245, 158, 11, 0.15);
-  --accent-faint:  rgba(245, 158, 11, 0.05);
-  --accent-border: rgba(245, 158, 11, 0.08);
-  --bg-primary:    #0c0a1e;
-  --bg-sidebar:    #110f28;
-  --bg-card:       rgba(23, 20, 58, 0.8);
+  --accent:        #c9972a;
+  --accent-glow:   rgba(201, 151, 42, 0.28);
+  --accent-soft:   rgba(201, 151, 42, 0.16);
+  --accent-faint:  rgba(201, 151, 42, 0.06);
+  --accent-border: rgba(201, 151, 42, 0.12);
+  --bg-primary:    #0f0704;
+  --bg-sidebar:    #180b04;
+  --bg-card:       rgba(42, 21, 8, 0.85);
 }
 
-/* Tailwind navy class overrides for gold theme */
-[data-theme="gold"] .bg-navy-900                { background-color: #0c0a1e !important; }
-[data-theme="gold"] .bg-navy-900\/80             { background-color: rgba(12,10,30,0.8) !important; }
-[data-theme="gold"] .bg-navy-800                { background-color: #110f28 !important; }
-[data-theme="gold"] .bg-navy-750                { background-color: #140d32 !important; }
-[data-theme="gold"] .bg-navy-700                { background-color: #17143a !important; }
-[data-theme="gold"] .bg-navy-700\/30             { background-color: rgba(23,20,58,0.3) !important; }
-[data-theme="gold"] .bg-navy-700\/40             { background-color: rgba(23,20,58,0.4) !important; }
-[data-theme="gold"] .bg-navy-700\/60             { background-color: rgba(23,20,58,0.6) !important; }
-[data-theme="gold"] .bg-navy-600                { background-color: #1e1945 !important; }
-[data-theme="gold"] .hover\:bg-navy-700:hover   { background-color: #17143a !important; }
-[data-theme="gold"] .hover\:bg-navy-600:hover   { background-color: #1e1945 !important; }
+/* Tailwind navy class overrides — terracotta chaud */
+[data-theme="gold"] .bg-navy-900                { background-color: #0f0704 !important; }
+[data-theme="gold"] .bg-navy-900\/80             { background-color: rgba(15,7,4,0.8) !important; }
+[data-theme="gold"] .bg-navy-800                { background-color: #180b04 !important; }
+[data-theme="gold"] .bg-navy-750                { background-color: #1f0e05 !important; }
+[data-theme="gold"] .bg-navy-700                { background-color: #2a1508 !important; }
+[data-theme="gold"] .bg-navy-700\/30             { background-color: rgba(42,21,8,0.3) !important; }
+[data-theme="gold"] .bg-navy-700\/40             { background-color: rgba(42,21,8,0.4) !important; }
+[data-theme="gold"] .bg-navy-700\/60             { background-color: rgba(42,21,8,0.6) !important; }
+[data-theme="gold"] .bg-navy-600                { background-color: #3a1e0a !important; }
+[data-theme="gold"] .hover\:bg-navy-700:hover   { background-color: #2a1508 !important; }
+[data-theme="gold"] .hover\:bg-navy-600:hover   { background-color: #3a1e0a !important; }
 
-/* Tailwind sp (accent) class overrides for gold theme */
-[data-theme="gold"] .text-sp                    { color: #f59e0b !important; }
-[data-theme="gold"] .bg-sp                      { background-color: #f59e0b !important; }
-[data-theme="gold"] .border-sp                  { border-color: #f59e0b !important; }
-[data-theme="gold"] .bg-sp\/10                  { background-color: rgba(245,158,11,0.1) !important; }
-[data-theme="gold"] .bg-sp\/15                  { background-color: rgba(245,158,11,0.15) !important; }
-[data-theme="gold"] .bg-sp\/20                  { background-color: rgba(245,158,11,0.2) !important; }
-[data-theme="gold"] .bg-sp\/25                  { background-color: rgba(245,158,11,0.25) !important; }
-[data-theme="gold"] .border-sp\/20              { border-color: rgba(245,158,11,0.2) !important; }
-[data-theme="gold"] .border-sp\/30              { border-color: rgba(245,158,11,0.3) !important; }
-[data-theme="gold"] .hover\:text-sp:hover       { color: #f59e0b !important; }
-[data-theme="gold"] .hover\:bg-sp\/20:hover     { background-color: rgba(245,158,11,0.2) !important; }
-[data-theme="gold"] .hover\:border-sp\/20:hover { border-color: rgba(245,158,11,0.2) !important; }
-[data-theme="gold"] .group:hover .group-hover\:text-sp { color: #f59e0b !important; }
+/* Scrollbar */
+[data-theme="gold"] ::-webkit-scrollbar-track   { background: #0f0704; }
+[data-theme="gold"] ::-webkit-scrollbar-thumb   { background: #3a1e0a; }
+
+/* Tailwind sp (accent) class overrides — or brûlé */
+[data-theme="gold"] .text-sp                    { color: #c9972a !important; }
+[data-theme="gold"] .bg-sp                      { background-color: #c9972a !important; }
+[data-theme="gold"] .border-sp                  { border-color: #c9972a !important; }
+[data-theme="gold"] .bg-sp\/10                  { background-color: rgba(201,151,42,0.10) !important; }
+[data-theme="gold"] .bg-sp\/15                  { background-color: rgba(201,151,42,0.15) !important; }
+[data-theme="gold"] .bg-sp\/20                  { background-color: rgba(201,151,42,0.20) !important; }
+[data-theme="gold"] .bg-sp\/25                  { background-color: rgba(201,151,42,0.25) !important; }
+[data-theme="gold"] .border-sp\/20              { border-color: rgba(201,151,42,0.20) !important; }
+[data-theme="gold"] .border-sp\/30              { border-color: rgba(201,151,42,0.30) !important; }
+[data-theme="gold"] .border-sp\/50              { border-color: rgba(201,151,42,0.50) !important; }
+[data-theme="gold"] .hover\:text-sp:hover       { color: #d4a840 !important; }
+[data-theme="gold"] .hover\:bg-sp\/20:hover     { background-color: rgba(201,151,42,0.20) !important; }
+[data-theme="gold"] .hover\:border-sp\/20:hover { border-color: rgba(201,151,42,0.20) !important; }
+[data-theme="gold"] .group:hover .group-hover\:text-sp { color: #c9972a !important; }
+[data-theme="gold"] .focus\:border-sp\/40:focus { border-color: rgba(201,151,42,0.40) !important; }
+[data-theme="gold"] .focus\:border-sp\/50:focus { border-color: rgba(201,151,42,0.50) !important; }
+
+/* Shimmer loading state */
+[data-theme="gold"] .shimmer {
+  background: linear-gradient(90deg, #2a1508 25%, #3a1e0a 50%, #2a1508 75%);
+}
 
 /* ── Professional White theme override ── */
 [data-theme="white"] {
