@@ -768,6 +768,32 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeBuilding?.id])
 
+    // ── Portfolio preload: when Vue globale opens, fetch all unloaded buildings ──
+    useEffect(() => {
+        if (activeTab !== 'portfolio') return
+        const toLoad = allBuildings.filter(b => !loadedBldgIds.current.has(b.id))
+        if (toLoad.length === 0) return
+        toLoad.forEach(bld => {
+            const bldgId = bld.id
+            if (loadedBldgIds.current.has(bldgId)) return
+            loadedBldgIds.current.add(bldgId)
+            Promise.all([
+                fetchResidents(bldgId), fetchExpenses(bldgId), fetchTickets(bldgId),
+                fetchDisputes(bldgId),  fetchSuppliers(bldgId), fetchMeetings(bldgId),
+                fetchBuildingSettings(bldgId),
+            ]).then(([res, exp, tix, disp, sups, mts, settings]) => {
+                if (res.length  > 0) setResidentsByBldg(p => ({ ...p, [bldgId]: res }))
+                if (exp.length  > 0) setExpensesByBldg(p => ({ ...p, [bldgId]: exp }))
+                if (tix.length  > 0) setTicketsByBldg(p => ({ ...p, [bldgId]: tix }))
+                if (disp.length > 0) setDisputesByBldg(p => ({ ...p, [bldgId]: disp }))
+                if (sups.length > 0) setSuppliersByBldg(p => ({ ...p, [bldgId]: sups }))
+                if (mts.length  > 0) setMeetingsByBldg(p => ({ ...p, [bldgId]: mts }))
+                if (settings)        setBuildingSettingsByBldg(p => ({ ...p, [bldgId]: settings }))
+            }).catch(err => console.error('[Portfolio preload]', bldgId, err))
+        })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeTab, allBuildings.length])
+
     const buildingData = getBuildingData(activeBuilding?.id)
 
     // Shared residents state — persists when switching tabs, keyed by building ID
@@ -2012,7 +2038,7 @@ function PortfolioDashboard({ allBuildings, residentsByBldg, disputesByBldg, tic
             {/* Building health cards */}
             <div>
                 <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">État des résidences — cliquez pour accéder</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                     {bldgStats.map(({ bld, total, paid, overdue, rate, impayés, collected, openTix, activeDisp, nextAG }) => {
                         const health = rate >= 80 ? 'green' : rate >= 60 ? 'amber' : 'red'
                         const hc = {
@@ -2122,7 +2148,7 @@ function PortfolioDashboard({ allBuildings, residentsByBldg, disputesByBldg, tic
                             <p className="text-xs text-slate-500 mt-1">Aucune action requise pour le moment</p>
                         </div>
                     ) : (
-                        <div className="space-y-2">
+                        <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                             {alerts.map((a, i) => {
                                 const ls = {
                                     danger:  'border-red-500/30 bg-red-500/8 text-red-400',
@@ -2150,7 +2176,7 @@ function PortfolioDashboard({ allBuildings, residentsByBldg, disputesByBldg, tic
                         <BarChart3 size={14} className="text-sp" />
                         Comparatif des résidences
                     </h2>
-                    <div className="space-y-5">
+                    <div className="space-y-5 max-h-72 overflow-y-auto pr-1">
                         {bldgStats.map(({ bld, rate, paid, total, collected, impayés }) => (
                             <div key={bld.id} className="space-y-1.5">
                                 <div className="flex items-center justify-between">
