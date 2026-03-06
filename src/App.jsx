@@ -730,8 +730,9 @@ function Dashboard() {
     const [showAddBuilding, setShowAddBuilding] = useState(false)
     const [themeMode, setThemeMode] = useState(() => {
         const stored = localStorage.getItem('sp_theme')
-        // Migrate old 'navy' default → new 'gold' (Moroccan Premium) default
-        if (!stored || stored === 'navy') return 'gold'
+        // Default: navy. Migrate 'gold' back to 'navy' (was a brief forced default).
+        // Only 'white' (explicitly chosen via toggle) is preserved.
+        if (!stored || stored === 'gold') return 'navy'
         return stored
     })
     const [expensesByBldg, setExpensesByBldg] = useState({})   // individual expense log entries per building
