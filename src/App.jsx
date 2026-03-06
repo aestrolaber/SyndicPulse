@@ -1161,7 +1161,54 @@ function Dashboard() {
             />
 
             <div className="flex-1 flex flex-col overflow-hidden">
-                <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
+                <TopBar
+                    activeTab={activeTab}
+                    activeBuilding={activeBuildingMerged}
+                    themeMode={themeMode}
+                    setThemeMode={setThemeMode}
+                    showToast={showToast}
+                    notifications={(() => {
+                        const items = []
+                        // 1. Backup overdue
+                        const lastBkp = localStorage.getItem(`sp_last_cloud_backup_${activeBuilding?.id}`)
+                        const bkpDays = lastBkp ? Math.floor((Date.now() - new Date(lastBkp).getTime()) / 86400000) : null
+                        if (!lastBkp || bkpDays > 7) items.push({
+                            id: 'backup', severity: 'warning',
+                            label: lastBkp ? `Sauvegarde en retard (${bkpDays}j)` : 'Aucune sauvegarde cloud',
+                            detail: lastBkp ? `Dernière il y a ${bkpDays} jours — recommandée tous les 7j` : 'Première sauvegarde recommandée',
+                            action: 'settings',
+                        })
+                        // 2. Overdue payments
+                        const overdueCount = residents.filter(r => computeStatus(r.paidThrough) === 'overdue').length
+                        if (overdueCount > 0) items.push({
+                            id: 'overdue', severity: 'error',
+                            label: `${overdueCount} résident${overdueCount > 1 ? 's' : ''} en retard de paiement`,
+                            detail: 'Relance WhatsApp recommandée',
+                            action: 'financials',
+                        })
+                        // 3. Urgent open tickets
+                        const urgentCount = tickets.filter(t => t.priority === 'urgent' && !['resolved', 'closed'].includes(t.status)).length
+                        if (urgentCount > 0) items.push({
+                            id: 'tickets', severity: 'warning',
+                            label: `${urgentCount} ticket${urgentCount > 1 ? 's' : ''} urgent${urgentCount > 1 ? 's' : ''}`,
+                            detail: 'Maintenance prioritaire en attente',
+                            action: 'planning',
+                        })
+                        // 4. High-priority open disputes
+                        const highDisputeCount = disputes.filter(d => d.priority === 'high' && !['resolved', 'closed'].includes(d.status)).length
+                        if (highDisputeCount > 0) items.push({
+                            id: 'disputes', severity: 'error',
+                            label: `${highDisputeCount} litige${highDisputeCount > 1 ? 's' : ''} haute priorité`,
+                            detail: 'Médiation ou résolution requise',
+                            action: 'disputes',
+                        })
+                        return items
+                    })()}
+                    onNotifAction={(action) => {
+                        if (action === 'settings') setShowBldgSettings(true)
+                        else setActiveTab(action)
+                    }}
+                />
                 {/* Pause banner — visible when building is paused */}
                 {activeBuildingMerged.paused && (
                     <div className="flex items-center justify-between px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex-shrink-0">
@@ -2082,9 +2129,25 @@ function UserGuideModal({ onClose }) {
 /* ══════════════════════════════════════════
    TOP BAR
 ══════════════════════════════════════════ */
-function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast }) {
+function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast, notifications = [], onNotifAction }) {
     const pageLabel = NAV.find(n => n.id === activeTab)?.label ?? activeTab
     const [showGuide, setShowGuide] = useState(false)
+    const [showNotifs, setShowNotifs] = useState(false)
+    const bellRef = useRef(null)
+
+    useEffect(() => {
+        if (!showNotifs) return
+        function handleClick(e) { if (!bellRef.current?.contains(e.target)) setShowNotifs(false) }
+        document.addEventListener('mousedown', handleClick)
+        return () => document.removeEventListener('mousedown', handleClick)
+    }, [showNotifs])
+
+    const hasError = notifications.some(n => n.severity === 'error')
+    const hasDot = notifications.length > 0
+
+    const NOTIF_ICONS = { backup: '☁️', overdue: '💰', tickets: '🔧', disputes: '⚖️' }
+    const NOTIF_ACTIONS = { settings: 'Ouvrir Paramètres', financials: 'Voir Finances', planning: 'Voir Planning', disputes: 'Voir Litiges' }
+
     return (
         <>
         <header className="flex items-center justify-between px-8 py-4 border-b border-white/5 bg-navy-900/80 backdrop-blur-sm flex-shrink-0">
@@ -2121,10 +2184,77 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast 
                 >
                     <BookOpen size={17} className="text-slate-400 group-hover:text-sp transition-colors" />
                 </button>
-                <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="relative p-2.5 rounded-xl bg-navy-800 hover:bg-navy-700 border border-white/5 transition-colors">
-                    <Bell size={17} className="text-slate-400" />
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-sp rounded-full border border-navy-800" />
-                </button>
+
+                {/* ── Notification bell ── */}
+                <div ref={bellRef} className="relative">
+                    <button
+                        onClick={() => setShowNotifs(v => !v)}
+                        title="Notifications"
+                        className={`relative p-2.5 rounded-xl border transition-colors ${showNotifs ? 'bg-navy-700 border-white/10' : 'bg-navy-800 hover:bg-navy-700 border-white/5'}`}
+                    >
+                        <Bell size={17} className={hasDot ? 'text-white' : 'text-slate-400'} />
+                        {hasDot && (
+                            <span className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full border border-navy-900 ${hasError ? 'bg-red-500' : 'bg-amber-400'}`} />
+                        )}
+                    </button>
+
+                    {showNotifs && (
+                        <div className="absolute right-0 top-12 w-80 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                            {/* Header */}
+                            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
+                                <div>
+                                    <p className="text-xs font-bold text-white">Notifications</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                        {notifications.length === 0 ? 'Tout est en ordre ✓' : `${notifications.length} élément${notifications.length > 1 ? 's' : ''} à traiter`}
+                                    </p>
+                                </div>
+                                {notifications.length > 0 && (
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${hasError ? 'bg-red-500/15 text-red-400 border-red-500/25' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
+                                        {notifications.length}
+                                    </span>
+                                )}
+                            </div>
+
+                            {/* Empty state */}
+                            {notifications.length === 0 ? (
+                                <div className="px-4 py-8 text-center">
+                                    <p className="text-2xl mb-2">✅</p>
+                                    <p className="text-xs font-medium text-slate-400">Aucune action requise</p>
+                                    <p className="text-[10px] text-slate-600 mt-1">Sauvegarde, paiements, tickets et litiges sont à jour</p>
+                                </div>
+                            ) : (
+                                <div className="divide-y divide-white/5 max-h-80 overflow-y-auto">
+                                    {notifications.map(n => (
+                                        <button key={n.id}
+                                            onClick={() => { onNotifAction?.(n.action); setShowNotifs(false) }}
+                                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left group"
+                                        >
+                                            <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm mt-0.5 ${
+                                                n.severity === 'error' ? 'bg-red-500/15' : 'bg-amber-500/15'
+                                            }`}>
+                                                {NOTIF_ICONS[n.id] ?? '🔔'}
+                                            </span>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-xs font-medium text-white leading-snug">{n.label}</p>
+                                                <p className="text-[10px] text-slate-500 mt-0.5">{n.detail}</p>
+                                                <p className="text-[10px] text-sp mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    {NOTIF_ACTIONS[n.action] ?? 'Voir'} →
+                                                </p>
+                                            </div>
+                                            <ChevronRight size={12} className="text-slate-600 mt-1.5 flex-shrink-0 group-hover:text-slate-400 transition-colors" />
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+
+                            {/* Footer */}
+                            <div className="px-4 py-2.5 border-t border-white/8 bg-white/3">
+                                <p className="text-[10px] text-slate-600 text-center">Cliquer une alerte pour y accéder directement</p>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
                 <div className="pl-3 border-l border-white/5 text-right">
                     <p className="text-sm font-semibold text-white">{activeBuilding.manager}</p>
                     <p className="text-[11px] text-slate-400">Gestionnaire syndic</p>
