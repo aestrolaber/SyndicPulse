@@ -723,7 +723,20 @@ function Dashboard() {
     const [residentsByBldg, setResidentsByBldg] = useState({})  // shared across tabs
     const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
     const [meetingsByBldg, setMeetingsByBldg] = useState({})  // shared across tabs
-    const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState({})  // logo + name overrides per building
+    const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState(() => {
+        // Pre-load bank/payment settings from localStorage so they're available immediately
+        // (even before Supabase responds). Logo/name overrides still come from Supabase only.
+        const init = {}
+        try {
+            const extraIds = JSON.parse(localStorage.getItem('sp_extra_buildings') ?? '[]').map(b => b.id)
+            const allIds = [...BUILDINGS.map(b => b.id), ...extraIds]
+            for (const id of allIds) {
+                const bank = JSON.parse(localStorage.getItem(`sp_bank_${id}`) ?? 'null')
+                if (bank) init[id] = bank
+            }
+        } catch {}
+        return init
+    })  // logo + name overrides per building (Supabase); bank/payment fields also pre-loaded from localStorage
     const [pausedBuildingIds, setPausedBuildingIds] = useState(() => {
         try { return new Set(JSON.parse(localStorage.getItem('sp_paused_buildings') ?? '[]')) } catch { return new Set() }
     })  // persisted across sessions — survives logout/login
