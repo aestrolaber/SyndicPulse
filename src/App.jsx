@@ -10207,13 +10207,14 @@ function ResidentPortal({ session, onLogout }) {
     const bldgData = getBuildingData(buildingId)
     const expenses = bldgData.expenses ?? []
 
-    // Merge session snapshot with any payment updates persisted by syndic after login
+    // Merge: fresh Supabase data (if loaded) → localStorage payment override → session snapshot
     const resident = (() => {
+        const base = liveResidentList?.find(r => r.id === sessionResident.id) ?? sessionResident
         try {
             const map = JSON.parse(localStorage.getItem(`sp_payments_${buildingId}`) ?? '{}')
-            if (map[sessionResident.id]) return { ...sessionResident, paidThrough: map[sessionResident.id] }
+            if (map[base.id]) return { ...base, paidThrough: map[base.id] }
         } catch { }
-        return sessionResident
+        return base
     })()
 
     // Read meetings from localStorage (reflects syndic add/edit via AssembliesPage useEffect)
@@ -10232,6 +10233,14 @@ function ResidentPortal({ session, onLogout }) {
     const [expandedCirc, setExpandedCirc] = useState(null)
     const [copiedBankField, setCopiedBankField] = useState(null)
     const [showPaymentPanel, setShowPaymentPanel] = useState(false)
+
+    // Fetch live Supabase residents for accurate collection rate + building stats
+    const [liveResidentList, setLiveResidentList] = useState(null)
+    useEffect(() => {
+        fetchResidents(buildingId)
+            .then(r => { if (r.length > 0) setLiveResidentList(r) })
+            .catch(() => {})  // graceful fallback to mock data
+    }, [buildingId])
 
     // ── Payment info (read localStorage override, fall back to building base data) ──
     const bankInfo = (() => {
@@ -10253,13 +10262,14 @@ function ResidentPortal({ session, onLogout }) {
         return b
     })()
 
-    // Collection rate — applies localStorage payment overrides on top of static resident list
+    // Collection rate — live Supabase residents when available, mock fallback
     const portalResidents = (() => {
         try {
             const map = JSON.parse(localStorage.getItem(`sp_payments_${buildingId}`) ?? '{}')
-            return (bldgData.residents ?? []).map(r => map[r.id] ? { ...r, paidThrough: map[r.id] } : r)
+            const base = liveResidentList ?? bldgData.residents ?? []
+            return base.map(r => map[r.id] ? { ...r, paidThrough: map[r.id] } : r)
         } catch { }
-        return bldgData.residents ?? []
+        return liveResidentList ?? bldgData.residents ?? []
     })()
     const portalPaidCount = portalResidents.filter(r => computeStatus(r.paidThrough) === 'paid').length
     const portalCollectionRate = portalResidents.length > 0
