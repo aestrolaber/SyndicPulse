@@ -13,7 +13,7 @@ import {
     LayoutDashboard, BarChart3, Users, MessageSquare,
     Settings, Bell, Mic, ChevronDown, ChevronLeft, ChevronRight,
     TrendingUp, ShieldCheck, Building2, Landmark, Leaf,
-    Zap, ArrowUpRight, ArrowDownRight, CheckCircle2,
+    Zap, ArrowUpRight, ArrowDownRight, CheckCircle2, AlertTriangle,
     Clock, XCircle, Search, MoreHorizontal,
     CreditCard, Wrench, Phone, Mail, Activity, LogOut,
     Plus, X, Upload, FileText, Check, Download, MessageCircle, Calendar, Pencil, Trash2,
@@ -7970,6 +7970,9 @@ function AddBuildingModal({ onClose, onSave }) {
     })
     const [saving, setSaving] = useState(false)
     const [logoPreview, setLogoPreview] = useState(null)
+    const [done, setDone] = useState(null)   // { email, password, manager, buildingName }
+    const [showPwd, setShowPwd] = useState(false)
+    const [copied, setCopied] = useState(false)
     const fileRef = useRef(null)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
@@ -7982,13 +7985,42 @@ function AddBuildingModal({ onClose, onSave }) {
         reader.readAsDataURL(file)
     }
 
+    function slugify(str) {
+        return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '')
+    }
+
+    function generatePassword() {
+        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        const lower = 'abcdefghjkmnpqrstuvwxyz'
+        const digits = '23456789'
+        const special = '@#!$'
+        return (
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)] +
+            upper[Math.floor(Math.random() * upper.length)] +
+            lower[Math.floor(Math.random() * lower.length)] +
+            digits[Math.floor(Math.random() * digits.length)] +
+            special[Math.floor(Math.random() * special.length)]
+        )
+    }
+
+    function copyCredentials() {
+        if (!done) return
+        navigator.clipboard.writeText(`Email: ${done.email}\nMot de passe: ${done.password}`).catch(() => {})
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+    }
+
     async function handleSubmit(e) {
         e.preventDefault()
         if (!form.name.trim() || !form.city.trim() || !form.manager.trim()) return
         setSaving(true)
         await new Promise(r => setTimeout(r, 700))
-        onSave({
-            id: `bld-${Date.now()}`,
+
+        const bldId = `bld-${Date.now()}`
+        const newBuilding = {
+            id: bldId,
             name: form.name.trim(),
             city: form.city.trim(),
             address: form.address.trim(),
@@ -8002,10 +8034,102 @@ function AddBuildingModal({ onClose, onSave }) {
             logo: form.logo,
             collection_rate: 100,
             copyFrom: form.copyFrom || null,
-        })
+        }
+        onSave(newBuilding)
+
+        // Auto-create a syndic_manager account for this building
+        const pwd = generatePassword()
+        const hashedPwd = await hashPassword(pwd)
+        const nameSlug  = slugify(form.manager.trim().split(/\s+/)[0] || 'gestionnaire')
+        const emailSlug = slugify(form.name.trim()) || 'syndic'
+        const email = `${nameSlug}@${emailSlug}.ma`
+        const newUser = {
+            id: `usr-${Date.now()}`,
+            email,
+            password: hashedPwd,
+            full_name: form.manager.trim(),
+            phone: null,
+            role: 'syndic_manager',
+            org_id: `org-${Date.now()}`,
+            accessible_building_ids: [bldId],
+            avatar_bg: '0d1629',
+            avatar_color: '06b6d4',
+        }
+        const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        localStorage.setItem('sp_created_users', JSON.stringify([...existing, newUser]))
+
+        setSaving(false)
+        setDone({ email, password: pwd, manager: form.manager.trim(), buildingName: form.name.trim() })
     }
 
     const logoInitials = form.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '??'
+
+    // ── Credentials success screen ──────────────────────────────────────
+    if (done) {
+        return (
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+                    <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                        <h2 className="text-base font-bold text-white">Propriété créée</h2>
+                        <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                    </div>
+                    <div className="p-6 space-y-5">
+                        {/* Success banner */}
+                        <div className="flex items-start gap-3 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                            <CheckCircle2 size={18} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-semibold text-emerald-300">{done.buildingName} — ajoutée avec succès</p>
+                                <p className="text-xs text-emerald-400/70 mt-0.5">Un compte gestionnaire a été créé automatiquement.</p>
+                            </div>
+                        </div>
+
+                        {/* Manager info */}
+                        <div className="space-y-3">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Accès gestionnaire — à transmettre une seule fois</p>
+
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Nom complet</label>
+                                <div className="bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200">{done.manager}</div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Email de connexion</label>
+                                <div className="bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 font-mono">{done.email}</div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs text-slate-500 mb-1">Mot de passe temporaire</label>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex-1 bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm font-mono text-slate-200 tracking-widest">
+                                        {showPwd ? done.password : '•'.repeat(done.password.length)}
+                                    </div>
+                                    <button type="button" onClick={() => setShowPwd(v => !v)}
+                                        className="p-2.5 bg-navy-700 border border-white/10 rounded-xl text-slate-400 hover:text-white transition-colors">
+                                        {showPwd ? <EyeOff size={14} /> : <Eye size={14} />}
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-amber-400/70 mt-1.5 flex items-center gap-1">
+                                    <AlertTriangle size={10} /> Ce mot de passe ne sera plus affiché après fermeture.
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-3 pt-1">
+                            <button type="button" onClick={copyCredentials}
+                                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-sp/10 hover:bg-sp/20 text-sp border border-sp/20 rounded-xl text-sm font-semibold transition-all">
+                                {copied ? <><Check size={14} /> Copié !</> : <><Copy size={14} /> Copier les identifiants</>}
+                            </button>
+                            <button type="button" onClick={onClose}
+                                className="flex-1 py-2.5 bg-navy-700 hover:bg-navy-600 text-slate-300 hover:text-white border border-white/10 rounded-xl text-sm font-semibold transition-colors">
+                                Fermer
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
