@@ -728,7 +728,12 @@ function Dashboard() {
     })  // user-added buildings, persisted across sessions
     const [showBldgSettings, setShowBldgSettings] = useState(false)
     const [showAddBuilding, setShowAddBuilding] = useState(false)
-    const [themeMode, setThemeMode] = useState(() => localStorage.getItem('sp_theme') ?? 'gold')
+    const [themeMode, setThemeMode] = useState(() => {
+        const stored = localStorage.getItem('sp_theme')
+        // Migrate old 'navy' default → new 'gold' (Moroccan Premium) default
+        if (!stored || stored === 'navy') return 'gold'
+        return stored
+    })
     const [expensesByBldg, setExpensesByBldg] = useState({})   // individual expense log entries per building
     const [ticketsByBldg, setTicketsByBldg] = useState({})     // maintenance tickets per building
     const [dbLoading, setDbLoading] = useState(false)
