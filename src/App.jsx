@@ -768,6 +768,11 @@ function Dashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeBuilding?.id])
 
+    // All buildings: seed list + user-added (defined here so portfolio preload useEffect can reference it)
+    const allBuildings = [...accessibleBuildings, ...extraBuildings].map(b => ({
+        ...b, ...(buildingSettingsByBldg[b.id] ?? {}),
+    }))
+
     // ── Portfolio preload: when Vue globale opens, fetch all unloaded buildings ──
     useEffect(() => {
         if (activeTab !== 'portfolio') return
@@ -905,11 +910,6 @@ function Dashboard() {
     const activeBuildingMerged = activeBuilding
         ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
         : null
-
-    // All buildings: seed list + user-added
-    const allBuildings = [...accessibleBuildings, ...extraBuildings].map(b => ({
-        ...b, ...(buildingSettingsByBldg[b.id] ?? {}),
-    }))
 
     if (!activeBuilding) return <LoadingScreen />
 
