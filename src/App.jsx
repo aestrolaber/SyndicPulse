@@ -162,7 +162,11 @@ Cordialement,
 
 /* ── Portal PIN lookup (index-derived fallback for mock data residents) ── */
 function getResidentPortalPin(r, buildingId) {
-    if (r.portalPin) return r.portalPin
+    if (r.portalPin) {
+        // SHA-256 hash (64-char hex) is NOT the PIN — plaintext was shown once and discarded
+        if (/^[0-9a-f]{64}$/.test(r.portalPin)) return null
+        return r.portalPin  // plaintext (freshly generated or demo)
+    }
     const src = { 'bld-1': RESIDENTS_BLD1, 'bld-2': RESIDENTS_BLD2, 'bld-3': RESIDENTS_BLD3 }[buildingId] ?? []
     const idx = src.findIndex(or => or.id === r.id)
     return idx >= 0 ? String(100000 + idx) : null
@@ -203,7 +207,7 @@ function openPortalWhatsApp(r, building) {
         .replace(/\{prénom\}/g, firstName)
         .replace(/\{résidence\}/g, building.name)
         .replace(/\{code\}/g, building.accessCode ?? '—')
-        .replace(/\{pin\}/g, pin ?? '—')
+        .replace(/\{pin\}/g, pin ?? '(à demander au syndic)')
     window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank')
 }
 
@@ -5355,6 +5359,7 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                 {editingResident && (
                     <EditResidentModal
                         resident={editingResident}
+                        building={building}
                         onSave={handleEditResident}
                         onDelete={handleDeleteResident}
                         onClose={() => setEditingResident(null)}
@@ -6812,7 +6817,7 @@ Cordialement,
     )
 }
 
-function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents = [] }) {
+function EditResidentModal({ resident, building, onSave, onDelete, onClose, allResidents = [] }) {
     const [form, setForm] = useState({
         name: resident.name,
         phone: resident.phone === '—' ? '' : resident.phone,
@@ -6974,9 +6979,17 @@ function EditResidentModal({ resident, onSave, onDelete, onClose, allResidents =
                                 <button type="button" onClick={() => {
                                     navigator.clipboard.writeText(newPlainPin).catch(() => {})
                                     setPinCopied(true); setTimeout(() => setPinCopied(false), 2000)
-                                }} className="p-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors">
+                                }} title="Copier le PIN" className="p-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors">
                                     {pinCopied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-emerald-400" />}
                                 </button>
+                                {building && resident.phone && resident.phone !== '—' && (
+                                    <button type="button"
+                                        onClick={() => openPortalWhatsApp({ ...resident, portalPin: newPlainPin }, building)}
+                                        title="Envoyer le nouveau PIN par WhatsApp"
+                                        className="p-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 transition-colors">
+                                        <MessageCircle size={14} className="text-emerald-400" />
+                                    </button>
+                                )}
                             </div>
                             <p className="text-[10px] text-slate-500">Ce PIN ne sera plus visible après enregistrement. Transmettez-le au résident avant de sauvegarder.</p>
                         </div>
