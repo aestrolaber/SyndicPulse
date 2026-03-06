@@ -22,7 +22,7 @@ import {
     Home, TrendingDown,
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
-    BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw,
+    BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw, Globe2,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -208,6 +208,7 @@ function openPortalWhatsApp(r, building) {
 
 /* ── Nav items ── */
 const NAV = [
+    { id: 'portfolio', label: 'Vue globale', icon: Globe2, adminOnly: true },
     { id: 'dashboard', label: 'Tableau de bord', icon: LayoutDashboard },
     { id: 'financials', label: 'Finances', icon: BarChart3 },
     { id: 'residents', label: 'Résidents', icon: Users },
@@ -713,8 +714,8 @@ function LoadingScreen() {
    AUTHENTICATED DASHBOARD
 ══════════════════════════════════════════ */
 function Dashboard() {
-    const { activeBuilding, setActiveBuilding, accessibleBuildings, canSwitchBuildings } = useAuth()
-    const [activeTab, setActiveTab] = useState('dashboard')
+    const { activeBuilding, setActiveBuilding, accessibleBuildings, canSwitchBuildings, isSuperAdmin } = useAuth()
+    const [activeTab, setActiveTab] = useState(() => isSuperAdmin ? 'portfolio' : 'dashboard')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const [showBuildingMenu, setShowBuildingMenu] = useState(false)
     const [toast, setToast] = useState(null) // { message, type }
@@ -1024,6 +1025,7 @@ function Dashboard() {
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
                 <main className="flex-1 overflow-auto p-8">
+                    {activeTab === 'portfolio' && <PortfolioDashboard allBuildings={allBuildings} residentsByBldg={residentsByBldg} disputesByBldg={disputesByBldg} ticketsByBldg={ticketsByBldg} expensesByBldg={expensesByBldg} meetingsByBldg={meetingsByBldg} onSelectBuilding={(b) => { setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b); setActiveTab('dashboard') }} themeMode={themeMode} />}
                     {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} themeMode={themeMode} />}
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} onSaveResident={saveResident} onDeleteResident={removeResident} showToast={showToast} />}
@@ -1915,6 +1917,273 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast 
         </header>
         {showGuide && <UserGuideModal onClose={() => setShowGuide(false)} />}
         </>
+    )
+}
+
+/* ══════════════════════════════════════════
+   PORTFOLIO DASHBOARD  (super_admin — vue globale)
+══════════════════════════════════════════ */
+function PortfolioDashboard({ allBuildings, residentsByBldg, disputesByBldg, ticketsByBldg, expensesByBldg, meetingsByBldg, onSelectBuilding }) {
+    const bldgStats = allBuildings.map(bld => {
+        const res  = residentsByBldg[bld.id]  ?? getBuildingData(bld.id).residents
+        const tix  = ticketsByBldg[bld.id]    ?? getBuildingData(bld.id).tickets
+        const disp = disputesByBldg[bld.id]   ?? getBuildingData(bld.id).disputes
+        const mtgs = meetingsByBldg[bld.id]   ?? getBuildingData(bld.id).meetings
+        const mFee    = bld.monthly_fee ?? 850
+        const total   = res.length
+        const paid    = res.filter(r => computeStatus(r.paidThrough) === 'paid').length
+        const overdue = res.filter(r => computeStatus(r.paidThrough) === 'overdue').length
+        const rate    = total > 0 ? Math.round(paid / total * 100) : 100
+        const collected = res.filter(r => computeStatus(r.paidThrough) === 'paid').reduce((s, r) => s + (r.monthly_fee ?? mFee), 0)
+        const impayés   = res.reduce((s, r) => s + getUnpaidMonthsCount(r.paidThrough) * (r.monthly_fee ?? mFee), 0)
+        const openTix   = tix.filter(t => t.status !== 'done').length
+        const activeDisp = disp.filter(d => ['open', 'mediation'].includes(d.status)).length
+        const nextAG    = mtgs.filter(m => m.status === 'upcoming').sort((a, b) => (a.date ?? '').localeCompare(b.date ?? ''))[0]
+        return { bld, res, tix, disp, mtgs, total, paid, overdue, rate, collected, impayés, openTix, activeDisp, nextAG, mFee }
+    })
+
+    const totalRes        = bldgStats.reduce((s, b) => s + b.total, 0)
+    const totalPaid       = bldgStats.reduce((s, b) => s + b.paid, 0)
+    const totalOverdue    = bldgStats.reduce((s, b) => s + b.overdue, 0)
+    const globalRate      = totalRes > 0 ? Math.round(totalPaid / totalRes * 100) : 100
+    const totalCollected  = bldgStats.reduce((s, b) => s + b.collected, 0)
+    const totalImpayés    = bldgStats.reduce((s, b) => s + b.impayés, 0)
+    const totalOpenTix    = bldgStats.reduce((s, b) => s + b.openTix, 0)
+    const totalActiveDisp = bldgStats.reduce((s, b) => s + b.activeDisp, 0)
+
+    const alerts = []
+    bldgStats.forEach(({ bld, rate, disp, nextAG, openTix }) => {
+        if (rate < 70)  alerts.push({ level: 'danger',  bld, msg: `Taux de recouvrement critique : ${rate}%` })
+        else if (rate < 85) alerts.push({ level: 'warning', bld, msg: `Recouvrement à améliorer : ${rate}%` })
+        const highPri = disp.filter(d => d.priority === 'high' && ['open', 'mediation'].includes(d.status))
+        if (highPri.length > 0) alerts.push({ level: 'danger', bld, msg: `${highPri.length} litige(s) haute priorité actif(s)` })
+        if (!nextAG) alerts.push({ level: 'info', bld, msg: 'Aucune assemblée générale planifiée' })
+        if (openTix > 5) alerts.push({ level: 'warning', bld, msg: `${openTix} tickets de maintenance ouverts` })
+    })
+
+    const kpis = [
+        { label: 'Résidences',       value: allBuildings.length.toString(),                  sub: 'sous gestion',             icon: Building2,     color: 'cyan'    },
+        { label: 'Résidents actifs', value: totalRes.toString(),                              sub: `${totalOverdue} en retard`, icon: Users,         color: 'violet'  },
+        { label: 'Taux global',      value: `${globalRate}%`,                                sub: `${totalPaid}/${totalRes} payés`, icon: TrendingUp, color: globalRate >= 80 ? 'emerald' : globalRate >= 60 ? 'amber' : 'red' },
+        { label: 'Encaissé/mois',    value: `${totalCollected.toLocaleString('fr-FR')} MAD`, sub: 'charges mensuelles',       icon: Banknote,      color: 'emerald' },
+        { label: 'Impayés',          value: `${totalImpayés.toLocaleString('fr-FR')} MAD`,   sub: `${totalOverdue} résidents`, icon: CreditCard,    color: totalImpayés > 0 ? 'amber' : 'emerald' },
+        { label: 'Tickets ouverts',  value: totalOpenTix.toString(),                          sub: 'maintenance en attente',   icon: Wrench,        color: 'amber'   },
+        { label: 'Litiges actifs',   value: totalActiveDisp.toString(),                       sub: 'open + médiation',         icon: MessageSquare, color: totalActiveDisp > 0 ? 'red' : 'emerald' },
+    ]
+
+    const colorMap = {
+        cyan:    'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+        violet:  'text-violet-400 bg-violet-500/10 border-violet-500/20',
+        emerald: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+        amber:   'text-amber-400 bg-amber-500/10 border-amber-500/20',
+        red:     'text-red-400 bg-red-500/10 border-red-500/20',
+    }
+
+    return (
+        <div className="space-y-8">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-white">Vue d'ensemble du portefeuille</h1>
+                    <p className="text-slate-400 text-sm mt-1">{allBuildings.length} résidences · Données en temps réel</p>
+                </div>
+                <div className="text-xs text-slate-500 bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                    {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+                </div>
+            </div>
+
+            {/* Portfolio KPI strip */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-3">
+                {kpis.map(k => {
+                    const Icon = k.icon
+                    return (
+                        <div key={k.label} className="glass-card p-4">
+                            <div className={`w-8 h-8 rounded-lg border flex items-center justify-center mb-3 ${colorMap[k.color]}`}>
+                                <Icon size={15} />
+                            </div>
+                            <p className="text-lg font-bold text-white leading-none">{k.value}</p>
+                            <p className="text-[11px] text-slate-400 mt-1">{k.label}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{k.sub}</p>
+                        </div>
+                    )
+                })}
+            </div>
+
+            {/* Building health cards */}
+            <div>
+                <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-4">État des résidences — cliquez pour accéder</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    {bldgStats.map(({ bld, total, paid, overdue, rate, impayés, collected, openTix, activeDisp, nextAG }) => {
+                        const health = rate >= 80 ? 'green' : rate >= 60 ? 'amber' : 'red'
+                        const hc = {
+                            green: { bar: 'bg-emerald-500', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30', label: 'Sain' },
+                            amber: { bar: 'bg-amber-500',   badge: 'bg-amber-500/15 text-amber-400 border-amber-500/30',   label: 'Attention' },
+                            red:   { bar: 'bg-red-500',     badge: 'bg-red-500/15 text-red-400 border-red-500/30',         label: 'Critique' },
+                        }[health]
+                        return (
+                            <motion.div
+                                key={bld.id}
+                                whileHover={{ scale: 1.02 }}
+                                onClick={() => onSelectBuilding(bld)}
+                                className="glass-card p-5 cursor-pointer hover:border-white/20 transition-all group"
+                            >
+                                {/* Card header */}
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: bld.color + '22', border: `1px solid ${bld.color}55` }}>
+                                            <Building2 size={16} style={{ color: bld.color }} />
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-semibold text-white group-hover:text-sp transition-colors">{bld.name}</p>
+                                            <p className="text-[11px] text-slate-500">{bld.city} · {total} rés.</p>
+                                        </div>
+                                    </div>
+                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${hc.badge}`}>{hc.label}</span>
+                                </div>
+
+                                {/* Collection bar */}
+                                <div className="mb-4">
+                                    <div className="flex justify-between items-center mb-1.5">
+                                        <span className="text-[11px] text-slate-400">Recouvrement</span>
+                                        <span className="text-sm font-bold text-white">{rate}%</span>
+                                    </div>
+                                    <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+                                        <div className={`h-full ${hc.bar} rounded-full transition-all`} style={{ width: `${rate}%` }} />
+                                    </div>
+                                    <div className="flex justify-between mt-1">
+                                        <span className="text-[10px] text-emerald-400">{paid} payés</span>
+                                        {overdue > 0 && <span className="text-[10px] text-red-400">{overdue} en retard</span>}
+                                    </div>
+                                </div>
+
+                                {/* 4-stat grid */}
+                                <div className="grid grid-cols-2 gap-2 mb-3">
+                                    <div className="bg-white/5 rounded-lg p-2.5">
+                                        <p className="text-[10px] text-slate-500">Encaissé</p>
+                                        <p className="text-xs font-semibold text-white">{collected.toLocaleString('fr-FR')} MAD</p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2.5">
+                                        <p className="text-[10px] text-slate-500">Impayés</p>
+                                        <p className={`text-xs font-semibold ${impayés > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                            {impayés > 0 ? `${impayés.toLocaleString('fr-FR')} MAD` : 'RAS'}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2.5">
+                                        <p className="text-[10px] text-slate-500">Tickets</p>
+                                        <p className={`text-xs font-semibold ${openTix > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
+                                            {openTix} ouvert{openTix !== 1 ? 's' : ''}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white/5 rounded-lg p-2.5">
+                                        <p className="text-[10px] text-slate-500">Litiges</p>
+                                        <p className={`text-xs font-semibold ${activeDisp > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                            {activeDisp} actif{activeDisp !== 1 ? 's' : ''}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Next AG + click hint */}
+                                <div className="border-t border-white/5 pt-2.5 space-y-1.5">
+                                    <div className="flex items-center justify-between text-[11px]">
+                                        <span className="text-slate-500">Prochaine AG</span>
+                                        <span className={nextAG ? 'text-sp' : 'text-slate-600'}>
+                                            {nextAG ? fmtDate(nextAG.date) : '— non planifiée'}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-[10px] text-slate-600 group-hover:text-sp transition-colors">
+                                        <ArrowUpRight size={11} />
+                                        <span>Ouvrir le tableau de bord</span>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* Alerts + Comparatif side by side */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                {/* Alerts panel */}
+                <div className="glass-card p-5">
+                    <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                        <Bell size={14} className="text-amber-400" />
+                        Actions requises
+                        {alerts.length > 0 && (
+                            <span className="ml-auto text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">{alerts.length}</span>
+                        )}
+                    </h2>
+                    {alerts.length === 0 ? (
+                        <div className="flex flex-col items-center justify-center py-8 text-center">
+                            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
+                                <CheckCircle2 size={18} className="text-emerald-400" />
+                            </div>
+                            <p className="text-sm text-emerald-400 font-medium">Tout est en ordre</p>
+                            <p className="text-xs text-slate-500 mt-1">Aucune action requise pour le moment</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {alerts.map((a, i) => {
+                                const ls = {
+                                    danger:  'border-red-500/30 bg-red-500/8 text-red-400',
+                                    warning: 'border-amber-500/30 bg-amber-500/8 text-amber-400',
+                                    info:    'border-blue-500/30 bg-blue-500/8 text-blue-400',
+                                }[a.level]
+                                return (
+                                    <div key={i} className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer hover:opacity-80 transition-opacity ${ls}`} onClick={() => onSelectBuilding(a.bld)}>
+                                        <div className="w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 bg-current" />
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-[11px] font-semibold">{a.bld.name}</p>
+                                            <p className="text-[11px] opacity-80 mt-0.5">{a.msg}</p>
+                                        </div>
+                                        <ArrowUpRight size={12} className="flex-shrink-0 mt-0.5" />
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </div>
+
+                {/* Collection comparatif */}
+                <div className="glass-card p-5">
+                    <h2 className="text-sm font-semibold text-white mb-5 flex items-center gap-2">
+                        <BarChart3 size={14} className="text-sp" />
+                        Comparatif des résidences
+                    </h2>
+                    <div className="space-y-5">
+                        {bldgStats.map(({ bld, rate, paid, total, collected, impayés }) => (
+                            <div key={bld.id} className="space-y-1.5">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: bld.color }} />
+                                        <span className="text-[12px] font-medium text-white">{bld.name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-[11px] text-slate-400">{paid}/{total} rés.</span>
+                                        <span className="text-sm font-bold text-white w-10 text-right">{rate}%</span>
+                                    </div>
+                                </div>
+                                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div className="h-full rounded-full transition-all" style={{ width: `${rate}%`, backgroundColor: bld.color }} />
+                                </div>
+                                <div className="flex justify-between text-[10px]">
+                                    <span className="text-emerald-400">{collected.toLocaleString('fr-FR')} MAD encaissés</span>
+                                    {impayés > 0 && <span className="text-amber-400">{impayés.toLocaleString('fr-FR')} MAD impayés</span>}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-5 pt-4 border-t border-white/5 flex items-center justify-between">
+                        <span className="text-xs text-slate-400">Total portefeuille</span>
+                        <div className="text-right">
+                            <p className="text-sm font-bold text-white">{totalCollected.toLocaleString('fr-FR')} MAD</p>
+                            <p className="text-[10px] text-slate-500">{globalRate}% de recouvrement global</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     )
 }
 
