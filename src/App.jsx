@@ -3992,13 +3992,6 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/20">⏳ {remaining}j</span>
                                                     </>
                                                 )}
-                                                {(!circ.status || circ.status === 'en_attente') && (
-                                                    <button onClick={() => handleReclame(circ.id)}
-                                                        title="Marquer comme réclamé"
-                                                        className="text-[10px] font-semibold px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/20 transition-colors">
-                                                        ✓ Réclamé
-                                                    </button>
-                                                )}
                                                 {/* WhatsApp prefill copy */}
                                                 <button onClick={() => handleCopyWA(circ)} title="Copier message WhatsApp"
                                                     className="p-1.5 rounded-lg bg-navy-700/60 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/8 transition-colors">
