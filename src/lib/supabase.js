@@ -17,25 +17,45 @@
 
 import { DEMO_USERS, BUILDINGS } from './mockData.js'
 
-const AUTH_KEY = 'sp_auth_user'
+const AUTH_KEY     = 'sp_auth_user'
+const SESSION_TTL  = 8 * 60 * 60 * 1000   // 8 hours in ms
+
+// ── Password hashing (SHA-256 via Web Crypto API) ──────────────────────────────
+export async function hashPassword(plain) {
+    const data = new TextEncoder().encode(plain)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+    return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
 
 // ── Auth mock ──────────────────────────────────────────────────────────────────
 const auth = {
     async signInWithPassword({ email, password }) {
         await delay(800) // simulate network
-        // Check static demo users + any accounts created by super_admin (stored in localStorage)
         const createdUsers = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
-        const allUsers = [...DEMO_USERS, ...createdUsers]
-        const user = allUsers.find(
+
+        // DEMO_USERS: plaintext comparison (internal hardcoded accounts, never exposed to clients)
+        const demoUser = DEMO_USERS.find(
             u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
         )
+
+        // Created users: SHA-256 hash comparison
+        let createdUser = null
+        if (!demoUser) {
+            const hashed = await hashPassword(password)
+            createdUser = createdUsers.find(
+                u => u.email.toLowerCase() === email.toLowerCase() && u.password === hashed
+            )
+        }
+
+        const user = demoUser ?? createdUser
         if (!user) {
             return { data: null, error: { message: 'Email ou mot de passe incorrect.' } }
         }
         const safeUser = { ...user, password: undefined }
         // Match real Supabase shape: { data: { user, session: { user, access_token } } }
         const session = { user: safeUser, access_token: 'mock-token' }
-        localStorage.setItem(AUTH_KEY, JSON.stringify(safeUser))
+        // Store with login timestamp for session expiry
+        localStorage.setItem(AUTH_KEY, JSON.stringify({ ...safeUser, _loginAt: Date.now() }))
         return { data: { user: safeUser, session }, error: null }
     },
 
@@ -47,7 +67,18 @@ const auth = {
     async getSession() {
         const stored = localStorage.getItem(AUTH_KEY)
         if (!stored) return { data: { session: null } }
-        return { data: { session: { user: JSON.parse(stored) } } }
+        try {
+            const parsed = JSON.parse(stored)
+            // Enforce 8-hour session timeout
+            if (parsed._loginAt && Date.now() - parsed._loginAt > SESSION_TTL) {
+                localStorage.removeItem(AUTH_KEY)
+                return { data: { session: null } }
+            }
+            const { _loginAt, ...user } = parsed
+            return { data: { session: { user } } }
+        } catch {
+            return { data: { session: null } }
+        }
     },
 
     onAuthStateChange(callback) {

@@ -54,7 +54,22 @@ export function AuthProvider({ children }) {
             }
         })
 
-        return () => subscription.unsubscribe()
+        // Re-check session when user returns to the tab — catches 8h expiry
+        function handleVisibility() {
+            if (document.visibilityState !== 'visible') return
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (!session) {
+                    setUser(null)
+                    setActiveBuilding(null)
+                }
+            })
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
+
+        return () => {
+            subscription.unsubscribe()
+            document.removeEventListener('visibilitychange', handleVisibility)
+        }
     }, [])
 
     function initBuilding(u) {

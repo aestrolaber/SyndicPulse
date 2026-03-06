@@ -30,6 +30,7 @@ import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/co
 import { useAuth } from './context/AuthContext.jsx'
 import LoginPage from './pages/LoginPage.jsx'
 import AIVoiceAgent from './components/AIVoiceAgent.jsx'
+import { hashPassword } from './lib/supabase.js'
 import {
     fetchResidents, upsertResident, deleteResident as dbDeleteResident,
     fetchExpenses, upsertExpense, deleteExpense,
@@ -8839,10 +8840,11 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
         await new Promise(r => setTimeout(r, 800))
 
         const pwd = generatePassword()
+        const hashedPwd = await hashPassword(pwd)   // store hash, never plaintext
         const newUser = {
             id: `usr-${Date.now()}`,
             email: derivedEmail,
-            password: pwd,
+            password: hashedPwd,
             full_name: form.fullName.trim() || derivedEmail,
             phone: form.phone.trim() || null,
             role: 'syndic_manager',
@@ -8856,7 +8858,7 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
         localStorage.setItem('sp_created_users', JSON.stringify([...existing, newUser]))
 
         setSaving(false)
-        setDone({ email: derivedEmail, password: pwd })
+        setDone({ email: derivedEmail, password: pwd })  // show plaintext once to admin for copying
         onCreated?.()
     }
 
@@ -9024,6 +9026,8 @@ function EditUserModal({ user, onClose, onSaved, allBuildings }) {
     async function doSave() {
         setSaving(true)
         await new Promise(r => setTimeout(r, 500))
+        // Hash the new password if one was generated — never store plaintext
+        const newHashedPwd = generatedPwd ? await hashPassword(generatedPwd) : null
         const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
         const updated = existing.map(u2 => {
             if (u2.id !== user.id) return u2
@@ -9032,7 +9036,7 @@ function EditUserModal({ user, onClose, onSaved, allBuildings }) {
                 full_name: form.fullName.trim() || u2.full_name,
                 phone: form.phone.trim() || null,
                 // accessible_building_ids is locked — assigned at creation, not editable
-                ...(generatedPwd ? { password: generatedPwd } : {}),
+                ...(newHashedPwd ? { password: newHashedPwd } : {}),
             }
         })
         localStorage.setItem('sp_created_users', JSON.stringify(updated))
