@@ -119,6 +119,21 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
+### Serveur email — réinitialisation de mot de passe + notifications
+**Priority:** Medium (après connexion Supabase)
+**Goal:** Permettre aux gestionnaires de réinitialiser leur mot de passe de façon autonome via un lien email, sans dépendre du super-admin. Également nécessaire pour envoyer des notifications de rappel (impayés, AG) par email.
+
+**Composantes:**
+- **Transactionnel (reset mdp):** Supabase Auth intègre nativement l'envoi d'emails de reset (`supabase.auth.resetPasswordForEmail(email)`) → déclenche un email avec lien de réinitialisation sécurisé. Aucun serveur SMTP à configurer — Supabase gère l'envoi via son domaine par défaut.
+- **SMTP custom (branding):** Pour envoyer depuis `@syndicpulse.ma`, configurer un relay SMTP dans les paramètres Supabase (Brevo, Mailgun, ou SendGrid — gratuit jusqu'à ~10K emails/mois). Template HTML personnalisable dans le dashboard Supabase.
+- **Notifications email (optionnel):** Supabase Edge Functions peuvent déclencher des emails pour : rappels d'impayés (J+7, J+30), convocations AG, circulaires. Architecture identique au WhatsApp Tier 3 mais via email.
+
+**Prérequis:** Connexion Supabase réelle (Auth + tables) doit être en place.
+
+**Scope MVP:** Uniquement le reset de mot de passe — 1 ligne de code côté frontend + configuration SMTP dans Supabase dashboard. Notifications email en phase 2.
+
+---
+
 ### Connect real Supabase — live sync between browser tabs
 **Priority:** High
 **Scope:**
@@ -176,4 +191,4 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
-*Last updated: 6 Mars 2026 · SyndicPulse internal — Portal PIN hashing shipped (salted SHA-256, 6-digit, CSV auto-gen); seed.sql migrated; login logo updated; Journal d'activité flagged as next high-priority*
+*Last updated: 6 Mars 2026 · SyndicPulse internal — Serveur email ajouté au roadmap; pause/suppression de propriété ajoutés; auto-création compte syndic lors d'ajout de propriété; changer mot de passe self-service*

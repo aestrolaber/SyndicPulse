@@ -23,6 +23,7 @@ import {
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
     BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw, Globe2,
+    Pause, Play, PackageOpen,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -1032,6 +1033,49 @@ function Dashboard() {
         try { await deleteMeeting(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
     }
 
+    // ── Building pause/resume (stored in buildingSettingsByBldg so activeBuildingMerged picks it up) ──
+    function toggleBuildingPause(bldId) {
+        setBuildingSettingsByBldg(prev => {
+            const current = prev[bldId] ?? {}
+            return { ...prev, [bldId]: { ...current, paused: !current.paused } }
+        })
+    }
+
+    // ── Building delete (extra buildings only — demo seed buildings are protected) ──
+    const [pendingDeleteBuilding, setPendingDeleteBuilding] = useState(null)
+    function deleteBuilding(bldId) {
+        const isDemoBuilding = BUILDINGS.some(b => b.id === bldId)
+        if (isDemoBuilding) { showToast('Les propriétés de démonstration ne peuvent pas être supprimées.', 'error'); return }
+        setExtraBuildings(prev => prev.filter(b => b.id !== bldId))
+        // Clean up all per-building state
+        setResidentsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setDisputesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setMeetingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setSuppliersByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setExpensesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setTicketsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setBuildingSettingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setCirculairesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        setCustomTplsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+        // Clean up localStorage keys
+        ['sp_expenses_', 'sp_disputes_', 'sp_suppliers_', 'sp_meetings_', 'sp_bank_',
+         'sp_circ_', 'sp_ctpls_', 'sp_revoked_', 'sp_payments_'].forEach(prefix =>
+            localStorage.removeItem(prefix + bldId))
+        // Clean up any syndic_manager users assigned only to this building
+        try {
+            const users = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+            const cleaned = users.filter(u => !(u.accessible_building_ids?.length === 1 && u.accessible_building_ids[0] === bldId))
+            localStorage.setItem('sp_created_users', JSON.stringify(cleaned))
+        } catch {}
+        // If the deleted building was active, switch to first available
+        if (activeBuilding?.id === bldId) {
+            const remaining = [...accessibleBuildings, ...extraBuildings.filter(b => b.id !== bldId)]
+            if (remaining.length > 0) setActiveBuilding(remaining[0])
+        }
+        setPendingDeleteBuilding(null)
+        showToast('Propriété supprimée.', 'success')
+    }
+
     return (
         <div data-theme={themeMode} className="flex h-screen bg-navy-900 text-slate-100 font-sans overflow-hidden">
             <Sidebar
@@ -1052,11 +1096,29 @@ function Dashboard() {
                 disputes={disputes}
                 onOpenSettings={() => setShowBldgSettings(true)}
                 onAddBuilding={() => setShowAddBuilding(true)}
+                onPauseBuilding={toggleBuildingPause}
+                onDeleteBuilding={(bld) => setPendingDeleteBuilding(bld)}
             />
 
             <div className="flex-1 flex flex-col overflow-hidden">
                 <TopBar activeTab={activeTab} activeBuilding={activeBuildingMerged} themeMode={themeMode} setThemeMode={setThemeMode} showToast={showToast} />
-                <main className="flex-1 overflow-auto p-8">
+                {/* Pause banner — visible when building is paused */}
+                {activeBuildingMerged.paused && (
+                    <div className="flex items-center justify-between px-6 py-2.5 bg-amber-500/10 border-b border-amber-500/20 flex-shrink-0">
+                        <div className="flex items-center gap-2.5">
+                            <Pause size={14} className="text-amber-400 flex-shrink-0" />
+                            <span className="text-sm font-semibold text-amber-300">Propriété en pause — mode lecture seule</span>
+                            <span className="text-xs text-amber-400/60">· Les résidents ne peuvent pas accéder au portail</span>
+                        </div>
+                        {isSuperAdmin && (
+                            <button onClick={() => toggleBuildingPause(activeBuildingMerged.id)}
+                                className="flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 rounded-lg hover:bg-emerald-500/20 transition-colors">
+                                <Play size={11} /> Réactiver
+                            </button>
+                        )}
+                    </div>
+                )}
+                <main className={`flex-1 overflow-auto p-8 relative ${activeBuildingMerged.paused && !isSuperAdmin ? 'pointer-events-none select-none' : ''}`}>
                     {activeTab === 'portfolio' && <PortfolioDashboard allBuildings={allBuildings} residentsByBldg={residentsByBldg} disputesByBldg={disputesByBldg} ticketsByBldg={ticketsByBldg} expensesByBldg={expensesByBldg} meetingsByBldg={meetingsByBldg} onSelectBuilding={(b) => { setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b); setActiveTab('dashboard') }} themeMode={themeMode} />}
                     {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} themeMode={themeMode} />}
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
@@ -1148,6 +1210,17 @@ function Dashboard() {
                 />
             )}
 
+            {pendingDeleteBuilding && (
+                <DeleteBuildingModal
+                    building={pendingDeleteBuilding}
+                    residents={residentsByBldg[pendingDeleteBuilding.id] ?? getBuildingData(pendingDeleteBuilding.id).residents}
+                    expenses={expensesByBldg[pendingDeleteBuilding.id] ?? []}
+                    suppliers={suppliersByBldg[pendingDeleteBuilding.id] ?? getBuildingData(pendingDeleteBuilding.id).suppliers ?? []}
+                    onClose={() => setPendingDeleteBuilding(null)}
+                    onConfirm={() => deleteBuilding(pendingDeleteBuilding.id)}
+                />
+            )}
+
             {/* Global toast notification */}
             <AnimatePresence>
                 {toast && (
@@ -1211,7 +1284,7 @@ function getBuildingData(buildingId) {
 /* ══════════════════════════════════════════
    SIDEBAR
 ══════════════════════════════════════════ */
-function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitchBuildings, showBuildingMenu, setShowBuildingMenu, onSwitchBuilding, setIsVoiceOpen, buildingData, disputes, onOpenSettings, onAddBuilding }) {
+function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitchBuildings, showBuildingMenu, setShowBuildingMenu, onSwitchBuilding, setIsVoiceOpen, buildingData, disputes, onOpenSettings, onAddBuilding, onPauseBuilding, onDeleteBuilding }) {
     const { logout, user, isSuperAdmin } = useAuth()
     const menuRef = useRef(null)
     const [bldgSearch, setBldgSearch] = useState('')
@@ -1313,20 +1386,46 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                                             const q = bldgSearch.toLowerCase()
                                             return !q || b.name.toLowerCase().includes(q) || b.city?.toLowerCase().includes(q)
                                         })
-                                        .map(b => (
-                                            <button
-                                                key={b.id}
-                                                onClick={() => { onSwitchBuilding(b); setBldgSearch('') }}
-                                                className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-navy-600 transition-colors text-left ${b.id === activeBuilding.id ? 'bg-navy-600' : ''}`}
-                                            >
-                                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: b.color }} />
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-white truncate">{b.name}</p>
-                                                    <p className="text-[11px] text-slate-400">{b.city} · {b.total_units} unités</p>
-                                                </div>
-                                                {b.id === activeBuilding.id && <CheckCircle2 size={13} className="text-sp flex-shrink-0" />}
-                                            </button>
-                                        ))
+                                        .map(b => {
+                                            const isPaused = b.paused ?? false
+                                            const isDemoBuilding = BUILDINGS.some(bd => bd.id === b.id)
+                                            return (
+                                            <div key={b.id} className={`flex items-center gap-1 hover:bg-navy-600 transition-colors ${b.id === activeBuilding.id ? 'bg-navy-600' : ''}`}>
+                                                <button
+                                                    onClick={() => { onSwitchBuilding(b); setBldgSearch('') }}
+                                                    className="flex-1 flex items-center gap-3 px-3 py-2.5 text-left min-w-0"
+                                                >
+                                                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: isPaused ? '#f59e0b' : b.color }} />
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="text-sm font-medium text-white truncate">{b.name}</p>
+                                                        <p className="text-[11px] text-slate-400">{b.city} · {b.total_units} unités
+                                                            {isPaused && <span className="ml-1 text-amber-400 font-semibold">· En pause</span>}
+                                                        </p>
+                                                    </div>
+                                                    {b.id === activeBuilding.id && <CheckCircle2 size={13} className="text-sp flex-shrink-0" />}
+                                                </button>
+                                                {/* Pause / delete actions — super_admin only */}
+                                                {isSuperAdmin && (
+                                                    <div className="flex items-center gap-0.5 pr-2 flex-shrink-0">
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); onPauseBuilding?.(b.id) }}
+                                                            title={isPaused ? 'Réactiver la propriété' : 'Mettre en pause'}
+                                                            className={`p-1.5 rounded-lg transition-colors ${isPaused ? 'text-emerald-400 hover:bg-emerald-500/15' : 'text-amber-400/70 hover:bg-amber-500/15 hover:text-amber-400'}`}>
+                                                            {isPaused ? <Play size={11} /> : <Pause size={11} />}
+                                                        </button>
+                                                        {!isDemoBuilding && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); setShowBuildingMenu(false); onDeleteBuilding?.(b) }}
+                                                                title="Supprimer la propriété"
+                                                                className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/15 transition-colors">
+                                                                <Trash2 size={11} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+                                            )
+                                        })
                                     }
                                     {buildings.filter(b => {
                                         const q = bldgSearch.toLowerCase()
@@ -7955,6 +8054,130 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
                     )}
                 </div>
                 </form>
+            </div>
+        </div>
+    )
+}
+
+/* ══════════════════════════════════════════
+   DELETE BUILDING MODAL
+══════════════════════════════════════════ */
+function DeleteBuildingModal({ building, residents = [], expenses = [], suppliers = [], onClose, onConfirm }) {
+    const [step, setStep] = useState(1)   // 1 = warning + export, 2 = final confirm
+    const [confirmText, setConfirmText] = useState('')
+
+    // ── Simple CSV export helpers ──────────────────────────────────────
+    function exportCSV(rows, filename) {
+        if (rows.length === 0) return
+        const keys = Object.keys(rows[0]).filter(k => !['id', 'building_id', 'portalPin', 'portal_pin', 'attachments'].includes(k))
+        const header = keys.join(';')
+        const body = rows.map(r => keys.map(k => {
+            const v = r[k] ?? ''
+            return typeof v === 'string' && v.includes(';') ? `"${v}"` : v
+        }).join(';')).join('\n')
+        const blob = new Blob([`\uFEFF${header}\n${body}`], { type: 'text/csv;charset=utf-8;' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+        URL.revokeObjectURL(url)
+    }
+
+    const canConfirm = confirmText.trim().toLowerCase() === building.name.trim().toLowerCase()
+
+    return (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
+                    <h2 className="text-base font-bold text-red-400 flex items-center gap-2">
+                        <Trash2 size={16} /> Supprimer la propriété
+                    </h2>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
+                </div>
+
+                <div className="p-6 space-y-5">
+                    {step === 1 ? (
+                        <>
+                            {/* Warning */}
+                            <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                                <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                                <div>
+                                    <p className="text-sm font-semibold text-red-300">Action irréversible</p>
+                                    <p className="text-xs text-slate-400 mt-1">
+                                        Toutes les données de <span className="text-white font-semibold">{building.name}</span> seront définitivement supprimées —
+                                        résidents ({residents.length}), dépenses ({expenses.length}), fournisseurs ({suppliers.length}), litiges, AG, tickets et circulaires.
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Export data before deleting */}
+                            <div>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                                    <PackageOpen size={12} /> Exporter les données avant suppression
+                                </p>
+                                <div className="grid grid-cols-3 gap-2">
+                                    <button onClick={() => exportCSV(residents, `résidents_${building.name}.csv`)}
+                                        disabled={residents.length === 0}
+                                        className="flex flex-col items-center gap-1.5 p-3 bg-navy-700 border border-white/10 rounded-xl hover:bg-navy-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                        <Users size={16} className="text-sp" />
+                                        <span className="text-[11px] text-slate-300 font-medium">Résidents</span>
+                                        <span className="text-[10px] text-slate-500">{residents.length} lignes</span>
+                                    </button>
+                                    <button onClick={() => exportCSV(expenses, `dépenses_${building.name}.csv`)}
+                                        disabled={expenses.length === 0}
+                                        className="flex flex-col items-center gap-1.5 p-3 bg-navy-700 border border-white/10 rounded-xl hover:bg-navy-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                        <Banknote size={16} className="text-emerald-400" />
+                                        <span className="text-[11px] text-slate-300 font-medium">Dépenses</span>
+                                        <span className="text-[10px] text-slate-500">{expenses.length} lignes</span>
+                                    </button>
+                                    <button onClick={() => exportCSV(suppliers, `fournisseurs_${building.name}.csv`)}
+                                        disabled={suppliers.length === 0}
+                                        className="flex flex-col items-center gap-1.5 p-3 bg-navy-700 border border-white/10 rounded-xl hover:bg-navy-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+                                        <Truck size={16} className="text-amber-400" />
+                                        <span className="text-[11px] text-slate-300 font-medium">Fournisseurs</span>
+                                        <span className="text-[10px] text-slate-500">{suppliers.length} lignes</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={onClose}
+                                    className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                                    Annuler
+                                </button>
+                                <button onClick={() => setStep(2)}
+                                    className="flex-1 py-2.5 text-sm font-bold text-red-300 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl transition-colors">
+                                    Continuer →
+                                </button>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Final confirm — type building name */}
+                            <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/20 rounded-xl">
+                                <AlertTriangle size={16} className="text-red-400 flex-shrink-0 mt-0.5" />
+                                <p className="text-sm text-red-300">
+                                    Pour confirmer, tapez le nom exact de la propriété :<br />
+                                    <span className="font-bold text-white">{building.name}</span>
+                                </p>
+                            </div>
+                            <input
+                                value={confirmText}
+                                onChange={e => setConfirmText(e.target.value)}
+                                placeholder={`Tapez : ${building.name}`}
+                                className="w-full bg-navy-700 border border-white/10 focus:border-red-500/50 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none transition-colors"
+                            />
+                            <div className="flex gap-3">
+                                <button onClick={() => setStep(1)}
+                                    className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
+                                    ← Retour
+                                </button>
+                                <button onClick={onConfirm} disabled={!canConfirm}
+                                    className="flex-1 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center justify-center gap-2">
+                                    <Trash2 size={14} /> Supprimer définitivement
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </div>
             </div>
         </div>
     )
