@@ -1307,6 +1307,8 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
     const menuRef = useRef(null)
     const [bldgSearch, setBldgSearch] = useState('')
     const [showChangePwd, setShowChangePwd] = useState(false)
+    // Read-only mode: building is paused and current user is not super_admin
+    const isReadOnly = activeBuilding?.paused && !isSuperAdmin
 
     useEffect(() => {
         function handleClick(e) {
@@ -1500,9 +1502,9 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
             {/* Bottom section */}
             <div className="px-3 pb-3 space-y-1 border-t border-white/5 pt-3">
-                <div className="rounded-xl bg-navy-700 border border-sp/10 p-4 mb-2">
+                <div className={`rounded-xl border p-4 mb-2 transition-opacity ${isReadOnly ? 'bg-navy-800/50 border-white/5 opacity-40' : 'bg-navy-700 border-sp/10'}`}>
                     <div className="flex items-center gap-2 mb-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 pulse-dot" />
+                        <span className={`w-1.5 h-1.5 rounded-full ${isReadOnly ? 'bg-slate-600' : 'bg-emerald-400 pulse-dot'}`} />
                         <span className="text-[10px] font-semibold text-sp uppercase tracking-wider">Agent IA Vocal</span>
                         <span className="ml-auto text-[9px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Démo</span>
                     </div>
@@ -1510,14 +1512,21 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                         Darija + Français · {activeBuilding.name}
                     </p>
                     <button
-                        onClick={() => setIsVoiceOpen(true)}
-                        className="w-full py-2 bg-sp/10 hover:bg-sp/20 text-sp text-xs font-semibold rounded-lg border border-sp/20 transition-all flex items-center justify-center gap-1.5"
+                        onClick={() => !isReadOnly && setIsVoiceOpen(true)}
+                        disabled={isReadOnly}
+                        title={isReadOnly ? 'Propriété en pause — mode lecture seule' : undefined}
+                        className={`w-full py-2 text-xs font-semibold rounded-lg border transition-all flex items-center justify-center gap-1.5 ${isReadOnly ? 'bg-slate-800/50 text-slate-600 border-slate-700/50 cursor-not-allowed' : 'bg-sp/10 hover:bg-sp/20 text-sp border-sp/20'}`}
                     >
                         <Mic size={12} /> Ouvrir l'agent vocal
                     </button>
                 </div>
 
-                <button onClick={() => onOpenSettings?.()} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-navy-700 transition-all">
+                <button
+                    onClick={() => !isReadOnly && onOpenSettings?.()}
+                    disabled={isReadOnly}
+                    title={isReadOnly ? 'Propriété en pause — mode lecture seule' : undefined}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isReadOnly ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-navy-700'}`}
+                >
                     <Settings size={18} strokeWidth={1.5} /> Paramètres
                 </button>
                 <button onClick={() => setShowChangePwd(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-navy-700 transition-all">
