@@ -4581,21 +4581,27 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                     </button>
                 )}
                 <div className="flex-1 relative min-w-[200px]">
-                    <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                     <input
                         type="text"
                         placeholder="Rechercher un résident ou une unité..."
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        className="w-full bg-navy-800 border border-white/8 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sp/40 transition-colors"
+                        className="w-full bg-navy-800 border border-white/8 rounded-xl pl-10 pr-9 py-2.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-sp/40 transition-colors"
                     />
+                    {search && (
+                        <button type="button" onClick={() => setSearch('')}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors">
+                            <X size={13} />
+                        </button>
+                    )}
                 </div>
-                {activeFilters.length > 0 && (
+                {(activeFilters.length > 0 || search) && (
                     <button
-                        onClick={() => setActiveFilters([])}
+                        onClick={() => { setActiveFilters([]); setSearch('') }}
                         className="flex items-center gap-1.5 px-3 py-2 bg-navy-700 text-slate-400 hover:text-slate-200 rounded-lg text-xs font-semibold border border-white/8 hover:border-white/20 transition-all flex-shrink-0"
                     >
-                        <X size={12} /> Réinitialiser filtre
+                        <X size={12} /> Réinitialiser filtres
                     </button>
                 )}
             </div>
@@ -6538,6 +6544,7 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
         floor: '',
         type: 'proprietaire',
         monthly_fee: '250',
+        paidThrough: advancePaidThrough(CURRENT_MONTH, -1), // default: pending (previous month)
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
@@ -6559,7 +6566,7 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
             name: form.name.trim(),
             phone: form.phone || '—',
             floor: parseInt(form.floor) || 0,
-            paidThrough: advancePaidThrough(CURRENT_MONTH, -1),
+            paidThrough: form.paidThrough,
             since: new Date().toLocaleDateString('fr-FR', { month: 'short', year: 'numeric' }),
             type: form.type,
             monthly_fee: parseInt(form.monthly_fee) || 250,
@@ -6659,6 +6666,29 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-semibold">MAD/mois</span>
                     </div>
+                </div>
+
+                {/* Payé jusqu'au */}
+                <div>
+                    <label className="block text-xs font-semibold text-slate-400 mb-1.5">Payé jusqu'au</label>
+                    <select
+                        value={form.paidThrough}
+                        onChange={e => set('paidThrough', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors"
+                    >
+                        {Array.from({ length: 19 }, (_, i) => {
+                            const ym = advancePaidThrough(CURRENT_MONTH, i - 13)
+                            const label = formatMonth(ym)
+                            const suffix =
+                                ym === advancePaidThrough(CURRENT_MONTH, -1) ? ' — En attente (défaut)' :
+                                ym === CURRENT_MONTH ? ' — Mois en cours' :
+                                ym > CURRENT_MONTH ? ' — Avance' : ''
+                            return <option key={ym} value={ym}>{label}{suffix}</option>
+                        })}
+                    </select>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                        Statut calculé automatiquement selon ce mois de référence.
+                    </p>
                 </div>
 
                 {/* WhatsApp send toggle */}
