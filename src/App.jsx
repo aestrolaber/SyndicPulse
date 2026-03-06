@@ -701,7 +701,6 @@ function Dashboard() {
     const [activeTab, setActiveTab] = useState('dashboard')
     const [isVoiceOpen, setIsVoiceOpen] = useState(false)
     const [showBuildingMenu, setShowBuildingMenu] = useState(false)
-    const [bldgSearch, setBldgSearch] = useState('')
     const [toast, setToast] = useState(null) // { message, type }
     const [residentsByBldg, setResidentsByBldg] = useState({})  // shared across tabs
     const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
@@ -997,7 +996,6 @@ function Dashboard() {
                 onSwitchBuilding={(b) => {
                     setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b)
                     setShowBuildingMenu(false)
-                    setBldgSearch('')
                     setActiveTab('dashboard')
                 }}
                 setIsVoiceOpen={setIsVoiceOpen}
@@ -1166,6 +1164,7 @@ function getBuildingData(buildingId) {
 function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitchBuildings, showBuildingMenu, setShowBuildingMenu, onSwitchBuilding, setIsVoiceOpen, buildingData, disputes, onOpenSettings, onAddBuilding }) {
     const { logout, user, isSuperAdmin } = useAuth()
     const menuRef = useRef(null)
+    const [bldgSearch, setBldgSearch] = useState('')
 
     useEffect(() => {
         function handleClick(e) {
