@@ -5209,6 +5209,7 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                                     {(() => {
                                         const code = building.accessCode ?? '—'
                                         const pin = getResidentPortalPin(r, building.id)
+                                        const isHash = /^[0-9a-f]{64}$/.test(pin ?? '')
                                         const justCopied = copiedCode === r.id
                                         return (
                                             <div className="flex items-center gap-2">
@@ -5222,20 +5223,26 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                                                     </div>
                                                     <div className="flex items-center gap-1.5">
                                                         <span className="text-[8px] font-bold text-slate-600 uppercase tracking-wider w-5">PIN</span>
-                                                        <code className="font-mono text-[11px] text-amber-400 font-bold tracking-widest">
-                                                            {showPortalCodes ? (pin ?? '—') : '••••'}
-                                                        </code>
+                                                        {showPortalCodes
+                                                            ? isHash
+                                                                ? <span className="text-[10px] text-emerald-500/80 italic flex items-center gap-1"><Check size={9} />défini</span>
+                                                                : <code className="font-mono text-[11px] text-amber-400 font-bold tracking-widest">{pin ?? '—'}</code>
+                                                            : <code className="font-mono text-[11px] text-slate-500">••••••</code>
+                                                        }
                                                     </div>
                                                 </div>
                                                 {/* Buttons */}
                                                 <div className="flex flex-col gap-1">
                                                     <button
                                                         onClick={() => {
-                                                            navigator.clipboard.writeText(`Code: ${code}  PIN: ${pin ?? '—'}`).catch(() => {})
+                                                            const txt = isHash
+                                                                ? `Code résidence: ${code}  (PIN déjà transmis — régénérer si besoin)`
+                                                                : `Code: ${code}  PIN: ${pin ?? '—'}`
+                                                            navigator.clipboard.writeText(txt).catch(() => {})
                                                             setCopiedCode(r.id)
                                                             setTimeout(() => setCopiedCode(null), 2000)
                                                         }}
-                                                        title="Copier code et PIN"
+                                                        title={isHash ? 'PIN défini (hash sécurisé) — ouvrir la fiche pour régénérer' : 'Copier code et PIN'}
                                                         className="p-1 rounded-md bg-sp/5 hover:bg-sp/15 border border-sp/15 hover:border-sp/30 text-sp/60 hover:text-sp transition-all"
                                                     >
                                                         {justCopied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
