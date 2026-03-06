@@ -1529,7 +1529,12 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                 >
                     <Settings size={18} strokeWidth={1.5} /> Paramètres
                 </button>
-                <button onClick={() => setShowChangePwd(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:text-white hover:bg-navy-700 transition-all">
+                <button
+                    onClick={() => !isReadOnly && setShowChangePwd(true)}
+                    disabled={isReadOnly}
+                    title={isReadOnly ? 'Propriété en pause — mode lecture seule' : undefined}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isReadOnly ? 'text-slate-600 cursor-not-allowed' : 'text-slate-400 hover:text-white hover:bg-navy-700'}`}
+                >
                     <Key size={18} strokeWidth={1.5} /> Changer le mot de passe
                 </button>
                 <button
