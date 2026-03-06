@@ -724,6 +724,9 @@ function Dashboard() {
     const [disputesByBldg, setDisputesByBldg] = useState({})  // shared across tabs
     const [meetingsByBldg, setMeetingsByBldg] = useState({})  // shared across tabs
     const [buildingSettingsByBldg, setBuildingSettingsByBldg] = useState({})  // logo + name overrides per building
+    const [pausedBuildingIds, setPausedBuildingIds] = useState(() => {
+        try { return new Set(JSON.parse(localStorage.getItem('sp_paused_buildings') ?? '[]')) } catch { return new Set() }
+    })  // persisted across sessions — survives logout/login
     const [extraBuildings, setExtraBuildings] = useState(() => {
         try { return JSON.parse(localStorage.getItem('sp_extra_buildings') ?? '[]') } catch { return [] }
     })  // user-added buildings, persisted across sessions
@@ -777,7 +780,7 @@ function Dashboard() {
 
     // All buildings: seed list + user-added (defined here so portfolio preload useEffect can reference it)
     const allBuildings = [...accessibleBuildings, ...extraBuildings].map(b => ({
-        ...b, ...(buildingSettingsByBldg[b.id] ?? {}),
+        ...b, ...(buildingSettingsByBldg[b.id] ?? {}), paused: pausedBuildingIds.has(b.id),
     }))
 
     // ── Portfolio preload: when Vue globale opens, fetch all unloaded buildings ──
@@ -915,7 +918,7 @@ function Dashboard() {
 
     // Merge user-customized settings (logo, name, manager) on top of base building data
     const activeBuildingMerged = activeBuilding
-        ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}) }
+        ? { ...activeBuilding, ...(buildingSettingsByBldg[activeBuilding.id] ?? {}), paused: pausedBuildingIds.has(activeBuilding.id) }
         : null
 
     if (!activeBuilding) return <LoadingScreen />
@@ -1033,11 +1036,13 @@ function Dashboard() {
         try { await deleteMeeting(id) } catch (err) { showToast('Erreur suppression: ' + err.message, 'error') }
     }
 
-    // ── Building pause/resume (stored in buildingSettingsByBldg so activeBuildingMerged picks it up) ──
+    // ── Building pause/resume — persisted to localStorage so it survives logout/login ──
     function toggleBuildingPause(bldId) {
-        setBuildingSettingsByBldg(prev => {
-            const current = prev[bldId] ?? {}
-            return { ...prev, [bldId]: { ...current, paused: !current.paused } }
+        setPausedBuildingIds(prev => {
+            const next = new Set(prev)
+            if (next.has(bldId)) { next.delete(bldId) } else { next.add(bldId) }
+            localStorage.setItem('sp_paused_buildings', JSON.stringify([...next]))
+            return next
         })
     }
 
