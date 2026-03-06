@@ -23,7 +23,7 @@ import {
     Truck, Star, Banknote, Paperclip,
     Megaphone, Info,
     BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw, Globe2,
-    Pause, Play, PackageOpen,
+    Pause, Play, PackageOpen, Cloud, History,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -40,6 +40,7 @@ import {
     fetchSuppliers, upsertSupplier, deleteSupplier,
     fetchMeetings, upsertMeeting, deleteMeeting,
     fetchBuildingSettings, saveBuildingSettings,
+    createBackup, fetchBackups,
 } from './lib/db.js'
 
 import {
@@ -762,6 +763,7 @@ function Dashboard() {
     const [ticketsByBldg, setTicketsByBldg] = useState({})     // maintenance tickets per building
     const [dbLoading, setDbLoading] = useState(false)
     const loadedBldgIds = useRef(new Set())                     // tracks which buildings have been fetched
+    const autoBackupDone = useRef(new Set())                    // tracks which buildings had auto-backup this session
     useEffect(() => { localStorage.setItem('sp_theme', themeMode) }, [themeMode])
     useEffect(() => { localStorage.setItem('sp_extra_buildings', JSON.stringify(extraBuildings)) }, [extraBuildings])
 
@@ -796,6 +798,40 @@ function Dashboard() {
         }).finally(() => setDbLoading(false))
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeBuilding?.id])
+
+    // ── Auto-backup: trigger every 7 days when data finishes loading ──────────
+    useEffect(() => {
+        if (!activeBuilding?.id || dbLoading) return
+        const bldgId = activeBuilding.id
+        if (autoBackupDone.current.has(bldgId)) return  // already ran this session
+        autoBackupDone.current.add(bldgId)
+        const key = `sp_last_cloud_backup_${bldgId}`
+        const last = localStorage.getItem(key)
+        const daysSince = last
+            ? (Date.now() - new Date(last).getTime()) / (1000 * 60 * 60 * 24)
+            : Infinity
+        if (daysSince < 7) return
+        // Data is freshly loaded — build snapshot and push to Supabase silently
+        const snapshot = {
+            app: 'SyndicPulse', version: '1.1', autoBackup: true,
+            building: { id: activeBuilding.id, name: activeBuilding.name },
+            exportedAt: new Date().toISOString(),
+            data: {
+                residents: residents.map(r => ({ unit: r.unit, name: r.name, phone: r.phone, paidThrough: r.paidThrough, monthlyFee: r.monthlyFee })),
+                expenses: expenseLog.map(e => ({ date: e.date, category: e.category, vendor: e.vendor, amount: e.amount })),
+                disputes: disputes.map(d => ({ title: d.title, status: d.status, priority: d.priority })),
+                suppliers: suppliers.map(s => ({ name: s.name, category: s.category })),
+                meetings: meetings.map(m => ({ title: m.title, date: m.date, status: m.status })),
+            },
+        }
+        createBackup(bldgId, 'full_auto', snapshot)
+            .then(() => {
+                localStorage.setItem(key, new Date().toISOString())
+                showToast('Sauvegarde automatique effectuée ☁️', 'success', 3000)
+            })
+            .catch(() => { /* silent — auto-backup should not interrupt the user */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [activeBuilding?.id, dbLoading])
 
     // All buildings: seed list + user-added (defined here so portfolio preload useEffect can reference it)
     const allBuildings = [...accessibleBuildings, ...extraBuildings].map(b => ({
@@ -1161,6 +1197,12 @@ function Dashboard() {
             {showBldgSettings && activeBuildingMerged && (
                 <BuildingSettingsModal
                     building={activeBuildingMerged}
+                    residents={residents}
+                    expenseLog={expenseLog}
+                    disputes={disputes}
+                    suppliers={suppliers}
+                    meetings={meetings}
+                    showToast={showToast}
                     onClose={() => setShowBldgSettings(false)}
                     onSave={(overrides) => {
                         setBuildingSettingsByBldg(prev => ({
@@ -7797,7 +7839,7 @@ function ImportCSVModal({ onClose, onImport, building }) {
 /* ══════════════════════════════════════════
    BUILDING SETTINGS MODAL
 ══════════════════════════════════════════ */
-function BuildingSettingsModal({ building, onClose, onSave }) {
+function BuildingSettingsModal({ building, residents = [], expenseLog = [], disputes = [], suppliers = [], meetings = [], showToast = () => {}, onClose, onSave }) {
     const [form, setForm] = useState({
         name: building.name ?? '',
         city: building.city ?? '',
@@ -7820,6 +7862,123 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
     const portalTplRef = useRef(null)
     const [confirmRestore, setConfirmRestore] = useState(false)
     const [pendingRestore, setPendingRestore] = useState(null)
+
+    // ── Backup state ──────────────────────────────────────────────────────────
+    const [backupTypes, setBackupTypes] = useState({
+        residents: true, expenses: true, disputes: true, suppliers: true, meetings: true,
+    })
+    const [backupFormat, setBackupFormat] = useState('json')
+    const [backupSaving, setBackupSaving] = useState(false)
+    const [cloudBackups, setCloudBackups] = useState([])
+    const [backupLog, setBackupLog] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(`sp_backup_log_${building.id}`) ?? '[]') } catch { return [] }
+    })
+
+    useEffect(() => {
+        fetchBackups(building.id, 5)
+            .then(rows => setCloudBackups(rows))
+            .catch(() => {}) // offline — silently skip
+    }, [building.id])
+
+    const lastCloudBackup = (() => {
+        const stored = localStorage.getItem(`sp_last_cloud_backup_${building.id}`)
+        return stored || (cloudBackups[0]?.created_at ?? null)
+    })()
+    const daysSince = lastCloudBackup
+        ? (Date.now() - new Date(lastCloudBackup).getTime()) / (1000 * 60 * 60 * 24)
+        : Infinity
+    const nextIn = Math.max(0, Math.round(7 - daysSince))
+
+    function fmtBackupDate(isoStr) {
+        if (!isoStr) return 'Jamais'
+        const diff = Date.now() - new Date(isoStr).getTime()
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+        if (days === 0) return "aujourd'hui"
+        if (days === 1) return 'hier'
+        return `il y a ${days}j`
+    }
+
+    function buildPayload(typeKey = 'full') {
+        const d = {}
+        if (backupTypes.residents)  d.residents  = residents.map(r  => ({ unit: r.unit, name: r.name, phone: r.phone, paidThrough: r.paidThrough, monthlyFee: r.monthlyFee, since: r.since }))
+        if (backupTypes.expenses)   d.expenses   = expenseLog.map(e => ({ date: e.date, category: e.category, vendor: e.vendor, amount: e.amount, description: e.description }))
+        if (backupTypes.disputes)   d.disputes   = disputes.map(d   => ({ title: d.title, parties: d.parties, status: d.status, priority: d.priority, date: d.date }))
+        if (backupTypes.suppliers)  d.suppliers  = suppliers.map(s  => ({ name: s.name, category: s.category, phone: s.phone, email: s.email, rating: s.rating }))
+        if (backupTypes.meetings)   d.meetings   = meetings.map(m   => ({ title: m.title, date: m.date, location: m.location, status: m.status }))
+        return {
+            app: 'SyndicPulse', version: '1.1',
+            building: { id: building.id, name: building.name },
+            exportedAt: new Date().toISOString(),
+            type: typeKey,
+            data: d,
+        }
+    }
+
+    function getTypeLabel() {
+        const active = Object.entries(backupTypes).filter(([, v]) => v).map(([k]) => k)
+        if (active.length === 5) return 'full'
+        return active.join('+')
+    }
+
+    function addToBackupLog(entry) {
+        const newLog = [entry, ...backupLog].slice(0, 5)
+        setBackupLog(newLog)
+        try { localStorage.setItem(`sp_backup_log_${building.id}`, JSON.stringify(newLog)) } catch { }
+    }
+
+    async function handleLocalBackup() {
+        const typeLabel = getTypeLabel()
+        const payload = buildPayload(typeLabel)
+        const date = new Date().toISOString().slice(0, 10)
+        const baseName = `SyndicPulse_${building.name.replace(/\s+/g, '_')}_${date}`
+
+        if (backupFormat === 'excel') {
+            const wb = XLSX.utils.book_new()
+            if (payload.data.residents?.length)  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payload.data.residents),  'Résidents')
+            if (payload.data.expenses?.length)   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payload.data.expenses),   'Dépenses')
+            if (payload.data.disputes?.length)   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payload.data.disputes),   'Litiges')
+            if (payload.data.suppliers?.length)  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payload.data.suppliers),  'Fournisseurs')
+            if (payload.data.meetings?.length)   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payload.data.meetings),   'Assemblées')
+            XLSX.writeFile(wb, `${baseName}.xlsx`)
+        } else {
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
+            try {
+                if (window.showSaveFilePicker) {
+                    const handle = await window.showSaveFilePicker({
+                        suggestedName: `${baseName}.json`,
+                        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }],
+                    })
+                    const writer = await handle.createWritable()
+                    await writer.write(blob)
+                    await writer.close()
+                } else { throw new Error('no FSAPI') }
+            } catch {
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url; a.download = `${baseName}.json`; a.click(); URL.revokeObjectURL(url)
+            }
+        }
+        addToBackupLog({ date: new Date().toISOString(), type: typeLabel, format: backupFormat, source: 'local' })
+        showToast('Sauvegarde téléchargée ✓', 'success')
+    }
+
+    async function handleCloudBackup() {
+        setBackupSaving(true)
+        try {
+            const typeLabel = getTypeLabel()
+            const payload = buildPayload(typeLabel)
+            await createBackup(building.id, typeLabel, payload)
+            localStorage.setItem(`sp_last_cloud_backup_${building.id}`, new Date().toISOString())
+            const updated = await fetchBackups(building.id, 5)
+            setCloudBackups(updated)
+            addToBackupLog({ date: new Date().toISOString(), type: typeLabel, format: 'json', source: 'cloud' })
+            showToast('Sauvegarde cloud réussie ☁️', 'success')
+        } catch (err) {
+            showToast('Erreur cloud: ' + err.message, 'error')
+        } finally {
+            setBackupSaving(false)
+        }
+    }
 
     function handleExport() {
         const bldgId = building.id
@@ -8117,23 +8276,122 @@ function BuildingSettingsModal({ building, onClose, onSave }) {
 
                     {/* ── Données & Sauvegarde ── */}
                     <div className="border-t border-white/8 pt-5 space-y-3">
-                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Données & Sauvegarde</p>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Données &amp; Sauvegarde</p>
 
-                        {/* Export */}
+                        {/* Auto-backup status card */}
                         <div className="flex items-center justify-between rounded-xl bg-navy-700/50 border border-white/8 px-4 py-3">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-                                    <Download size={15} className="text-emerald-400" />
+                                <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                    <Cloud size={15} className="text-cyan-400" />
                                 </div>
                                 <div>
-                                    <p className="text-sm font-medium text-white">Exporter la sauvegarde</p>
-                                    <p className="text-[10px] text-slate-500 mt-0.5">Télécharge toutes les données en fichier JSON</p>
+                                    <p className="text-sm font-medium text-white">Sauvegarde automatique</p>
+                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                        {lastCloudBackup
+                                            ? `Dernière: ${fmtBackupDate(lastCloudBackup)} · Prochaine dans ${nextIn}j`
+                                            : 'Jamais effectuée — recommandée avant tout onboarding'}
+                                    </p>
                                 </div>
                             </div>
-                            <button type="button" onClick={handleExport}
-                                className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 transition-colors">
-                                Télécharger
-                            </button>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border whitespace-nowrap ${
+                                nextIn <= 0
+                                    ? 'bg-red-500/15 text-red-400 border-red-500/25'
+                                    : nextIn <= 2
+                                        ? 'bg-amber-500/15 text-amber-400 border-amber-500/20'
+                                        : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/20'
+                            }`}>
+                                {nextIn <= 0 ? 'Due maintenant' : nextIn <= 2 ? 'Bientôt' : `Dans ${nextIn}j`}
+                            </span>
+                        </div>
+
+                        {/* Backup history */}
+                        {(() => {
+                            const merged = [
+                                ...cloudBackups.map(b => ({ date: b.created_at, type: b.type, source: 'cloud' })),
+                                ...backupLog,
+                            ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5)
+                            return merged.length > 0 && (
+                                <div className="rounded-xl bg-navy-700/30 border border-white/5 overflow-hidden">
+                                    <div className="flex items-center gap-2 px-4 py-2 bg-white/3 border-b border-white/5">
+                                        <History size={11} className="text-slate-500" />
+                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Historique</p>
+                                    </div>
+                                    <div className="divide-y divide-white/5">
+                                        {merged.map((entry, i) => (
+                                            <div key={i} className="flex items-center gap-3 px-4 py-2.5">
+                                                <span className="text-xs">{entry.source === 'cloud' ? '☁️' : '💾'}</span>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[11px] text-slate-300 truncate">
+                                                        {new Date(entry.date).toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        {entry.type && ` · ${entry.type.replace(/_/g, ' ')}`}
+                                                    </p>
+                                                </div>
+                                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                                    entry.source === 'cloud' ? 'bg-cyan-500/10 text-cyan-400' : 'bg-slate-500/10 text-slate-400'
+                                                }`}>
+                                                    {entry.source === 'cloud' ? 'Cloud' : (entry.format?.toUpperCase() ?? 'LOCAL')}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )
+                        })()}
+
+                        {/* New backup panel */}
+                        <div className="rounded-xl bg-navy-700/50 border border-white/8 px-4 py-4 space-y-3">
+                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Nouvelle sauvegarde</p>
+
+                            {/* Data type checkboxes */}
+                            <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                                {[
+                                    { key: 'residents',  label: 'Résidents',    count: residents.length  },
+                                    { key: 'expenses',   label: 'Dépenses',     count: expenseLog.length },
+                                    { key: 'disputes',   label: 'Litiges',      count: disputes.length   },
+                                    { key: 'suppliers',  label: 'Fournisseurs', count: suppliers.length  },
+                                    { key: 'meetings',   label: 'Assemblées',   count: meetings.length   },
+                                ].map(({ key, label, count }) => (
+                                    <label key={key} className="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox"
+                                            checked={backupTypes[key]}
+                                            onChange={e => setBackupTypes(p => ({ ...p, [key]: e.target.checked }))}
+                                            className="w-3.5 h-3.5 rounded border-white/20 bg-white/10 text-cyan-500 focus:ring-cyan-500/30 accent-cyan-500" />
+                                        <span className="text-xs text-slate-400 group-hover:text-white transition-colors">{label}</span>
+                                        <span className="text-[10px] text-slate-600">({count})</span>
+                                    </label>
+                                ))}
+                            </div>
+
+                            {/* Format selector */}
+                            <div className="flex items-center gap-3">
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider w-14 flex-shrink-0">Format</p>
+                                <div className="flex gap-2">
+                                    {[['json', 'JSON'], ['excel', 'Excel (.xlsx)']].map(([val, lbl]) => (
+                                        <button key={val} type="button" onClick={() => setBackupFormat(val)}
+                                            className={`text-xs px-3 py-1 rounded-lg border transition-colors ${
+                                                backupFormat === val
+                                                    ? 'bg-cyan-500/20 border-cyan-500/40 text-cyan-400'
+                                                    : 'bg-white/5 border-white/8 text-slate-500 hover:text-white'
+                                            }`}>
+                                            {lbl}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Action buttons */}
+                            <div className="flex gap-2 pt-1">
+                                <button type="button" onClick={handleCloudBackup} disabled={backupSaving}
+                                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-cyan-500/15 border border-cyan-500/25 text-cyan-400 hover:bg-cyan-500/25 transition-colors disabled:opacity-50">
+                                    <Cloud size={12} />
+                                    {backupSaving ? 'Sauvegarde…' : 'Cloud'}
+                                </button>
+                                <button type="button" onClick={handleLocalBackup} disabled={backupSaving}
+                                    className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:bg-emerald-500/25 transition-colors disabled:opacity-50">
+                                    <Download size={12} />
+                                    Télécharger
+                                </button>
+                            </div>
                         </div>
 
                         {/* Restore */}

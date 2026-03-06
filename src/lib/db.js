@@ -396,3 +396,47 @@ export async function saveBuildingSettings(buildingId, overrides) {
     const { error } = await db.from('building_settings').upsert(row, { onConflict: 'building_id' })
     checkError(error, 'saveBuildingSettings')
 }
+
+// ── BACKUPS ────────────────────────────────────────────────────────────────────
+
+/**
+ * Save a backup snapshot to Supabase.
+ * Automatically prunes to keep only the 7 most recent per building.
+ * @param {string} buildingId
+ * @param {string} type  e.g. 'full_auto' | 'full' | 'residents+expenses'
+ * @param {object} snapshot  Plain JS object (will be stored as JSONB)
+ * @returns {string} The new backup id
+ */
+export async function createBackup(buildingId, type, snapshot) {
+    const id = `bkp-${Date.now()}`
+    const { error } = await db.from('backups').insert({ id, building_id: buildingId, type, snapshot })
+    checkError(error, 'createBackup')
+    // Prune: keep only the 7 most recent for this building
+    const { data: all } = await db
+        .from('backups')
+        .select('id')
+        .eq('building_id', buildingId)
+        .order('created_at', { ascending: false })
+    if (all && all.length > 7) {
+        const toDelete = all.slice(7).map(r => r.id)
+        await db.from('backups').delete().in('id', toDelete)
+    }
+    return id
+}
+
+/**
+ * Fetch the most recent N backup metadata rows (no snapshot payload — for display).
+ * @param {string} buildingId
+ * @param {number} limit  Max rows to return (default 5)
+ * @returns {Array<{id, building_id, type, created_at}>}
+ */
+export async function fetchBackups(buildingId, limit = 5) {
+    const { data, error } = await db
+        .from('backups')
+        .select('id, building_id, type, created_at')
+        .eq('building_id', buildingId)
+        .order('created_at', { ascending: false })
+        .limit(limit)
+    checkError(error, 'fetchBackups')
+    return data ?? []
+}
