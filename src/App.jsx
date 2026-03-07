@@ -2218,13 +2218,13 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
                             {/* Header */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                                 <div>
-                                    <p className="text-xs font-bold text-white">Notifications</p>
-                                    <p className="text-[10px] text-slate-500 mt-0.5">
+                                    <p className="text-sm font-bold text-white">Notifications</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">
                                         {notifications.length === 0 ? 'Tout est en ordre ✓' : `${notifications.length} élément${notifications.length > 1 ? 's' : ''} à traiter`}
                                     </p>
                                 </div>
                                 {notifications.length > 0 && (
-                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${hasError ? 'bg-red-500/15 text-red-400 border-red-500/25' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${hasError ? 'bg-red-500/15 text-red-400 border-red-500/25' : 'bg-amber-500/15 text-amber-400 border-amber-500/20'}`}>
                                         {notifications.length}
                                     </span>
                                 )}
@@ -2234,29 +2234,29 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
                             {notifications.length === 0 ? (
                                 <div className="px-4 py-8 text-center">
                                     <p className="text-2xl mb-2">✅</p>
-                                    <p className="text-xs font-medium text-slate-400">Aucune action requise</p>
-                                    <p className="text-[10px] text-slate-600 mt-1">Sauvegarde, paiements, tickets et litiges sont à jour</p>
+                                    <p className="text-sm font-medium text-slate-400">Aucune action requise</p>
+                                    <p className="text-xs text-slate-600 mt-1">Sauvegarde, paiements, tickets et litiges sont à jour</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-white/5 max-h-80 overflow-y-auto">
                                     {notifications.map(n => (
                                         <button key={n.id}
                                             onClick={() => { onNotifAction?.(n.action); setShowNotifs(false) }}
-                                            className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/5 transition-colors text-left group"
+                                            className="w-full flex items-start gap-3 px-4 py-3.5 hover:bg-white/5 transition-colors text-left group"
                                         >
-                                            <span className={`flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-sm mt-0.5 ${
+                                            <span className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-base mt-0.5 ${
                                                 n.severity === 'error' ? 'bg-red-500/15' : 'bg-amber-500/15'
                                             }`}>
                                                 {NOTIF_ICONS[n.id] ?? '🔔'}
                                             </span>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-xs font-medium text-white leading-snug">{n.label}</p>
-                                                <p className="text-[10px] text-slate-500 mt-0.5">{n.detail}</p>
-                                                <p className="text-[10px] text-sp mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                <p className="text-sm font-medium text-white leading-snug">{n.label}</p>
+                                                <p className="text-xs text-slate-500 mt-0.5">{n.detail}</p>
+                                                <p className="text-xs text-sp mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                     {NOTIF_ACTIONS[n.action] ?? 'Voir'} →
                                                 </p>
                                             </div>
-                                            <ChevronRight size={12} className="text-slate-600 mt-1.5 flex-shrink-0 group-hover:text-slate-400 transition-colors" />
+                                            <ChevronRight size={13} className="text-slate-600 mt-1.5 flex-shrink-0 group-hover:text-slate-400 transition-colors" />
                                         </button>
                                     ))}
                                 </div>
@@ -2264,7 +2264,7 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
 
                             {/* Footer */}
                             <div className="px-4 py-2.5 border-t border-white/8 bg-white/3">
-                                <p className="text-[10px] text-slate-600 text-center">Cliquer une alerte pour y accéder directement</p>
+                                <p className="text-xs text-slate-600 text-center">Cliquer une alerte pour y accéder directement</p>
                             </div>
                         </div>
                     )}
