@@ -583,10 +583,24 @@
   <div class="absolute inset-0 zellige opacity-[0.025]"></div>
   <div class="relative max-w-5xl mx-auto px-6">
 
-    <div class="text-center mb-14 reveal">
+    <div class="text-center mb-10 reveal">
       <span class="text-[11px] font-semibold text-cyan-400 uppercase tracking-[.2em]">Tarifs</span>
       <h2 class="text-4xl font-extrabold text-white mt-3 mb-3">Simple, transparent, sans surprise</h2>
-      <p class="text-slate-400 text-sm">Tous les forfaits incluent 30 jours d'essai gratuit. Aucune carte requise.</p>
+      <p class="text-slate-400 text-sm">30 jours d'essai gratuit · Sans carte bancaire · Résiliable à tout moment</p>
+    </div>
+
+    <!-- Billing toggle -->
+    <div class="flex items-center justify-center gap-4 mb-12 reveal">
+      <span class="text-sm text-slate-400" id="lbl-monthly">Mensuel</span>
+      <button id="billing-toggle" onclick="toggleBilling()"
+        class="relative w-14 h-7 rounded-full bg-cyan-500/20 border border-cyan-500/30 transition-colors duration-300 focus:outline-none"
+        aria-label="Basculer facturation annuelle">
+        <span id="toggle-dot" class="absolute top-1 left-1 w-5 h-5 rounded-full bg-cyan-400 transition-transform duration-300"></span>
+      </button>
+      <span class="text-sm text-slate-400" id="lbl-annual">
+        Annuel
+        <span class="ml-2 text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 px-2 py-0.5 rounded-full">2 mois offerts</span>
+      </span>
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
@@ -596,10 +610,10 @@
         <div class="text-sm font-semibold text-slate-300 mb-1">Syndic Pro</div>
         <div class="text-xs text-slate-500 mb-6">Pour les syndics indépendants</div>
         <div class="flex items-baseline gap-2 mb-1">
-          <span class="text-5xl font-extrabold text-white">490</span>
+          <span class="text-5xl font-extrabold text-white price-pro">490</span>
           <span class="text-slate-500 text-sm">MAD / mois</span>
         </div>
-        <div class="text-xs text-slate-600 mb-7">par résidence</div>
+        <div class="text-xs mb-7 price-sub-pro text-slate-600">par résidence</div>
         <ul class="space-y-3 mb-8 text-sm">
           <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Jusqu'à 3 résidences</li>
           <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidents illimités</li>
@@ -623,10 +637,10 @@
         <div class="text-sm font-semibold text-white mb-1">Syndic Multi</div>
         <div class="text-xs text-slate-400 mb-6">Pour les cabinets de syndic</div>
         <div class="flex items-baseline gap-2 mb-1">
-          <span class="text-5xl font-extrabold text-cyan-400">290</span>
+          <span class="text-5xl font-extrabold text-cyan-400 price-multi">290</span>
           <span class="text-slate-500 text-sm">MAD / mois</span>
         </div>
-        <div class="text-xs text-slate-600 mb-7">par résidence · minimum 4 résidences</div>
+        <div class="text-xs mb-7 price-sub-multi text-slate-600">par résidence · minimum 4 résidences</div>
         <ul class="space-y-3 mb-8 text-sm">
           <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidences illimitées</li>
           <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidents illimités</li>
@@ -640,6 +654,30 @@
         </a>
       </div>
     </div>
+
+    <!-- Trust line -->
+    <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-10 reveal">
+      <span class="flex items-center gap-1.5 text-xs text-slate-500">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Sans engagement
+      </span>
+      <span class="text-slate-700 text-xs hidden md:block">·</span>
+      <span class="flex items-center gap-1.5 text-xs text-slate-500">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Résiliable à tout moment, sans frais
+      </span>
+      <span class="text-slate-700 text-xs hidden md:block">·</span>
+      <span class="flex items-center gap-1.5 text-xs text-slate-500">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        30 jours d'essai gratuit inclus
+      </span>
+      <span class="text-slate-700 text-xs hidden md:block">·</span>
+      <span class="flex items-center gap-1.5 text-xs text-slate-500">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2.2" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+        Aucune carte bancaire requise
+      </span>
+    </div>
+
   </div>
 </section>
 
@@ -915,6 +953,42 @@
     });
   }, { threshold: 0.12 });
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  // ── Billing toggle (monthly ↔ annual) ─────────────────────────
+  let isAnnual = false;
+  function toggleBilling() {
+    isAnnual = !isAnnual;
+    const dot  = document.getElementById('toggle-dot');
+    const lblM = document.getElementById('lbl-monthly');
+    const lblA = document.getElementById('lbl-annual');
+
+    // Toggle dot position
+    dot.style.transform = isAnnual ? 'translateX(28px)' : '';
+
+    // Highlight active label
+    lblM.style.color = isAnnual ? '' : '#fff';
+    lblA.style.color = isAnnual ? '#fff' : '';
+
+    // Pro: 490/mo monthly → 408/mo annual (4 900 MAD/an, 2 mois offerts)
+    document.querySelectorAll('.price-pro').forEach(el => {
+      el.textContent = isAnnual ? '408' : '490';
+    });
+    document.querySelectorAll('.price-sub-pro').forEach(el => {
+      el.innerHTML = isAnnual
+        ? 'par résidence · <span class="line-through text-slate-700">5 880</span> <span class="text-emerald-400 font-semibold">4 900 MAD/an</span>'
+        : 'par résidence';
+    });
+
+    // Multi: 290/mo monthly → 242/mo annual (2 900 MAD/an, 2 mois offerts)
+    document.querySelectorAll('.price-multi').forEach(el => {
+      el.textContent = isAnnual ? '242' : '290';
+    });
+    document.querySelectorAll('.price-sub-multi').forEach(el => {
+      el.innerHTML = isAnnual
+        ? 'par résidence · <span class="line-through text-slate-700">3 480</span> <span class="text-emerald-400 font-semibold">2 900 MAD/an</span>'
+        : 'par résidence · minimum 4 résidences';
+    });
+  }
 
   // ── FAQ accordion ──────────────────────────────────────────────
   document.querySelectorAll('.faq-btn').forEach(btn => {
