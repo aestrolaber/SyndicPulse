@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SyndicPulse — La plateforme premium de gestion de copropriété pour les syndics professionnels marocains. Multi-résidences, relances WhatsApp, Agent Vocal IA.">
+  <title>SyndicPulse — La gestion de copropriété, enfin à la hauteur du Maroc</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { outfit: ['Outfit', 'system-ui', 'sans-serif'] },
+          colors: {
+            navy: {
+              950: '#0a0f1e', 900: '#0d1629', 800: '#111d35',
+              700: '#162040', 600: '#1e3158'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { font-family: 'Outfit', system-ui, sans-serif; }
+    html { scroll-behavior: smooth; }
+
+    /* Zellige diamond grid texture */
+    .zellige {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='48' height='48'%3E%3Cpath d='M24 4L44 24L24 44L4 24Z' fill='none' stroke='%2306b6d4' stroke-width='0.6'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+    }
+
+    /* Glass card */
+    .glass {
+      background: rgba(17,29,53,0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(6,182,212,0.12);
+    }
+
+    /* Gradient text */
+    .text-grad {
+      background: linear-gradient(135deg, #ffffff 10%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Glows */
+    .cyan-glow    { box-shadow: 0 8px 40px rgba(6,182,212,0.20); }
+    .cyan-glow-sm { box-shadow: 0 4px 20px rgba(6,182,212,0.14); }
+
+    /* Sticky nav blur */
+    .nav-blur {
+      background: rgba(10,15,30,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    /* Pulsing dot */
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.4} }
+    .pulse-dot { animation: pulse-dot 2s infinite; }
+
+    /* Fade-up on scroll */
+    .reveal { opacity:0; transform:translateY(28px); transition: opacity .6s ease, transform .6s ease; }
+    .reveal.visible { opacity:1; transform:translateY(0); }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-track { background:#0a0f1e; }
+    ::-webkit-scrollbar-thumb { background:#06b6d4; border-radius:3px; }
+  </style>
+</head>
+<body class="bg-[#0a0f1e] text-white overflow-x-hidden">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════════════════════════ -->
+<nav class="fixed top-0 left-0 right-0 z-50 nav-blur border-b border-cyan-500/10">
+  <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+
+    <!-- Logo -->
+    <a href="#" class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </div>
+      <span class="text-lg font-bold tracking-tight">
+        <span class="text-white">Syndic</span><span class="text-cyan-400">Pulse</span>
+      </span>
+    </a>
+
+    <!-- Links -->
+    <div class="hidden md:flex items-center gap-8">
+      <a href="#fonctionnalites" class="text-sm text-slate-400 hover:text-white transition-colors">Fonctionnalités</a>
+      <a href="#tarifs"          class="text-sm text-slate-400 hover:text-white transition-colors">Tarifs</a>
+      <a href="#temoignages"     class="text-sm text-slate-400 hover:text-white transition-colors">Témoignages</a>
+      <a href="#contact"         class="text-sm text-slate-400 hover:text-white transition-colors">Contact</a>
+    </div>
+
+    <!-- CTAs -->
+    <div class="flex items-center gap-3">
+      <a href="/" class="hidden sm:block text-sm text-slate-400 hover:text-cyan-400 transition-colors px-4 py-2 rounded-full border border-slate-700/60 hover:border-cyan-500/40">
+        Se connecter
+      </a>
+      <a href="/" class="text-sm font-semibold bg-cyan-500 hover:bg-cyan-400 text-[#0a0f1e] px-5 py-2 rounded-full transition-all hover:shadow-[0_4px_20px_rgba(6,182,212,0.45)]">
+        Essai gratuit
+      </a>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════════════════════════ -->
+<section class="relative min-h-screen flex items-center pt-16 overflow-hidden">
+  <!-- Zellige bg -->
+  <div class="absolute inset-0 zellige opacity-[0.035]"></div>
+  <!-- Orbs -->
+  <div class="absolute top-1/4 left-1/4  w-[500px] h-[500px] bg-cyan-500/6  rounded-full blur-[120px] pointer-events-none"></div>
+  <div class="absolute bottom-1/4 right-1/4 w-[350px] h-[350px] bg-cyan-400/4 rounded-full blur-[90px]  pointer-events-none"></div>
+
+  <div class="relative max-w-7xl mx-auto px-6 py-28 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+
+    <!-- ── Left: Copy ── -->
+    <div class="reveal">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[11px] font-medium px-4 py-1.5 rounded-full mb-6 uppercase tracking-wider">
+        <span class="w-1.5 h-1.5 bg-cyan-400 rounded-full pulse-dot"></span>
+        Plateforme Marocaine de Gestion
+      </div>
+
+      <!-- H1 -->
+      <h1 class="text-5xl lg:text-[3.6rem] font-extrabold leading-[1.08] mb-4">
+        <span class="text-white">La gestion de</span><br>
+        <span class="text-white">copropriété,</span><br>
+        <span class="text-grad">enfin à la hauteur</span><br>
+        <span class="text-grad">du Maroc</span>
+      </h1>
+
+      <!-- Arabic sub -->
+      <p class="text-right text-slate-500 text-sm mb-5 font-light" dir="rtl">
+        منصة احترافية لإدارة مجمعاتكم السكنية
+      </p>
+
+      <!-- Sub -->
+      <p class="text-slate-400 text-[1.05rem] leading-relaxed mb-8 max-w-lg">
+        Pilotez vos résidences, relancez les impayés, et convoquez vos AG —
+        depuis une seule plateforme pensée pour les syndics professionnels marocains.
+      </p>
+
+      <!-- CTAs -->
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <a href="/" class="inline-flex items-center justify-center gap-2 bg-cyan-500 hover:bg-cyan-400 text-[#0a0f1e] font-bold px-8 py-3.5 rounded-full transition-all hover:shadow-[0_8px_32px_rgba(6,182,212,0.45)] text-sm">
+          Essayer gratuitement
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+        <a href="#fonctionnalites" class="inline-flex items-center justify-center gap-2 border border-slate-700 hover:border-cyan-500/40 text-slate-300 hover:text-white font-medium px-8 py-3.5 rounded-full transition-all text-sm">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          Voir les fonctionnalités
+        </a>
+      </div>
+
+      <!-- Trust -->
+      <p class="text-slate-600 text-xs">Sans carte bancaire &nbsp;·&nbsp; Déploiement en 5 minutes &nbsp;·&nbsp; Support en français et darija</p>
+    </div>
+
+    <!-- ── Right: App Mockup ── -->
+    <div class="relative hidden lg:block reveal" style="animation-delay:.15s">
+      <!-- Glow behind -->
+      <div class="absolute inset-0 bg-cyan-500/4 rounded-3xl blur-3xl -z-10"></div>
+
+      <!-- Browser chrome + app -->
+      <div class="glass rounded-2xl overflow-hidden cyan-glow">
+        <!-- Browser bar -->
+        <div class="h-9 bg-[#0d1629] border-b border-cyan-500/10 flex items-center px-4 gap-3">
+          <div class="flex gap-1.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700/80"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700/80"></div>
+            <div class="w-2.5 h-2.5 rounded-full bg-slate-700/80"></div>
+          </div>
+          <div class="flex-1 h-5 bg-[#0a0f1e] rounded-full flex items-center px-3">
+            <span class="text-[9px] text-slate-600">syndic-pulse-l1xf.vercel.app</span>
+          </div>
+        </div>
+
+        <!-- App layout -->
+        <div class="flex h-64">
+          <!-- Sidebar stub -->
+          <div class="w-12 bg-[#0d1629] border-r border-cyan-500/10 py-3 flex flex-col items-center gap-3">
+            <div class="w-7 h-7 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+              <div class="w-3.5 h-3.5 bg-cyan-400 rounded-sm"></div>
+            </div>
+            <div class="w-5 h-1 bg-slate-700 rounded-full"></div>
+            <div class="w-5 h-1 bg-slate-700 rounded-full"></div>
+            <div class="w-5 h-1 bg-slate-700 rounded-full"></div>
+            <div class="w-5 h-1 bg-slate-700 rounded-full"></div>
+            <div class="w-5 h-1 bg-slate-700 rounded-full"></div>
+          </div>
+
+          <!-- Main content -->
+          <div class="flex-1 bg-[#0a0f1e] p-4 overflow-hidden">
+            <!-- KPI row -->
+            <div class="grid grid-cols-3 gap-2 mb-3">
+              <div class="glass rounded-xl p-3">
+                <div class="text-[9px] text-slate-500 mb-1">Résidences</div>
+                <div class="text-xl font-extrabold text-cyan-400">3</div>
+              </div>
+              <div class="glass rounded-xl p-3">
+                <div class="text-[9px] text-slate-500 mb-1">Résidents</div>
+                <div class="text-xl font-extrabold text-white">92</div>
+              </div>
+              <div class="glass rounded-xl p-3">
+                <div class="text-[9px] text-slate-500 mb-1">Recouvrement</div>
+                <div class="text-xl font-extrabold text-emerald-400">89%</div>
+              </div>
+            </div>
+
+            <!-- Table -->
+            <div class="glass rounded-xl overflow-hidden">
+              <div class="h-6 bg-[#111d35] border-b border-cyan-500/10 flex items-center px-3">
+                <span class="text-[9px] text-slate-500 uppercase tracking-widest">Derniers paiements</span>
+              </div>
+              <div class="divide-y divide-white/5">
+                <div class="flex items-center justify-between px-3 py-2">
+                  <div>
+                    <div class="text-[10px] text-white font-semibold">Apt 3B · M. Alami</div>
+                    <div class="text-[9px] text-slate-600">Norwest · Tanger</div>
+                  </div>
+                  <span class="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">Payé</span>
+                </div>
+                <div class="flex items-center justify-between px-3 py-2">
+                  <div>
+                    <div class="text-[10px] text-white font-semibold">Apt 7A · Mme. Tahiri</div>
+                    <div class="text-[9px] text-slate-600">Atlas · Casablanca</div>
+                  </div>
+                  <span class="text-[9px] bg-red-500/10 text-red-400 px-2 py-0.5 rounded-full">En retard</span>
+                </div>
+                <div class="flex items-center justify-between px-3 py-2">
+                  <div>
+                    <div class="text-[10px] text-white font-semibold">Apt 1C · M. Benali</div>
+                    <div class="text-[9px] text-slate-600">Jardins du Roi · Rabat</div>
+                  </div>
+                  <span class="text-[9px] bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">En attente</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating: WhatsApp chip -->
+      <div class="absolute -bottom-5 -left-6 glass rounded-xl px-4 py-3 cyan-glow-sm flex items-center gap-3 shadow-xl">
+        <div class="w-8 h-8 bg-emerald-500/12 rounded-full flex items-center justify-center shrink-0">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="#22c55e">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="text-[10px] font-semibold text-white">Relance envoyée</div>
+          <div class="text-[9px] text-slate-500">Apt 7A — 650 MAD · via WhatsApp</div>
+        </div>
+      </div>
+
+      <!-- Floating: backup chip -->
+      <div class="absolute -top-4 -right-4 glass rounded-xl px-4 py-3 cyan-glow-sm flex items-center gap-3 shadow-xl">
+        <div class="w-8 h-8 bg-cyan-500/12 rounded-full flex items-center justify-center shrink-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div>
+          <div class="text-[10px] font-semibold text-white">Sauvegarde cloud ☁️</div>
+          <div class="text-[9px] text-cyan-400">Il y a 2 jours · OK</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     STATS BAND
+════════════════════════════════════════════════════════════════ -->
+<div class="border-y border-cyan-500/10 bg-[#0d1629]/70">
+  <div class="max-w-7xl mx-auto px-6 py-10">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x divide-cyan-500/10">
+      <div class="text-center px-6">
+        <div class="text-4xl font-extrabold text-cyan-400 mb-1">92%</div>
+        <div class="text-sm text-slate-500">Taux de recouvrement moyen</div>
+      </div>
+      <div class="text-center px-6">
+        <div class="text-4xl font-extrabold text-white mb-1">3</div>
+        <div class="text-sm text-slate-500">Villes · Tanger, Casa, Rabat</div>
+      </div>
+      <div class="text-center px-6">
+        <div class="text-4xl font-extrabold text-white mb-1">&lt;5min</div>
+        <div class="text-sm text-slate-500">Temps de déploiement</div>
+      </div>
+      <div class="text-center px-6">
+        <div class="text-4xl font-extrabold text-cyan-400 mb-1">0 MAD</div>
+        <div class="text-sm text-slate-500">Pour commencer</div>
+      </div>
+    </div>
+    <p class="text-center text-[10px] text-slate-600 uppercase tracking-[.2em] mt-6">
+      Déjà utilisé par des syndics professionnels à travers le Maroc
+    </p>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════════════════════════ -->
+<section id="fonctionnalites" class="py-28 relative">
+  <div class="absolute inset-0 zellige opacity-[0.022]"></div>
+  <div class="relative max-w-7xl mx-auto px-6">
+
+    <div class="text-center mb-16 reveal">
+      <span class="text-[11px] font-semibold text-cyan-400 uppercase tracking-[.2em]">Fonctionnalités</span>
+      <h2 class="text-4xl font-extrabold text-white mt-3 mb-4">
+        Tout ce qu'il vous faut,<br>rien de superflu
+      </h2>
+      <p class="text-slate-400 max-w-xl mx-auto text-[0.95rem]">
+        Une plateforme complète qui couvre chaque aspect de la gestion de copropriété
+        — du recouvrement aux assemblées générales.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+      <!-- 1 -->
+      <div class="reveal glass rounded-2xl p-6 hover:border-cyan-500/28 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.10)] group cursor-default">
+        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-500/16 transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Multi-résidences</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Gérez 1 à 100 immeubles depuis un seul tableau de bord, avec une comptabilité totalement séparée par résidence.</p>
+      </div>
+
+      <!-- 2 -->
+      <div class="reveal glass rounded-2xl p-6 hover:border-cyan-500/28 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.10)] group cursor-default" style="animation-delay:.07s">
+        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-500/16 transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="#22c55e" opacity=".9">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Relances WhatsApp</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Envoyez les rappels de paiement en 1 clic avec RIB et montant exact pré-rempli, directement dans WhatsApp.</p>
+      </div>
+
+      <!-- 3 -->
+      <div class="reveal glass rounded-2xl p-6 hover:border-cyan-500/28 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.10)] group cursor-default" style="animation-delay:.14s">
+        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-500/16 transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Recouvrement automatique</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Matrice de paiement avec historique 24 mois, filtres par statut et export CSV en un clic.</p>
+      </div>
+
+      <!-- 4 -->
+      <div class="reveal glass rounded-2xl p-6 hover:border-cyan-500/28 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.10)] group cursor-default" style="animation-delay:.07s">
+        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-500/16 transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Assemblées Générales</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Convocations, feuilles de présence et PV générés en PDF imprimable, conformes à la Loi 18.00.</p>
+      </div>
+
+      <!-- 5 — highlighted -->
+      <div class="reveal glass rounded-2xl p-6 border-cyan-500/30 bg-gradient-to-br from-cyan-500/5 to-transparent hover:border-cyan-500/45 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.16)] group cursor-default" style="animation-delay:.14s">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-10 h-10 bg-cyan-500/14 rounded-xl flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round"><path d="M12 2a3 3 0 013 3v4a3 3 0 01-6 0V5a3 3 0 013-3z"/><path d="M19 10v1a7 7 0 01-14 0v-1"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          </div>
+          <span class="text-[10px] bg-cyan-500/14 text-cyan-400 px-2.5 py-1 rounded-full font-semibold uppercase tracking-wide">Nouveau</span>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Agent Vocal IA</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Un assistant vocal répond aux résidents 24h/24 en darija et français — sans intervention humaine.</p>
+      </div>
+
+      <!-- 6 -->
+      <div class="reveal glass rounded-2xl p-6 hover:border-cyan-500/28 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_16px_40px_rgba(6,182,212,0.10)] group cursor-default" style="animation-delay:.21s">
+        <div class="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center mb-4 group-hover:bg-cyan-500/16 transition-colors">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="1.8" stroke-linecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        </div>
+        <h3 class="font-semibold text-white text-[0.95rem] mb-2">Sauvegarde cloud</h3>
+        <p class="text-slate-400 text-sm leading-relaxed">Snapshots automatiques toutes les 7 jours sur Supabase. Vos données ne disparaissent jamais.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SHOWCASE BAND
+════════════════════════════════════════════════════════════════ -->
+<section class="py-20 bg-[#0d1629] relative overflow-hidden">
+  <div class="absolute inset-0 zellige opacity-[0.04]"></div>
+  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[200px] bg-cyan-500/5 rounded-full blur-[80px]"></div>
+  <div class="relative max-w-5xl mx-auto px-6 text-center reveal">
+    <h2 class="text-3xl md:text-4xl font-extrabold text-white mb-3">
+      Tout ce dont votre syndicat a besoin,<br>
+      <span class="text-grad">dans une interface qui inspire confiance</span>
+    </h2>
+    <p class="text-slate-500 text-sm mt-4">
+      Interface pensée pour les professionnels · Données en temps réel · Zéro formation requise
+    </p>
+
+    <!-- 3-tab preview -->
+    <div class="grid grid-cols-3 gap-4 mt-12">
+      <div class="glass rounded-xl p-4 text-left hover:-translate-y-1 transition-transform cursor-default">
+        <div class="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider mb-3">Résidents & Paiements</div>
+        <div class="space-y-2">
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Norwest · Tanger</span>
+            <span class="text-xs text-emerald-400 font-semibold">38/42 payés</span>
+          </div>
+          <div class="w-full h-1 bg-white/5 rounded-full"><div class="h-full bg-cyan-500 rounded-full" style="width:90%"></div></div>
+          <div class="flex justify-between items-center">
+            <span class="text-xs text-slate-400">Résidence Atlas</span>
+            <span class="text-xs text-amber-400 font-semibold">22/28 payés</span>
+          </div>
+          <div class="w-full h-1 bg-white/5 rounded-full"><div class="h-full bg-amber-400 rounded-full" style="width:78%"></div></div>
+        </div>
+      </div>
+      <div class="glass rounded-xl p-4 text-left border-cyan-500/25 bg-cyan-500/4 hover:-translate-y-1 transition-transform cursor-default">
+        <div class="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider mb-3">Finances & Recouvrement</div>
+        <div class="space-y-2">
+          <div class="flex justify-between">
+            <span class="text-xs text-slate-400">Charges Fév. 2026</span>
+            <span class="text-xs text-white font-bold">42 000 MAD</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-slate-400">Encaissé</span>
+            <span class="text-xs text-emerald-400 font-bold">37 400 MAD</span>
+          </div>
+          <div class="flex justify-between">
+            <span class="text-xs text-slate-400">En retard</span>
+            <span class="text-xs text-red-400 font-bold">4 600 MAD</span>
+          </div>
+          <div class="w-full h-1.5 bg-white/5 rounded-full mt-1"><div class="h-full bg-gradient-to-r from-cyan-500 to-emerald-400 rounded-full" style="width:89%"></div></div>
+        </div>
+      </div>
+      <div class="glass rounded-xl p-4 text-left hover:-translate-y-1 transition-transform cursor-default">
+        <div class="text-[10px] text-cyan-400 font-semibold uppercase tracking-wider mb-3">Litiges & Médiation</div>
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] text-slate-300 truncate">Bruit nocturne · Apt 4C</span>
+            <span class="text-[9px] bg-amber-500/14 text-amber-400 px-2 py-0.5 rounded-full shrink-0">Médiation</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] text-slate-300 truncate">Fuite d'eau · Apt 2B</span>
+            <span class="text-[9px] bg-red-500/14 text-red-400 px-2 py-0.5 rounded-full shrink-0">Urgent</span>
+          </div>
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-[10px] text-slate-300 truncate">Parking bloqué · Apt 8A</span>
+            <span class="text-[9px] bg-emerald-500/14 text-emerald-400 px-2 py-0.5 rounded-full shrink-0">Résolu</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     COMPARISON TABLE
+════════════════════════════════════════════════════════════════ -->
+<section class="py-28 relative">
+  <div class="absolute inset-0 zellige opacity-[0.02]"></div>
+  <div class="relative max-w-3xl mx-auto px-6">
+
+    <div class="text-center mb-12 reveal">
+      <span class="text-[11px] font-semibold text-cyan-400 uppercase tracking-[.2em]">Comparatif</span>
+      <h2 class="text-4xl font-extrabold text-white mt-3 mb-4">Pourquoi choisir SyndicPulse ?</h2>
+      <p class="text-slate-400 text-sm">Nous avons fait les comparaisons pour vous.</p>
+    </div>
+
+    <div class="reveal glass rounded-2xl overflow-hidden cyan-glow-sm">
+      <div class="grid grid-cols-3 border-b border-white/5">
+        <div class="px-6 py-4 text-sm text-slate-500 font-medium">Fonctionnalité</div>
+        <div class="px-6 py-4 text-sm font-bold text-[#0a0f1e] bg-cyan-500 text-center">SyndicPulse</div>
+        <div class="px-6 py-4 text-sm text-slate-500 font-medium text-center">Autres solutions</div>
+      </div>
+      <div class="divide-y divide-white/[0.04]">
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Interface française professionnelle</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-slate-500">⚠</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Gestion multi-résidences</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-red-500">✗</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Agent Vocal IA intégré</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-red-500">✗</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Relance WhatsApp avec RIB</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-slate-500">⚠</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Sauvegarde cloud automatique</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-red-500">✗</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Portail résident sécurisé</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-red-500">✗</div>
+        </div>
+        <div class="grid grid-cols-3 hover:bg-white/[0.02] transition-colors">
+          <div class="px-6 py-3.5 text-sm text-slate-300">Historique de paiement 24 mois</div>
+          <div class="px-6 py-3.5 text-center text-cyan-400 font-bold bg-cyan-500/4">✓</div>
+          <div class="px-6 py-3.5 text-center text-slate-500">⚠</div>
+        </div>
+      </div>
+      <div class="border-t border-white/5 px-6 py-3 bg-cyan-500/4">
+        <p class="text-[11px] text-center text-slate-500 italic">SyndicPulse — Le choix des professionnels de la copropriété au Maroc</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PRICING
+════════════════════════════════════════════════════════════════ -->
+<section id="tarifs" class="py-28 bg-[#0d1629]/50 relative">
+  <div class="absolute inset-0 zellige opacity-[0.025]"></div>
+  <div class="relative max-w-5xl mx-auto px-6">
+
+    <div class="text-center mb-14 reveal">
+      <span class="text-[11px] font-semibold text-cyan-400 uppercase tracking-[.2em]">Tarifs</span>
+      <h2 class="text-4xl font-extrabold text-white mt-3 mb-3">Simple, transparent, sans surprise</h2>
+      <p class="text-slate-400 text-sm">Tous les forfaits incluent 30 jours d'essai gratuit. Aucune carte requise.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+
+      <!-- Pro -->
+      <div class="reveal glass rounded-2xl p-8">
+        <div class="text-sm font-semibold text-slate-300 mb-1">Syndic Pro</div>
+        <div class="text-xs text-slate-500 mb-6">Pour les syndics indépendants</div>
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="text-5xl font-extrabold text-white">490</span>
+          <span class="text-slate-500 text-sm">MAD / mois</span>
+        </div>
+        <div class="text-xs text-slate-600 mb-7">par résidence</div>
+        <ul class="space-y-3 mb-8 text-sm">
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Jusqu'à 3 résidences</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidents illimités</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Relances WhatsApp</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Assemblées Générales PDF</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Portail résident sécurisé</li>
+          <li class="flex items-center gap-2.5 text-slate-500"><span class="text-slate-700 font-bold text-base leading-none">○</span> Agent Vocal IA</li>
+        </ul>
+        <a href="/" class="block text-center border border-cyan-500/35 hover:border-cyan-500 text-cyan-400 hover:text-white font-semibold px-6 py-3 rounded-full transition-all text-sm hover:bg-cyan-500/8">
+          Démarrer maintenant
+        </a>
+      </div>
+
+      <!-- Multi -->
+      <div class="reveal relative glass rounded-2xl p-8 border-cyan-500/40 bg-gradient-to-br from-cyan-500/8 to-transparent cyan-glow-sm" style="animation-delay:.1s">
+        <div class="absolute -top-3.5 right-6">
+          <span class="bg-cyan-500 text-[#0a0f1e] text-xs font-bold px-4 py-1.5 rounded-full shadow-[0_4px_18px_rgba(6,182,212,0.5)]">
+            Le plus populaire
+          </span>
+        </div>
+        <div class="text-sm font-semibold text-white mb-1">Syndic Multi</div>
+        <div class="text-xs text-slate-400 mb-6">Pour les cabinets de syndic</div>
+        <div class="flex items-baseline gap-2 mb-1">
+          <span class="text-5xl font-extrabold text-cyan-400">290</span>
+          <span class="text-slate-500 text-sm">MAD / mois</span>
+        </div>
+        <div class="text-xs text-slate-600 mb-7">par résidence · minimum 4 résidences</div>
+        <ul class="space-y-3 mb-8 text-sm">
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidences illimitées</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Résidents illimités</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Relances WhatsApp</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Assemblées Générales PDF</li>
+          <li class="flex items-center gap-2.5 text-slate-300"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Portail résident sécurisé</li>
+          <li class="flex items-center gap-2.5 text-white font-semibold"><span class="text-cyan-400 font-bold text-base leading-none">✓</span> Agent Vocal IA inclus</li>
+        </ul>
+        <a href="/" class="block text-center bg-cyan-500 hover:bg-cyan-400 text-[#0a0f1e] font-bold px-6 py-3 rounded-full transition-all hover:shadow-[0_4px_20px_rgba(6,182,212,0.45)] text-sm">
+          Démarrer maintenant
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TESTIMONIALS
+════════════════════════════════════════════════════════════════ -->
+<section id="temoignages" class="py-28 relative">
+  <div class="absolute inset-0 zellige opacity-[0.02]"></div>
+  <div class="relative max-w-6xl mx-auto px-6">
+
+    <div class="text-center mb-14 reveal">
+      <span class="text-[11px] font-semibold text-cyan-400 uppercase tracking-[.2em]">Témoignages</span>
+      <h2 class="text-4xl font-extrabold text-white mt-3">Ce que disent nos syndics</h2>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+      <div class="reveal glass rounded-2xl p-7">
+        <div class="text-cyan-400 text-base mb-4 tracking-wide">★★★★★</div>
+        <p class="text-slate-300 text-sm leading-relaxed mb-6 italic">"SyndicPulse nous a permis de passer de 60% à 94% de recouvrement en seulement 2 mois. Les relances WhatsApp automatiques ont tout changé."</p>
+        <div class="border-t border-white/5 pt-4">
+          <div class="text-sm font-semibold text-white">Karim B.</div>
+          <div class="text-xs text-slate-500 mt-0.5">Syndic professionnel · Tanger</div>
+        </div>
+      </div>
+
+      <div class="reveal glass rounded-2xl p-7 border-cyan-500/22" style="animation-delay:.08s">
+        <div class="text-cyan-400 text-base mb-4 tracking-wide">★★★★★</div>
+        <p class="text-slate-300 text-sm leading-relaxed mb-6 italic">"L'agent vocal IA a transformé notre gestion — les résidents obtiennent des réponses sans nous appeler à minuit. Vraiment indispensable."</p>
+        <div class="border-t border-white/5 pt-4">
+          <div class="text-sm font-semibold text-white">Fatima Z.</div>
+          <div class="text-xs text-slate-500 mt-0.5">Cabinet de Syndic · Casablanca</div>
+        </div>
+      </div>
+
+      <div class="reveal glass rounded-2xl p-7" style="animation-delay:.16s">
+        <div class="text-cyan-400 text-base mb-4 tracking-wide">★★★★★</div>
+        <p class="text-slate-300 text-sm leading-relaxed mb-6 italic">"La vue multi-résidences et les relances automatiques m'économisent 3 heures par semaine. L'interface est vraiment premium, rien à voir avec les autres outils."</p>
+        <div class="border-t border-white/5 pt-4">
+          <div class="text-sm font-semibold text-white">Hassan M.</div>
+          <div class="text-xs text-slate-500 mt-0.5">Syndic indépendant · Rabat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FINAL CTA
+════════════════════════════════════════════════════════════════ -->
+<section class="relative py-36 overflow-hidden">
+  <div class="absolute inset-0 bg-[#0d1629]"></div>
+  <div class="absolute inset-0 zellige opacity-[0.04]"></div>
+  <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[300px] bg-cyan-500/7 rounded-full blur-[100px]"></div>
+  <div class="relative text-center max-w-2xl mx-auto px-6 reveal">
+    <h2 class="text-5xl font-extrabold text-white mb-5 leading-tight">
+      Prêt à professionnaliser<br>votre gestion ?
+    </h2>
+    <p class="text-slate-400 text-lg mb-10 leading-relaxed">
+      Rejoignez les syndics qui font confiance à la première plateforme
+      premium conçue pour le Maroc.
+    </p>
+    <a href="/" class="inline-flex items-center gap-2.5 bg-cyan-500 hover:bg-cyan-400 text-[#0a0f1e] font-bold px-10 py-4 rounded-full text-lg transition-all hover:shadow-[0_12px_48px_rgba(6,182,212,0.55)]">
+      Créer mon compte gratuit
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+    <p class="text-slate-600 text-xs mt-6" dir="rtl">ابدأ مجاناً — لا بطاقة بنكية مطلوبة</p>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     FOOTER
+════════════════════════════════════════════════════════════════ -->
+<footer id="contact" class="bg-[#060b16] border-t border-white/5 py-16">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-10 mb-12">
+
+      <div>
+        <div class="flex items-center gap-2.5 mb-4">
+          <div class="w-8 h-8 rounded-lg bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2.2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          </div>
+          <span class="font-bold text-base"><span class="text-white">Syndic</span><span class="text-cyan-400">Pulse</span></span>
+        </div>
+        <p class="text-slate-500 text-sm leading-relaxed">La gestion de copropriété, au niveau du Maroc.</p>
+      </div>
+
+      <div>
+        <h4 class="text-white text-sm font-semibold mb-5">Produit</h4>
+        <ul class="space-y-3 text-sm text-slate-500">
+          <li><a href="#fonctionnalites" class="hover:text-cyan-400 transition-colors">Fonctionnalités</a></li>
+          <li><a href="#tarifs"          class="hover:text-cyan-400 transition-colors">Tarifs</a></li>
+          <li><a href="/"               class="hover:text-cyan-400 transition-colors">Portail résident</a></li>
+          <li><a href="/"               class="hover:text-cyan-400 transition-colors">Agent Vocal IA</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white text-sm font-semibold mb-5">Support</h4>
+        <ul class="space-y-3 text-sm text-slate-500">
+          <li><a href="#" class="hover:text-cyan-400 transition-colors">Documentation</a></li>
+          <li><a href="#" class="hover:text-cyan-400 transition-colors">FAQ</a></li>
+          <li><a href="#" class="hover:text-cyan-400 transition-colors">Statut du service</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4 class="text-white text-sm font-semibold mb-5">Contact</h4>
+        <ul class="space-y-3 text-sm text-slate-500">
+          <li>support@syndicpulse.ma</li>
+          <li>WhatsApp +212 6XX XXX XXX</li>
+          <li class="text-xs pt-1" dir="rtl">دعم باللغة العربية والفرنسية</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="border-t border-white/[0.05] pt-6 flex flex-col md:flex-row items-center justify-between gap-2">
+      <p class="text-slate-600 text-xs">© 2026 SyndicPulse · Tous droits réservés</p>
+      <p class="text-slate-600 text-xs" dir="rtl">منصة مغربية 100% · SyndicPulse © 2026</p>
+    </div>
+  </div>
+</footer>
+
+
+<!-- Scroll reveal script -->
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+
+</body>
+</html>
