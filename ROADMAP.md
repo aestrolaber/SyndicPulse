@@ -195,6 +195,31 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
+### 💳 Plans & Abonnements (Essentiel / Pro / Premium)
+**Priority:** Medium — post-pilot, avant onboarding commercial à grande échelle
+**Status:** UI placeholder ajouté (badge "Essentiel" dans Paramètres de la propriété)
+
+**Goal:** Modèle de tarification tiered permettant de monétiser la plateforme selon la taille du parc immobilier géré.
+
+**Plans envisagés:**
+
+| Plan | Immeubles | Prix cible | Fonctionnalités clés |
+|---|---|---|---|
+| Essentiel | 1 immeuble | ~199 MAD/mois | Toutes fonctionnalités actuelles |
+| Pro | Jusqu'à 5 | ~699 MAD/mois | + Journal d'audit + Multi-utilisateurs par immeuble |
+| Premium | Illimité | ~1 499 MAD/mois | + API WhatsApp + Support prioritaire + SLA |
+
+**Implementation steps (futures):**
+1. Créer table `subscriptions` dans Supabase (`plan`, `valid_until`, `building_id`)
+2. Lire le plan actif au chargement → exposer via `AuthContext`
+3. Gating côté frontend : désactiver/masquer features Pro/Premium si plan insuffisant
+4. Intégration paiement : CMI / Stripe selon marché cible
+5. Page de gestion d'abonnement (super_admin) avec historique de facturation
+
+**Note:** Le badge UI "Essentiel" dans Paramètres est purement cosmétique pour l'instant — aucune logique de gating n'est implémentée. Valeur = préparer le terrain visuellement pour les démos client.
+
+---
+
 ## ❌ Out of Scope (for now)
 
 - Electron desktop wrapper — only if a client hard-requires a `.exe`
@@ -203,4 +228,4 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
-*Last updated: 7 Mars 2026 · SyndicPulse internal — Shipped: PIN sécurisé 6 chiffres SHA-256, sauvegarde cloud (Options A+B + auto-7j), centre de notifications, purge Supabase à la suppression de bâtiment, landing page marketing navy/cyan. Backup Niveau 3 (restauration) déplacé en Planned.*
+*Last updated: 7 Mars 2026 · SyndicPulse internal — Shipped: PIN sécurisé 6 chiffres SHA-256, sauvegarde cloud (Options A+B + auto-7j), centre de notifications, purge Supabase à la suppression de bâtiment, landing page marketing navy/cyan, relevé PDF résident 6 mois, graphe finances axes placeholder, badge plan Essentiel dans Paramètres. Planned: Plans & Abonnements (Essentiel/Pro/Premium).*

@@ -3095,8 +3095,78 @@ function exportFinancesPDF(building, residents, expenseLog, data) {
     win.document.close()
 }
 
+/* ── Resident payment statement (last N months) — print/PDF ── */
+function generateResidentStatement(resident, building, months = 6) {
+    const logoHtml = building.logo
+        ? `<img src="${building.logo}" style="height:48px;object-fit:contain;" />`
+        : `<div style="width:48px;height:48px;border-radius:10px;background:${building.color ?? '#06b6d4'};display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:800;">${(building.name ?? '').slice(0, 2).toUpperCase()}</div>`
+    const FIN_MONTHS = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
+    const fee = resident.monthly_fee ?? building.monthly_fee ?? 850
+    const rows = Array.from({ length: months }, (_, i) => {
+        const [cy, cm] = CURRENT_MONTH.split('-').map(Number)
+        const total = cy * 12 + cm - 1 - (months - 1 - i)
+        const year = Math.floor(total / 12)
+        const month = (total % 12) + 1
+        const ym = `${year}-${String(month).padStart(2, '0')}`
+        const label = `${FIN_MONTHS[month - 1]} ${year}`
+        const paid = (resident.paidThrough ?? '') >= ym
+        return { ym, label, paid, fee }
+    })
+    const totalPaid = rows.filter(r => r.paid).reduce((s, r) => s + r.fee, 0)
+    const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Relevé de paiement — ${resident.name}</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;color:#1a1a2e;margin:0;padding:32px;background:#fff}
+  .header{display:flex;align-items:center;gap:16px;border-bottom:2px solid #06b6d4;padding-bottom:16px;margin-bottom:24px}
+  .bld-name{font-size:20px;font-weight:800;color:#0a0f1e}
+  .bld-city{font-size:12px;color:#64748b;margin-top:2px}
+  .title-block{text-align:center;margin-bottom:24px}
+  .title-block h2{font-size:18px;font-weight:700;color:#0a0f1e;margin:0 0 4px}
+  .title-block p{font-size:12px;color:#64748b;margin:0}
+  .resident-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;margin-bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .rc-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+  .rc-value{font-size:14px;font-weight:600;color:#1a1a2e;margin-top:2px}
+  table{width:100%;border-collapse:collapse;margin-bottom:20px}
+  th{background:#0a0f1e;color:#fff;font-size:11px;font-weight:700;text-align:left;padding:10px 14px;text-transform:uppercase;letter-spacing:.06em}
+  td{padding:10px 14px;font-size:13px;border-bottom:1px solid #f1f5f9}
+  tr:last-child td{border-bottom:none}
+  .status-paid{background:#dcfce7;color:#16a34a;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+  .status-unpaid{background:#fee2e2;color:#dc2626;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+  .total-row{background:#f0fdfa;font-weight:700;color:#0a0f1e}
+  .footer{margin-top:32px;display:flex;justify-content:space-between;align-items:flex-end;border-top:1px solid #e2e8f0;padding-top:20px}
+  .footer-note{font-size:10px;color:#94a3b8}
+  .signature-box{border:1px solid #e2e8f0;border-radius:8px;width:180px;height:56px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#94a3b8}
+  @media print{body{padding:16px}.no-print{display:none}}
+</style></head><body>
+<div class="header">${logoHtml}<div><div class="bld-name">${building.name}</div><div class="bld-city">${building.city ?? ''}</div></div>
+<div style="margin-left:auto;text-align:right"><div style="font-size:10px;color:#94a3b8">Émis le</div><div style="font-size:13px;font-weight:600">${new Date().toLocaleDateString('fr-MA',{day:'2-digit',month:'long',year:'numeric'})}</div></div></div>
+<div class="title-block"><h2>Relevé de Paiement des Charges</h2><p>Période : ${rows[0].label} — ${rows[rows.length - 1].label}</p></div>
+<div class="resident-card">
+  <div><div class="rc-label">Résident</div><div class="rc-value">${resident.name}</div></div>
+  <div><div class="rc-label">Unité / Appartement</div><div class="rc-value">${resident.unit ?? '—'}</div></div>
+  <div><div class="rc-label">Charge mensuelle</div><div class="rc-value">${fee.toLocaleString('fr-FR')} MAD</div></div>
+  <div><div class="rc-label">Total réglé sur la période</div><div class="rc-value" style="color:#16a34a">${totalPaid.toLocaleString('fr-FR')} MAD</div></div>
+</div>
+<table>
+  <thead><tr><th>Mois</th><th>Montant</th><th>Statut</th></tr></thead>
+  <tbody>
+    ${rows.map(r => `<tr><td>${r.label}</td><td>${r.fee.toLocaleString('fr-FR')} MAD</td><td><span class="${r.paid ? 'status-paid' : 'status-unpaid'}">${r.paid ? '✓ Réglé' : '✗ Impayé'}</span></td></tr>`).join('')}
+    <tr class="total-row"><td colspan="1" style="padding-top:12px">Total réglé</td><td style="padding-top:12px;color:#16a34a">${totalPaid.toLocaleString('fr-FR')} MAD</td><td></td></tr>
+  </tbody>
+</table>
+<div class="footer">
+  <div class="footer-note"><p style="margin:0 0 4px;font-weight:600;color:#475569">${building.name}</p><p style="margin:0">${building.city ?? ''} · Généré via SyndicPulse</p></div>
+  <div><div style="font-size:10px;color:#94a3b8;margin-bottom:6px;text-align:center">Signature & cachet du syndic</div><div class="signature-box"></div></div>
+</div>
+</body></html>`
+    const win = window.open('', '_blank')
+    win.document.write(html)
+    win.document.close()
+    setTimeout(() => win.print(), 400)
+}
+
 function FinancialsPage({ building, data, residents, setResidents, expenseLog, setExpenseLog, onSaveExpense, onDeleteExpense, onSaveResident, suppliers = [], showToast }) {
-    const maxBar = Math.max(...data.collectionHistory.map(h => h.value))
+    const maxBar = Math.max(...(data.collectionHistory.length > 0 ? data.collectionHistory : [{ value: 0 }]).map(h => h.value))
 
     const [subTab, setSubTab] = useState('overview')   // 'overview' | 'recouvrement' | 'depenses'
     const [hoveredBar, setHoveredBar] = useState(null)
@@ -3141,10 +3211,18 @@ function FinancialsPage({ building, data, residents, setResidents, expenseLog, s
     const FIN_MONTHS = ['Jan.', 'Fév.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
     const curMonthLabel = FIN_MONTHS[parseInt(CURRENT_MONTH.split('-')[1]) - 1]
 
+    // Effective history — real data if available, else 6-month skeleton so chart is never blank
+    const effectiveHistory = data.collectionHistory.length > 0
+        ? data.collectionHistory
+        : Array.from({ length: 6 }, (_, i) => {
+            const monthIdx = (parseInt(CURRENT_MONTH.split('-')[1]) - 1 - 5 + i + 12) % 12
+            return { month: FIN_MONTHS[monthIdx], value: 0 }
+        })
+
     // Live collection history — last bar overridden with computed rate from live residents
     const liveCollectionRate = residents.length > 0 ? Math.round((paidResi.length / residents.length) * 100) : 0
-    const liveCollectionHistory = data.collectionHistory.map((h, i) =>
-        i === data.collectionHistory.length - 1
+    const liveCollectionHistory = effectiveHistory.map((h, i) =>
+        i === effectiveHistory.length - 1
             ? { ...h, value: liveCollectionRate, isLive: true }
             : h
     )
@@ -5607,6 +5685,7 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                                         />
                                         <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} />
                                         <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} />
+                                        <ActionBtn icon={<FileText size={12} />} title="Générer un relevé de paiement PDF (6 mois)" onClick={() => generateResidentStatement(r, building)} />
                                         <ActionBtn icon={<Pencil size={12} />} title="Modifier le résident" onClick={() => setEditingResident(r)} />
                                     </div>
                                 </td>
@@ -8792,6 +8871,49 @@ function BuildingSettingsModal({ building, residents = [], expenseLog = [], disp
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    </div>
+
+                    {/* ── Plan & Abonnement ── */}
+                    <div className="border-t border-white/8 pt-5">
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-3">Plan &amp; Abonnement</p>
+                        <div className="rounded-xl bg-navy-700/50 border border-white/8 px-4 py-4 space-y-3">
+                            {/* Current plan badge */}
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-lg bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center flex-shrink-0">
+                                        <Zap size={15} className="text-cyan-400" />
+                                    </div>
+                                    <div>
+                                        <p className="text-sm font-medium text-white">Plan actuel</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">Accès à toutes les fonctionnalités pilote</p>
+                                    </div>
+                                </div>
+                                <span className="text-xs font-bold px-3 py-1 rounded-full bg-cyan-500/15 text-cyan-400 border border-cyan-500/25">
+                                    Essentiel
+                                </span>
+                            </div>
+                            {/* Plan comparison chips */}
+                            <div className="grid grid-cols-3 gap-2 pt-1">
+                                {[
+                                    { name: 'Essentiel', desc: 'Jusqu\'à 1 immeuble', active: true,  color: 'cyan'   },
+                                    { name: 'Pro',        desc: 'Jusqu\'à 5 immeubles', active: false, color: 'violet' },
+                                    { name: 'Premium',    desc: 'Immeubles illimités',  active: false, color: 'amber'  },
+                                ].map(({ name, desc, active, color }) => (
+                                    <div key={name} className={`rounded-lg border p-2.5 text-center transition-all ${
+                                        active
+                                            ? 'bg-cyan-500/10 border-cyan-500/30'
+                                            : 'bg-navy-700/30 border-white/6 opacity-60'
+                                    }`}>
+                                        <p className={`text-xs font-bold ${active ? 'text-cyan-400' : 'text-slate-400'}`}>{name}</p>
+                                        <p className="text-[9px] text-slate-500 mt-0.5 leading-tight">{desc}</p>
+                                        {active && <span className="mt-1 inline-block text-[8px] font-bold uppercase tracking-wide text-cyan-500/80">Actif</span>}
+                                    </div>
+                                ))}
+                            </div>
+                            <p className="text-[10px] text-slate-600 text-center pt-1">
+                                Upgrade disponible prochainement — contactez <span className="text-slate-500">contact@syndicpulse.ma</span>
+                            </p>
                         </div>
                     </div>
 
