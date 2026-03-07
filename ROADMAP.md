@@ -26,6 +26,11 @@
 - Circulaires — extensions: Objet trouvé template, edit from archive, template-aware history summary, custom template builder (Tier 2)
 - Thèmes UI: 3-mode switcher (Navy/Cyan · Indigo/Or · Blanc) via Palette button in TopBar, persisted in localStorage, full coverage across all modals and panels
 - KpiCard: hover scale effect; StatCard: hover + click-selected state
+- Portail résident — PIN sécurisé: 6 chiffres, salted SHA-256 (`hashPin(pin, residentId)` via Web Crypto), migration gracieuse (hex 64 chars = hash, sinon plaintext legacy), `validateResidentAccess` async, import CSV génère PINs auto + tableau one-time
+- Sauvegarde des données: Option A (export local JSON/Excel avec cases à cocher par type de données dans BuildingSettingsModal) + Option B (snapshots JSONB dans table Supabase `backups`, 7 max par bâtiment, élagage auto) + auto-backup silencieux toutes les 7 jours au chargement de l'app (useEffect `[activeBuilding?.id, dbLoading]`)
+- Centre de notifications (cloche TopBar): dropdown avec 4 types d'alertes calculées (sauvegarde en retard, impayés, tickets urgents, litiges haute priorité), point rouge/amber, click-outside-to-close
+- Suppression de bâtiment → purge Supabase: `purgeBuilding(buildingId)` dans db.js supprime toutes les lignes sur 8 tables (fire-and-forget) à chaque suppression de bâtiment — élimine les données orphelines
+- Landing page marketing: `public/landing.html` standalone (Tailwind CDN, navy/cyan), hero avec mockup app, stats, grille 6 fonctionnalités, tableau comparatif, tarifs, témoignages, CTA, footer bilingue FR/AR. Accessible à `/landing.html`
 
 ---
 
@@ -56,47 +61,10 @@
 
 **Reference:** Meta Cloud API docs — https://developers.facebook.com/docs/whatsapp/cloud-api
 
-### 🔴 Sauvegarde automatique — Backup quotidien des données
-**Priority:** High — protection des données avant tout onboarding payant
-**Status:** À implémenter (peut fonctionner en mode localStorage avant Supabase)
-**Goal:** Garantir qu'aucune donnée financière ou résidente ne peut être perdue suite à un bug, une suppression accidentelle, ou une corruption du localStorage. Deux niveaux : sauvegarde manuelle à la demande (super_admin) et export automatique quotidien des enregistrements de paiement.
-
-**Contexte légal:** La loi 18-00 (Maroc) impose aux syndics de conserver les justificatifs financiers pendant 5 ans. Un backup structuré est la garantie minimale avant toute commercialisation.
-
-**Ce qu'il faut sauvegarder :**
-
-| Données | Fréquence | Format | Priorité |
-|---|---|---|---|
-| Paiements résidents (`paidThrough` par résident) | Quotidienne automatique | JSON + Excel | 🔴 Critique |
-| Dépenses (log complet) | Quotidienne automatique | JSON + Excel | 🔴 Critique |
-| État complet de l'app (tous localStorage) | À la demande | JSON | 🟠 Important |
-| Résidents (liste + coordonnées) | Hebdomadaire | Excel | 🟠 Important |
-| Litiges, fournisseurs, AG | À la demande | JSON | 🟡 Utile |
-
-**Architecture proposée :**
-
-**Niveau 1 — Export manuel immédiat (frontend-only, disponible avant Supabase)**
-- Bouton "Exporter tout" dans Paramètres bâtiment → génère un fichier `syndicpulse_backup_{building}_{date}.json` contenant tout le localStorage de la propriété active
-- Bouton "Export paiements Excel" dans l'onglet Recouvrement → déjà partiellement disponible, à étendre pour inclure l'historique complet
-- `super_admin` : export global multi-bâtiments en un seul JSON
-
-**Niveau 2 — Snapshot automatique quotidien (via Supabase Edge Function)**
-- Edge Function `daily_backup` déclenchée à 02h00 (cron) : lit toutes les tables → génère JSON → stocke dans Supabase Storage (bucket `backups/YYYY-MM-DD/`)
-- Rétention : 30 snapshots glissants (30 jours) → le plus ancien est écrasé automatiquement
-- Fichiers générés : `payments_{bldgId}.xlsx`, `expenses_{bldgId}.xlsx`, `full_state_{bldgId}.json`
-- Notif email (facultatif) au super_admin si le backup échoue
-
-**Niveau 3 — Restauration (post-Supabase)**
-- Page "Restaurer une sauvegarde" dans Paramètres (super_admin uniquement) : liste les 30 snapshots disponibles → preview des données → bouton "Restaurer" avec confirmation 2 étapes
-- Restauration partielle possible : paiements seuls, dépenses seules, ou état complet
-
-**Implémentation (ordre suggéré) :**
-1. Ajouter bouton "Sauvegarder maintenant" dans `BuildingSettingsModal` → export JSON du localStorage actif (faisable dès maintenant, sans Supabase)
-2. Étendre l'export Excel dans Recouvrement pour couvrir l'historique complet (pas juste la plage filtrée)
-3. Après connexion Supabase : créer bucket `backups` dans Storage + Edge Function cron `daily_backup`
-4. Ajouter page Restauration dans Paramètres (super_admin)
-
-**Note localStorage vs Supabase :** Avant connexion Supabase, toute la donnée vit dans `localStorage` du navigateur — effaçable par l'utilisateur lui-même. Le bouton "Sauvegarder maintenant" en Niveau 1 est donc **urgent** et réalisable immédiatement.
+### Sauvegarde — Niveau 3 : Restauration (post-Supabase)
+**Priority:** Medium — après stabilisation des données en production
+**Status:** Non démarré — dépend de la migration Supabase complète
+**Goal:** Page "Restaurer une sauvegarde" dans Paramètres (super_admin uniquement) : liste les snapshots disponibles → preview des données → bouton "Restaurer" avec confirmation 2 étapes. Restauration partielle (paiements seuls, dépenses seules, ou état complet).
 
 ---
 
@@ -235,4 +203,4 @@ CREATE INDEX idx_audit_created   ON audit_log(created_at DESC);
 
 ---
 
-*Last updated: 6 Mars 2026 · SyndicPulse internal — Sauvegarde automatique ajoutée (haute priorité); Serveur email ajouté; pause/suppression de propriété; auto-création compte syndic; changer mot de passe self-service*
+*Last updated: 7 Mars 2026 · SyndicPulse internal — Shipped: PIN sécurisé 6 chiffres SHA-256, sauvegarde cloud (Options A+B + auto-7j), centre de notifications, purge Supabase à la suppression de bâtiment, landing page marketing navy/cyan. Backup Niveau 3 (restauration) déplacé en Planned.*
