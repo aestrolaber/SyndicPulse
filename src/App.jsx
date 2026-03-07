@@ -24,6 +24,7 @@ import {
     Megaphone, Info,
     BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw, Globe2,
     Pause, Play, PackageOpen, Cloud, History,
+    Wind, Hammer, Bug,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -6213,13 +6214,21 @@ function EditDisputeModal({ dispute, onClose, onSave, onDelete }) {
    PLANNING PAGE
 ══════════════════════════════════════════ */
 const CATEGORY_META = {
-    espaces_verts: { icon: Leaf, label: 'Espaces verts', color: 'text-emerald-400' },
-    electricite: { icon: Zap, label: 'Électricité', color: 'text-yellow-400' },
-    plomberie: { icon: Activity, label: 'Plomberie', color: 'text-blue-400' },
-    nettoyage: { icon: CheckCircle2, label: 'Nettoyage', color: 'text-cyan-400' },
-    securite: { icon: ShieldCheck, label: 'Sécurité', color: 'text-violet-400' },
-    ascenseur: { icon: Wrench, label: 'Ascenseur', color: 'text-orange-400' },
-    peinture: { icon: Wrench, label: 'Peinture', color: 'text-pink-400' },
+    espaces_verts:    { icon: Leaf,          label: 'Espaces verts',        color: 'text-emerald-400' },
+    electricite:      { icon: Zap,           label: 'Électricité',          color: 'text-yellow-400'  },
+    plomberie:        { icon: Activity,      label: 'Plomberie',            color: 'text-blue-400'    },
+    nettoyage:        { icon: CheckCircle2,  label: 'Nettoyage',            color: 'text-cyan-400'    },
+    securite:         { icon: ShieldCheck,   label: 'Sécurité',             color: 'text-violet-400'  },
+    ascenseur:        { icon: Wrench,        label: 'Ascenseur',            color: 'text-orange-400'  },
+    peinture:         { icon: Hammer,        label: 'Peinture & Travaux',   color: 'text-pink-400'    },
+    climatisation:    { icon: Wind,          label: 'Climatisation / VMC',  color: 'text-sky-400'     },
+    toiture:          { icon: Home,          label: 'Toiture & Étanchéité', color: 'text-stone-400'   },
+    portail:          { icon: Key,           label: 'Portail & Accès',      color: 'text-indigo-400'  },
+    menuiserie:       { icon: Hammer,        label: 'Menuiserie',           color: 'text-amber-600'   },
+    voirie:           { icon: Truck,         label: 'Voirie & Parking',     color: 'text-slate-400'   },
+    desinsectisation: { icon: Bug,           label: 'Désinsectisation',     color: 'text-red-400'     },
+    administratif:    { icon: FileText,      label: 'Administratif',        color: 'text-slate-300'   },
+    autre:            { icon: MoreHorizontal,label: 'Autre',                color: 'text-slate-500'   },
 }
 
 /* Pure display card — used both in kanban and in DragOverlay */
