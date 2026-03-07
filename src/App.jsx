@@ -5742,9 +5742,9 @@ function DisputesPage({ building, data, disputes, setDisputes, onSaveDispute, on
                     <Activity size={20} className="text-sp" />
                 </div>
                 <div>
-                    <p className="text-sm font-bold text-white">Médiation IA — Active</p>
+                    <p className="text-sm font-bold text-white">Assistant IA — Médiation & Conseil</p>
                     <p className="text-xs text-slate-400 mt-0.5">
-                        SyndicPulse analyse les litiges selon la Loi 18-00 et génère des scripts de médiation en Darija et Français.
+                        L'IA évalue chaque litige, propose la meilleure marche à suivre selon vos critères internes et les dispositions de la Loi 18-00, et guide le syndic pas à pas vers une résolution équitable.
                     </p>
                 </div>
                 <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} className="ml-auto text-xs bg-sp/10 text-sp border border-sp/20 px-4 py-2 rounded-lg hover:bg-sp/20 transition-colors flex-shrink-0">
