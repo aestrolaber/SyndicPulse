@@ -141,6 +141,20 @@ body {
 
 /* Backdrop modal — chaud foncé */
 [data-theme="gold"] .bg-black\/75             { background-color: rgba(26,18,8,0.55) !important; }
+[data-theme="gold"] .bg-black\/70             { background-color: rgba(26,18,8,0.50) !important; }
+[data-theme="gold"] .bg-black\/60             { background-color: rgba(26,18,8,0.42) !important; }
+
+/* Modal panel interiors — inputs, pills, chips inside bg-navy-700 panels get warm cream */
+[data-theme="gold"] .bg-navy-700 .bg-navy-800,
+[data-theme="gold"] .bg-navy-700 .bg-navy-800\/40,
+[data-theme="gold"] .bg-navy-700 .bg-navy-800\/50,
+[data-theme="gold"] .bg-navy-700 .bg-navy-800\/60,
+[data-theme="gold"] .bg-navy-700 .bg-navy-800\/70 { background-color: #ede8df !important; }
+[data-theme="gold"] .bg-navy-700 .hover\:bg-navy-800:hover { background-color: #e5dfd6 !important; }
+
+/* Sticky modal headers that still use bg-navy-800 */
+[data-theme="gold"] .bg-navy-700 .bg-navy-800.sticky,
+[data-theme="gold"] .bg-navy-700 .sticky.bg-navy-800 { background-color: #f5f0e8 !important; }
 
 /* Placeholder */
 [data-theme="gold"] input::placeholder,

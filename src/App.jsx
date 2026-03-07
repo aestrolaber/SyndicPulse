@@ -1693,7 +1693,7 @@ function UserGuideModal({ onClose }) {
 
     return (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex overflow-hidden" style={{ height: '82vh' }}>
+            <div className="bg-navy-700 border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex overflow-hidden" style={{ height: '82vh' }}>
 
                 {/* Left nav */}
                 <div className="w-52 bg-navy-900/60 border-r border-white/8 flex flex-col flex-shrink-0">
@@ -2215,7 +2215,7 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
                     </button>
 
                     {showNotifs && (
-                        <div className="absolute right-0 top-12 w-80 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden">
+                        <div className="absolute right-0 top-12 w-80 bg-navy-700 border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden">
                             {/* Header */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                                 <div>
@@ -4316,7 +4316,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
             {/* Objet trouvé — status picker modal */}
             {editingObjetStatus && (
                 <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                    <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-sm shadow-2xl p-5">
+                    <div className="bg-navy-700 border border-white/12 rounded-2xl w-full max-w-sm shadow-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2.5">
                                 <span className="text-lg">🔍</span>
@@ -4431,7 +4431,7 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-700 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -4658,7 +4658,7 @@ function CustomTemplateEditorModal({ tpl, onSave, onDelete, onClose, showToast }
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-700 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -4838,7 +4838,7 @@ function ManageCustomTemplatesModal({ customTpls, setCustomTpls, onClose, showTo
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
+            <div className="bg-navy-700 border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
                     <div className="flex items-center gap-3">
@@ -6771,7 +6771,7 @@ function Modal({ title, subtitle, onClose, children, width = 'max-w-lg' }) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 10 }}
                 transition={{ duration: 0.18 }}
-                className={`relative w-full ${width} bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}
+                className={`relative w-full ${width} bg-navy-700 border border-white/10 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col`}
             >
                 <div className="flex items-start justify-between p-6 border-b border-white/5 flex-shrink-0">
                     <div>
@@ -8391,7 +8391,7 @@ function BuildingSettingsModal({ building, residents = [], expenseLog = [], disp
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
+            <div className="bg-navy-700 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
                 {/* Fixed header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 flex-shrink-0">
                     <h2 className="text-base font-bold text-white">Paramètres de la propriété</h2>
@@ -8817,7 +8817,7 @@ function DeleteBuildingModal({ building, residents = [], expenses = [], supplier
 
     return (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="bg-navy-700 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                     <h2 className="text-base font-bold text-red-400 flex items-center gap-2">
                         <Trash2 size={16} /> Supprimer la propriété
@@ -9028,7 +9028,7 @@ function AddBuildingModal({ onClose, onSave }) {
     if (done) {
         return (
             <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-                <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
+                <div className="bg-navy-700 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                         <h2 className="text-base font-bold text-white">Propriété créée</h2>
                         <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
@@ -9093,7 +9093,7 @@ function AddBuildingModal({ onClose, onSave }) {
 
     return (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
-            <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="bg-navy-700 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                     <h2 className="text-base font-bold text-white">Ajouter une propriété</h2>
                     <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors"><X size={18} /></button>
@@ -9304,7 +9304,7 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            <div className="relative w-full max-w-md bg-navy-700 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
@@ -9397,7 +9397,7 @@ function TicketsInfoModal({ tickets, onClose, onGoToPlanning }) {
     return (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-            <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+            <div className="relative w-full max-w-md bg-navy-700 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}>
 
                 {/* Header */}
