@@ -6243,7 +6243,9 @@ function TicketCard({ t, ghost = false, onEdit }) {
             <div className="flex items-start justify-between gap-2 mb-2.5">
                 <div className="flex items-center gap-2">
                     <CatIcon size={13} className={cat.color} />
-                    <span className="text-[10px] text-slate-500 font-medium">{cat.label}</span>
+                    <span className="text-[10px] text-slate-500 font-medium">
+                        {t.category === 'autre' && t.customCategory ? t.customCategory : cat.label}
+                    </span>
                 </div>
                 <div className="flex items-center gap-1.5">
                     {t.priority === 'urgent'
@@ -6333,7 +6335,7 @@ function AddTicketModal({ onSave, onClose, suppliers = [] }) {
     const today = new Date().toISOString().split('T')[0]
     const [form, setForm] = useState({
         title: '', agent: '', date: today, time: '',
-        category: 'nettoyage', priority: 'normal', status: 'scheduled',
+        category: 'nettoyage', customCategory: '', priority: 'normal', status: 'scheduled',
     })
     const [agentMode, setAgentMode] = useState(suppliers.length > 0 ? 'select' : 'free') // 'none'|'select'|'free'
     const [error, setError] = useState('')
@@ -6400,10 +6402,16 @@ function AddTicketModal({ onSave, onClose, suppliers = [] }) {
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1.5 font-medium">Catégorie</label>
-                    <select value={form.category} onChange={e => set('category', e.target.value)}
+                    <select value={form.category} onChange={e => { set('category', e.target.value); if (e.target.value !== 'autre') set('customCategory', '') }}
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors">
                         {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
+                    {form.category === 'autre' && (
+                        <input type="text" value={form.customCategory} onChange={e => set('customCategory', e.target.value)}
+                            placeholder="Nommez cette catégorie…"
+                            autoFocus
+                            className="w-full mt-2 bg-navy-700 border border-sp/30 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/60 transition-colors" />
+                    )}
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-2 font-medium">Statut initial</label>
@@ -6455,6 +6463,7 @@ function EditTicketModal({ ticket, onSave, onClose }) {
         time: ticket.time,
         date: ticket.date ?? '',
         category: ticket.category,
+        customCategory: ticket.customCategory ?? '',
         priority: ticket.priority,
         status: ticket.status,
     })
@@ -6503,10 +6512,16 @@ function EditTicketModal({ ticket, onSave, onClose }) {
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1.5 font-medium">Catégorie</label>
-                    <select value={form.category} onChange={e => set('category', e.target.value)}
+                    <select value={form.category} onChange={e => { set('category', e.target.value); if (e.target.value !== 'autre') set('customCategory', '') }}
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors">
                         {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
                     </select>
+                    {form.category === 'autre' && (
+                        <input type="text" value={form.customCategory} onChange={e => set('customCategory', e.target.value)}
+                            placeholder="Nommez cette catégorie…"
+                            autoFocus
+                            className="w-full mt-2 bg-navy-700 border border-sp/30 rounded-xl px-4 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/60 transition-colors" />
+                    )}
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-2 font-medium">Priorité</label>
