@@ -1140,11 +1140,9 @@ function Dashboard() {
                 const cleaned = users.filter(u => !(u.accessible_building_ids?.length === 1 && u.accessible_building_ids[0] === bldId))
                 localStorage.setItem('sp_created_users', JSON.stringify(cleaned))
             } catch {}
-            // If deleted building was active, switch to first available
-            if (activeBuilding?.id === bldId) {
-                const remaining = [...accessibleBuildings, ...extraBuildings.filter(b => b.id !== bldId)]
-                if (remaining.length > 0) setActiveBuilding(remaining[0])
-            }
+            // After deletion, always return to first demo building + dashboard tab
+            setActiveBuilding(BUILDINGS[0])
+            setActiveTab('dashboard')
             // Purge Supabase rows (fire-and-forget)
             purgeBuilding(bldId).catch(() => {})
             showToast('Propriété supprimée.', 'success')
