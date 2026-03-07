@@ -2165,7 +2165,7 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
 
     return (
         <>
-        <header className="flex items-center justify-between px-8 py-4 border-b border-white/5 bg-navy-900/80 backdrop-blur-sm flex-shrink-0">
+        <header className="relative z-[100] flex items-center justify-between px-8 py-4 border-b border-white/5 bg-navy-900/80 backdrop-blur-sm flex-shrink-0">
             <div>
                 <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-0.5">
                     <span>SyndicPulse</span>
