@@ -1692,7 +1692,7 @@ function UserGuideModal({ onClose }) {
     const [section, setSection] = useState('parametres')
 
     return (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-4xl shadow-2xl flex overflow-hidden" style={{ height: '82vh' }}>
 
                 {/* Left nav */}
@@ -4315,7 +4315,7 @@ function CirculairesPage({ building, circulaires, setCirculaires, customTpls = [
 
             {/* Objet trouvé — status picker modal */}
             {editingObjetStatus && (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
                     <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-sm shadow-2xl p-5">
                         <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-2.5">
@@ -4430,7 +4430,7 @@ function AddCirculaireModal({ building, defaultTemplate, editCirculaire, customT
     }
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
@@ -4837,7 +4837,7 @@ function ManageCustomTemplatesModal({ customTpls, setCustomTpls, onClose, showTo
     }
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/12 rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto shadow-2xl">
                 {/* Header */}
                 <div className="flex items-center justify-between p-5 border-b border-white/8">
@@ -6758,7 +6758,7 @@ function Modal({ title, subtitle, onClose, children, width = 'max-w-lg' }) {
     }, [onClose])
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -8390,7 +8390,7 @@ function BuildingSettingsModal({ building, residents = [], expenseLog = [], disp
     const logoInitials = form.name.trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '??'
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col" style={{ maxHeight: '90vh' }}>
                 {/* Fixed header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8 flex-shrink-0">
@@ -8816,7 +8816,7 @@ function DeleteBuildingModal({ building, residents = [], expenses = [], supplier
     const canConfirm = confirmText.trim().toLowerCase() === building.name.trim().toLowerCase()
 
     return (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                     <h2 className="text-base font-bold text-red-400 flex items-center gap-2">
@@ -9027,7 +9027,7 @@ function AddBuildingModal({ onClose, onSave }) {
     // ── Credentials success screen ──────────────────────────────────────
     if (done) {
         return (
-            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
                 <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-md shadow-2xl">
                     <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                         <h2 className="text-base font-bold text-white">Propriété créée</h2>
@@ -9092,7 +9092,7 @@ function AddBuildingModal({ onClose, onSave }) {
     }
 
     return (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
             <div className="bg-navy-800 border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/8">
                     <h2 className="text-base font-bold text-white">Ajouter une propriété</h2>
@@ -9302,7 +9302,7 @@ function TransparenceModal({ score, tier, breakdown, onClose }) {
     const tm = tierMeta[tier] ?? tierMeta['Standard']
     const tiers = ['Gold Elite', 'Silver Pro', 'Bronze', 'Standard']
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}>
@@ -9395,7 +9395,7 @@ function TicketsInfoModal({ tickets, onClose, onGoToPlanning }) {
     ]
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4" onClick={onClose}>
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
             <div className="relative w-full max-w-md bg-navy-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
                 onClick={e => e.stopPropagation()}>
