@@ -24,7 +24,7 @@ import {
     Megaphone, Info,
     BookOpen, HelpCircle, MapPin, Camera, Palette, RefreshCw, Globe2,
     Pause, Play, PackageOpen, Cloud, History,
-    Wind, Hammer, Bug,
+    Wind, Hammer, Bug, LayoutGrid,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { DndContext, DragOverlay, useDraggable, useDroppable } from '@dnd-kit/core'
@@ -1474,10 +1474,21 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
             {/* Building switcher (super_admin only) or static label (syndic_manager) */}
             <div className="px-3 py-3 border-b border-white/5" ref={menuRef}>
-                <p className="text-[10px] text-slate-500 uppercase tracking-widest px-2 mb-2">Propriété active</p>
+                <p className="text-[10px] text-slate-500 uppercase tracking-widest px-2 mb-2">
+                    {activeTab === 'portfolio' ? 'Navigation' : 'Propriété active'}
+                </p>
 
                 {canSwitchBuildings ? (
                     <>
+                        {activeTab === 'portfolio' ? (
+                            <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-navy-700/50 border border-white/5">
+                                <LayoutGrid size={15} className="text-sp flex-shrink-0" />
+                                <div className="min-w-0">
+                                    <p className="text-sm font-semibold text-white">Vue Globale</p>
+                                    <p className="text-[11px] text-slate-400">{buildings.length} propriété{buildings.length > 1 ? 's' : ''}</p>
+                                </div>
+                            </div>
+                        ) : (
                         <button
                             onClick={() => setShowBuildingMenu(v => !v)}
                             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-navy-700 hover:bg-navy-600 border border-white/5 transition-all"
@@ -1489,6 +1500,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                             </div>
                             <ChevronDown size={14} className={`text-slate-400 transition-transform flex-shrink-0 ${showBuildingMenu ? 'rotate-180' : ''}`} />
                         </button>
+                        )}
 
                         {showBuildingMenu && (
                             <div className="mt-2 rounded-xl bg-navy-700 border border-white/8 overflow-hidden shadow-2xl">
@@ -1614,6 +1626,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
 
             {/* Bottom section */}
             <div className="px-3 pb-3 space-y-1 border-t border-white/5 pt-3">
+                {activeTab !== 'portfolio' && (
                 <div className={`rounded-xl border p-4 mb-2 transition-opacity ${isReadOnly ? 'bg-navy-800/50 border-white/5 opacity-40' : 'bg-navy-700 border-sp/10'}`}>
                     <div className="flex items-center gap-2 mb-2">
                         <span className={`w-1.5 h-1.5 rounded-full ${isReadOnly ? 'bg-slate-600' : 'bg-emerald-400 pulse-dot'}`} />
@@ -1632,6 +1645,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                         <Mic size={12} /> Ouvrir l'agent vocal
                     </button>
                 </div>
+                )}
 
                 <button
                     onClick={() => !isReadOnly && onOpenSettings?.()}
@@ -2185,11 +2199,17 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
                 <div className="flex items-center gap-2 text-[11px] text-slate-500 mb-0.5">
                     <span>SyndicPulse</span>
                     <ChevronRight size={10} />
-                    <span style={{ color: activeBuilding.color }} className="font-medium">
-                        {activeBuilding.name} · {activeBuilding.city}
-                    </span>
-                    <ChevronRight size={10} />
-                    <span className="text-slate-300">{pageLabel}</span>
+                    {activeTab === 'portfolio' ? (
+                        <span className="text-slate-300">Vue Globale</span>
+                    ) : (
+                        <>
+                            <span style={{ color: activeBuilding.color }} className="font-medium">
+                                {activeBuilding.name} · {activeBuilding.city}
+                            </span>
+                            <ChevronRight size={10} />
+                            <span className="text-slate-300">{pageLabel}</span>
+                        </>
+                    )}
                 </div>
                 <h1 className="text-xl font-bold text-white">{pageLabel}</h1>
             </div>
@@ -8964,19 +8984,23 @@ function AddBuildingModal({ onClose, onSave }) {
     }
 
     function generatePassword() {
-        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-        const lower = 'abcdefghjkmnpqrstuvwxyz'
-        const digits = '23456789'
-        const special = '@#!$'
-        return (
-            upper[Math.floor(Math.random() * upper.length)] +
-            lower[Math.floor(Math.random() * lower.length)] +
-            digits[Math.floor(Math.random() * digits.length)] +
-            upper[Math.floor(Math.random() * upper.length)] +
-            lower[Math.floor(Math.random() * lower.length)] +
-            digits[Math.floor(Math.random() * digits.length)] +
-            special[Math.floor(Math.random() * special.length)]
-        )
+        const upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        const lower   = 'abcdefghjkmnpqrstuvwxyz'
+        const digits  = '23456789'
+        const special = '@#!$%'
+        const all     = upper + lower + digits + special
+        const r = s => s[Math.floor(Math.random() * s.length)]
+        const chars = [
+            r(upper), r(lower), r(lower),
+            r(digits), r(digits), r(digits),
+            r(special),
+            r(all), r(all), r(all),
+        ]
+        for (let i = chars.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [chars[i], chars[j]] = [chars[j], chars[i]]
+        }
+        return chars.join('')
     }
 
     function copyCredentials() {
@@ -9014,9 +9038,11 @@ function AddBuildingModal({ onClose, onSave }) {
         // Auto-create a syndic_manager account for this building
         const pwd = generatePassword()
         const hashedPwd = await hashPassword(pwd)
-        const nameSlug  = slugify(form.manager.trim().split(/\s+/)[0] || 'gestionnaire')
-        const emailSlug = slugify(form.name.trim()) || 'syndic'
-        const email = `${nameSlug}@${emailSlug}.ma`
+        const nameParts  = form.manager.trim().split(/\s+/)
+        const prenom     = slugify(nameParts[0] || 'gestionnaire')
+        const nom        = slugify(nameParts.slice(1).join('') || '')
+        const emailSlug  = slugify(form.name.trim()) || 'syndic'
+        const email      = nom ? `${prenom}.${nom}@${emailSlug}.ma` : `${prenom}@${emailSlug}.ma`
         const newUser = {
             id: `usr-${Date.now()}`,
             email,
@@ -10568,13 +10594,17 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
         b.city.toLowerCase().includes(bldQuery.toLowerCase())
     )
 
-    // Email: firstname@buildingslug.ma
+    // Email: prenom.nom@buildingslug.ma
     function slugify(str) {
         return str.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '')
     }
-    const emailSlug = slugify(selectedBuilding?.name ?? '') || 'syndic'
-    const nameSlug  = slugify(form.fullName.trim().split(/\s+/)[0] || '')
-    const derivedEmail = `${nameSlug || 'gestionnaire'}@${emailSlug}.ma`
+    const emailSlug    = slugify(selectedBuilding?.name ?? '') || 'syndic'
+    const nameParts    = form.fullName.trim().split(/\s+/)
+    const ePrenom      = slugify(nameParts[0] || '')
+    const eNom         = slugify(nameParts.slice(1).join('') || '')
+    const derivedEmail = eNom
+        ? `${ePrenom || 'gestionnaire'}.${eNom}@${emailSlug}.ma`
+        : `${ePrenom || 'gestionnaire'}@${emailSlug}.ma`
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -10585,17 +10615,23 @@ function CreateUserModal({ onClose, onCreated, allBuildings = BUILDINGS }) {
     }
 
     function generatePassword() {
-        const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
-        const lower = 'abcdefghjkmnpqrstuvwxyz'
-        const digits = '23456789'
-        return (
-            upper[Math.floor(Math.random() * upper.length)] +
-            lower[Math.floor(Math.random() * lower.length)] +
-            digits[Math.floor(Math.random() * digits.length)] +
-            upper[Math.floor(Math.random() * upper.length)] +
-            lower[Math.floor(Math.random() * lower.length)] +
-            digits[Math.floor(Math.random() * digits.length)]
-        )
+        const upper   = 'ABCDEFGHJKLMNPQRSTUVWXYZ'
+        const lower   = 'abcdefghjkmnpqrstuvwxyz'
+        const digits  = '23456789'
+        const special = '@#!$%'
+        const all     = upper + lower + digits + special
+        const r = s => s[Math.floor(Math.random() * s.length)]
+        const chars = [
+            r(upper), r(lower), r(lower),
+            r(digits), r(digits), r(digits),
+            r(special),
+            r(all), r(all), r(all),
+        ]
+        for (let i = chars.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [chars[i], chars[j]] = [chars[j], chars[i]]
+        }
+        return chars.join('')
     }
 
     async function handleSubmit(e) {

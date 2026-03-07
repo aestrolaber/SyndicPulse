@@ -6,8 +6,8 @@
 
 // ── Organizations ─────────────────────────────────────────────────────────────
 export const ORGANIZATIONS = [
-    { id: 'org-1', name: 'Benali Syndic', owner_email: 'omar@norwest.ma', plan: 'elite' },
-    { id: 'org-2', name: 'Ezzouine Partners', owner_email: 'sara@atlas.ma', plan: 'pro' },
+    { id: 'org-1', name: 'Benali Syndic', owner_email: 'omar.benali@norwest.ma', plan: 'elite' },
+    { id: 'org-2', name: 'Ezzouine Partners', owner_email: 'sara.ezzouine@atlas.ma', plan: 'pro' },
     { id: 'org-3', name: 'Tahiri Syndic', owner_email: 'karim@jardin.ma', plan: 'pro' },
 ]
 
@@ -91,7 +91,7 @@ export const DEMO_USERS = [
     },
     {
         id: 'usr-omar',
-        email: 'omar@norwest.ma',
+        email: 'omar.benali@norwest.ma',
         password: 'omar',
         full_name: 'Omar Benali',
         role: 'syndic_manager',
@@ -102,7 +102,7 @@ export const DEMO_USERS = [
     },
     {
         id: 'usr-sara',
-        email: 'sara@atlas.ma',
+        email: 'sara.ezzouine@atlas.ma',
         password: 'sara',
         full_name: 'Sara Ezzouine',
         role: 'syndic_manager',
