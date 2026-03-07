@@ -1859,15 +1859,26 @@ function UserGuideModal({ onClose }) {
                                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Données & Sauvegarde</h4>
                                 <div className="glass-card px-5 py-1">
                                     <GuideField
-                                        label="Exporter la sauvegarde"
+                                        label="Export local (Option A)"
                                         badge="Nouveau"
-                                        description="Télécharge un fichier JSON horodaté contenant l'intégralité des données de l'immeuble : résidents, paiements, dépenses, litiges, fournisseurs, réunions, circulaires et coordonnées bancaires."
-                                        tip="Bonne pratique : téléchargez une sauvegarde chaque vendredi avant de fermer le navigateur. Nommez les fichiers avec la date pour garder un historique (ex: SyndicPulse_Norwest_2026-03-07.json)."
+                                        description="Téléchargez vos données en local directement depuis Paramètres. Cochez les types à inclure (Résidents, Dépenses, Litiges, Fournisseurs, Assemblées), choisissez le format JSON ou Excel (.xlsx), puis cliquez Télécharger. Un journal des 5 derniers exports est affiché."
+                                        tip="Bonne pratique : téléchargez un export chaque vendredi. Nommez les fichiers avec la date (ex: SyndicPulse_Norwest_2026-03-07.json) pour garder un historique facilement retrouvable."
                                     />
                                     <GuideField
-                                        label="Restaurer une sauvegarde"
-                                        description="Importe un fichier JSON exporté précédemment. SyndicPulse affiche la date de la sauvegarde et demande une confirmation avant d'écraser les données actuelles. La page se recharge automatiquement après la restauration."
-                                        tip="En cas de problème (navigateur effacé, changement de poste), la restauration remet l'application dans l'état exact de la dernière sauvegarde en moins de 10 secondes."
+                                        label="Sauvegarde cloud (Option B)"
+                                        badge="Nouveau"
+                                        description="Cliquez le bouton Cloud pour envoyer un snapshot complet de vos données vers Supabase (chiffré, hébergé au Maroc / EU). SyndicPulse conserve les 7 sauvegardes cloud les plus récentes par propriété — les plus anciennes sont supprimées automatiquement. L'historique cloud est affiché avec la date de chaque snapshot."
+                                        tip="La sauvegarde cloud est indépendante du navigateur — même si vous effacez le cache ou changez d'ordinateur, vos données sont récupérables. Combinez-la avec l'export local pour une double protection."
+                                    />
+                                    <GuideField
+                                        label="Sauvegarde automatique"
+                                        description="SyndicPulse déclenche silencieusement une sauvegarde cloud chaque fois que vous ouvrez l'application et que la dernière remonte à plus de 7 jours. Aucune action requise. Une notification ☁️ confirme l'opération."
+                                        tip="Vérifiez la date de la dernière sauvegarde dans le centre de notifications (cloche en haut à droite) — une alerte apparaît si aucune sauvegarde n'a été effectuée depuis plus d'une semaine."
+                                    />
+                                    <GuideField
+                                        label="Restauration des données"
+                                        badge="Prochaine version"
+                                        description="La page de restauration (super_admin uniquement) permettra de sélectionner un snapshot cloud ou un fichier local exporté, de prévisualiser les données, et de restaurer en 2 étapes avec confirmation. Fonctionnalité en cours de développement."
                                     />
                                 </div>
                             </div>
@@ -1894,6 +1905,8 @@ function UserGuideModal({ onClose }) {
                                     <GuideField label="Prochaine assemblée" description="Affiche la date et le lieu de la prochaine AG planifiée. Mis à jour automatiquement depuis l'onglet Assemblées." />
                                     <GuideField label="Activité récente" description="Journal des dernières actions : paiements enregistrés, circulaires envoyées, litiges créés. Permet un suivi rapide sans naviguer dans chaque section." />
                                     <GuideField label="Switcher d'immeuble" badge="Super Admin" description="Les comptes super administrateur voient un sélecteur d'immeuble dans la barre supérieure pour basculer entre les propriétés gérées. Chaque immeuble a ses propres données indépendantes." />
+                                    <GuideField label="Centre de notifications" badge="Nouveau" description="Cliquez l'icône cloche (🔔) en haut à droite pour ouvrir le panneau de notifications. Quatre types d'alertes sont calculés automatiquement : sauvegarde en retard (> 7 jours), résidents en retard de paiement, tickets urgents non résolus, litiges haute priorité ouverts. Un point rouge indique une alerte critique, amber une alerte d'avertissement. Cliquer une notification redirige directement vers la section concernée." tip="Si le point rouge est allumé, consultez le centre de notifications en priorité — il signale toujours une action requise (impayés ou litige critique)." />
+                                    <GuideField label="Propriété en pause" badge="Super Admin" description="Un super admin peut mettre une propriété en pause depuis le gestionnaire d'immeubles. Les gestionnaires de la propriété passent en mode lecture seule : toutes les actions sont désactivées (saisie de paiement, modification de données, accès aux paramètres). Une bannière ambre s'affiche en haut de page. Le super admin conserve un accès complet pour réactiver ou consulter les données." />
                                 </div>
                             </div>
                         </>}
