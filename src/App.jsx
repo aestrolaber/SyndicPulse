@@ -6319,6 +6319,99 @@ function KanbanColumn({ status, label, dot, count, children }) {
     )
 }
 
+/* Add ticket modal */
+function AddTicketModal({ onSave, onClose }) {
+    const today = new Date().toISOString().split('T')[0]
+    const [form, setForm] = useState({
+        title: '', agent: '', date: today, time: '',
+        category: 'nettoyage', priority: 'normal', status: 'scheduled',
+    })
+    const [error, setError] = useState('')
+    function set(field, val) { setForm(prev => ({ ...prev, [field]: val })) }
+    const categories = Object.entries(CATEGORY_META).map(([k, v]) => ({ value: k, label: v.label }))
+
+    function handleSave() {
+        if (!form.title.trim()) { setError('Le titre est obligatoire.'); return }
+        onSave({ ...form, id: 't-' + Date.now() })
+    }
+
+    return (
+        <Modal title="Nouvelle tâche" subtitle="Ajouter une intervention au planning" onClose={onClose}>
+            <div className="p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1.5 font-medium">Titre *</label>
+                    <input type="text" value={form.title} onChange={e => { set('title', e.target.value); setError('') }}
+                        placeholder="ex: Vérification extincteurs Bloc A"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    {error && <p className="text-xs text-red-400 mt-1.5">{error}</p>}
+                </div>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1.5 font-medium">Prestataire</label>
+                    <input type="text" value={form.agent} onChange={e => set('agent', e.target.value)}
+                        placeholder="ex: SafeGuard Maroc"
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1.5 font-medium">Date</label>
+                        <input type="date" value={form.date} onChange={e => set('date', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                    <div>
+                        <label className="block text-xs text-slate-400 mb-1.5 font-medium">Heure</label>
+                        <input type="text" placeholder="ex: Lun. 10:00" value={form.time} onChange={e => set('time', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-1.5 font-medium">Catégorie</label>
+                    <select value={form.category} onChange={e => set('category', e.target.value)}
+                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors">
+                        {categories.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">Statut initial</label>
+                    <div className="flex gap-2">
+                        {[
+                            { val: 'scheduled', label: 'Planifié', active: 'bg-amber-500/20 text-amber-400 border-amber-500/40', hover: 'hover:border-amber-500/30 hover:text-amber-400' },
+                            { val: 'in_progress', label: 'En cours', active: 'bg-sp/20 text-sp border-sp/40', hover: 'hover:border-sp/30 hover:text-sp' },
+                        ].map(({ val, label, active, hover }) => (
+                            <button key={val} onClick={() => set('status', val)}
+                                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.status === val ? active : `bg-navy-700 text-slate-500 border-white/8 ${hover}`}`}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">Priorité</label>
+                    <div className="flex gap-2">
+                        <button onClick={() => set('priority', 'normal')}
+                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.priority !== 'urgent' ? 'bg-slate-700/60 text-slate-200 border-white/15' : 'bg-navy-700 text-slate-500 border-white/8 hover:border-white/20'}`}>
+                            Normal
+                        </button>
+                        <button onClick={() => set('priority', 'urgent')}
+                            className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.priority === 'urgent' ? 'bg-red-500/20 text-red-400 border-red-500/40' : 'bg-navy-700 text-slate-500 border-white/8 hover:border-red-500/30 hover:text-red-400'}`}>
+                            URGENT
+                        </button>
+                    </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                    <button onClick={onClose}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-navy-700 text-slate-300 border border-white/10 hover:bg-navy-600 transition-colors">
+                        Annuler
+                    </button>
+                    <button onClick={handleSave}
+                        className="flex-1 py-2.5 rounded-xl text-sm font-bold bg-sp hover:bg-sp-dark text-navy-900 transition-all shadow-glow-cyan">
+                        Créer la tâche
+                    </button>
+                </div>
+            </div>
+        </Modal>
+    )
+}
+
 /* Edit ticket modal */
 function EditTicketModal({ ticket, onSave, onClose }) {
     const [form, setForm] = useState({
@@ -6398,6 +6491,13 @@ function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showT
     const [search, setSearch] = useState('')
     const [activeId, setActiveId] = useState(null)
     const [editingTicket, setEditingTicket] = useState(null)
+    const [showAdd, setShowAdd] = useState(false)
+
+    function handleSaveNew(form) {
+        onSaveTicket(form)
+        setShowAdd(false)
+        showToast('Tâche créée')
+    }
 
     function handleSaveEdit(form) {
         const updated = { ...editingTicket, ...form }
@@ -6457,7 +6557,7 @@ function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showT
                     </p>
                 </div>
                 <button
-                    onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)}
+                    onClick={() => setShowAdd(true)}
                     className="flex items-center gap-2 px-4 py-2.5 bg-sp hover:bg-sp-dark text-navy-900 rounded-xl text-sm font-bold transition-all shadow-glow-cyan"
                 >
                     <Plus size={15} /> Nouvelle tâche
@@ -6561,6 +6661,12 @@ function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showT
             )}
 
             <AnimatePresence>
+                {showAdd && (
+                    <AddTicketModal
+                        onSave={handleSaveNew}
+                        onClose={() => setShowAdd(false)}
+                    />
+                )}
                 {editingTicket && (
                     <EditTicketModal
                         ticket={editingTicket}
