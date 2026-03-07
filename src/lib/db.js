@@ -151,6 +151,7 @@ function rowToDispute(r) {
         date:          r.date ?? null,
         ai_suggestion: r.ai_suggestion ?? '',
         attachments:   r.attachments ?? [],
+        notes:         r.notes ?? '',
     }
 }
 
@@ -166,6 +167,7 @@ function disputeToRow(d) {
         date:          d.date ?? null,
         ai_suggestion: d.ai_suggestion ?? null,
         attachments:   d.attachments ?? [],
+        notes:         d.notes ?? null,
     }
 }
 
