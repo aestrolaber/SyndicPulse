@@ -10256,9 +10256,6 @@ function EditAGModal({ meeting, onClose, onSave, onDelete }) {
    CHANGE PASSWORD MODAL  (self-service)
 ══════════════════════════════════════════ */
 function ChangePasswordModal({ user, onClose }) {
-    const DEMO_IDS = new Set(DEMO_USERS.map(d => d.id))
-    const isDemo   = DEMO_IDS.has(user?.id)
-
     const [form, setForm] = useState({ current: '', next: '', confirm: '' })
     const [showCurrent, setShowCurrent] = useState(false)
     const [showNext,    setShowNext]    = useState(false)
@@ -10270,28 +10267,35 @@ function ChangePasswordModal({ user, onClose }) {
 
     async function handleSubmit(e) {
         e.preventDefault()
-        if (isDemo) return
-
-        if (form.next.length < 6)           { setError('Le mot de passe doit contenir au moins 6 caractères.'); return }
-        if (form.next !== form.confirm)      { setError('Les deux mots de passe ne correspondent pas.'); return }
+        if (form.next.length < 6)      { setError('Le mot de passe doit contenir au moins 6 caractères.'); return }
+        if (form.next !== form.confirm) { setError('Les deux mots de passe ne correspondent pas.'); return }
 
         setSaving(true)
         const existing = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
         const storedUser = existing.find(u => u.id === user?.id)
-        if (!storedUser) { setError('Compte introuvable — contactez l\'administrateur.'); setSaving(false); return }
 
-        // Verify current password
-        const currentHash = await hashPassword(form.current)
-        if (currentHash !== storedUser.password) {
-            setError('Mot de passe actuel incorrect.')
-            setSaving(false)
-            return
+        if (storedUser) {
+            // Created user — verify via hashed password
+            const currentHash = await hashPassword(form.current)
+            if (currentHash !== storedUser.password) {
+                setError('Mot de passe actuel incorrect.'); setSaving(false); return
+            }
+            const newHash = await hashPassword(form.next)
+            localStorage.setItem('sp_created_users', JSON.stringify(
+                existing.map(u => u.id === user?.id ? { ...u, password: newHash } : u)
+            ))
+        } else {
+            // Demo/hardcoded account — verify via plaintext, then save hash override
+            const demoUser = DEMO_USERS.find(u => u.id === user?.id)
+            if (!demoUser) { setError("Compte introuvable — contactez l'administrateur."); setSaving(false); return }
+            if (form.current !== demoUser.password) {
+                setError('Mot de passe actuel incorrect.'); setSaving(false); return
+            }
+            const newHash = await hashPassword(form.next)
+            localStorage.setItem('sp_created_users', JSON.stringify(
+                [...existing, { ...demoUser, password: newHash }]
+            ))
         }
-
-        // Save new hashed password
-        const newHash = await hashPassword(form.next)
-        const updated = existing.map(u => u.id === user?.id ? { ...u, password: newHash } : u)
-        localStorage.setItem('sp_created_users', JSON.stringify(updated))
 
         setSaving(false)
         setDone(true)
@@ -10309,19 +10313,6 @@ function ChangePasswordModal({ user, onClose }) {
                         </div>
                     </div>
                     <button onClick={onClose} className="w-full py-2.5 bg-sp hover:bg-sp-dark text-navy-900 font-bold text-sm rounded-xl transition-all">
-                        Fermer
-                    </button>
-                </div>
-            ) : isDemo ? (
-                <div className="space-y-4">
-                    <div className="flex items-start gap-3 p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl">
-                        <AlertTriangle size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-amber-300">
-                            Les comptes démo ne peuvent pas modifier leur mot de passe.<br />
-                            <span className="text-slate-400 text-xs">Contactez votre administrateur pour un compte personnalisé.</span>
-                        </p>
-                    </div>
-                    <button onClick={onClose} className="w-full py-2.5 bg-white/5 hover:bg-white/10 text-slate-300 font-semibold text-sm rounded-xl transition-colors">
                         Fermer
                     </button>
                 </div>

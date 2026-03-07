@@ -38,22 +38,18 @@ const auth = {
     async signInWithPassword({ email, password }) {
         await delay(800) // simulate network
         const createdUsers = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+        const norm = email.toLowerCase()
 
-        // DEMO_USERS: plaintext comparison (internal hardcoded accounts, never exposed to clients)
-        const demoUser = DEMO_USERS.find(
-            u => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        )
+        // Hashed comparison — covers created accounts AND demo accounts that changed their password
+        const hashed = await hashPassword(password)
+        const hashedMatch = createdUsers.find(u => u.email.toLowerCase() === norm && u.password === hashed)
 
-        // Created users: SHA-256 hash comparison
-        let createdUser = null
-        if (!demoUser) {
-            const hashed = await hashPassword(password)
-            createdUser = createdUsers.find(
-                u => u.email.toLowerCase() === email.toLowerCase() && u.password === hashed
-            )
-        }
+        // Fallback: demo plaintext comparison (only if no hashed override found)
+        const plainMatch = !hashedMatch
+            ? DEMO_USERS.find(u => u.email.toLowerCase() === norm && u.password === password)
+            : null
 
-        const user = demoUser ?? createdUser
+        const user = hashedMatch ?? plainMatch
         if (!user) {
             return { data: null, error: { message: 'Email ou mot de passe incorrect.' } }
         }
