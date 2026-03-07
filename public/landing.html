@@ -69,6 +69,27 @@
     .reveal { opacity:0; transform:translateY(28px); transition: opacity .6s ease, transform .6s ease; }
     .reveal.visible { opacity:1; transform:translateY(0); }
 
+    /* Floating app mockup */
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0.15deg); }
+      50%       { transform: translateY(-14px) rotate(-0.15deg); }
+    }
+    @keyframes glow-breathe {
+      0%, 100% { box-shadow: 0 8px 40px rgba(6,182,212,0.18); }
+      50%       { box-shadow: 0 24px 64px rgba(6,182,212,0.40); }
+    }
+    .float-card {
+      animation: float 5s ease-in-out infinite, glow-breathe 5s ease-in-out infinite;
+    }
+
+    /* Stat pop-in (text stats) */
+    .stat-pop {
+      opacity: 0;
+      transform: scale(0.65);
+      transition: transform 0.7s cubic-bezier(0.34,1.56,0.64,1), opacity 0.45s ease;
+    }
+    .stat-pop.popped { opacity: 1; transform: scale(1); }
+
     /* Scrollbar */
     ::-webkit-scrollbar { width:5px; }
     ::-webkit-scrollbar-track { background:#0a0f1e; }
@@ -178,7 +199,7 @@
       <div class="absolute inset-0 bg-cyan-500/4 rounded-3xl blur-3xl -z-10"></div>
 
       <!-- Browser chrome + app -->
-      <div class="glass rounded-2xl overflow-hidden cyan-glow">
+      <div class="glass rounded-2xl overflow-hidden float-card">
         <!-- Browser bar -->
         <div class="h-9 bg-[#0d1629] border-b border-cyan-500/10 flex items-center px-4 gap-3">
           <div class="flex gap-1.5">
@@ -287,23 +308,23 @@
 <!-- ═══════════════════════════════════════════════════════════════
      STATS BAND
 ════════════════════════════════════════════════════════════════ -->
-<div class="border-y border-cyan-500/10 bg-[#0d1629]/70">
+<div class="border-y border-cyan-500/10 bg-[#0d1629]/70 stats-band">
   <div class="max-w-7xl mx-auto px-6 py-10">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-0 md:divide-x divide-cyan-500/10">
       <div class="text-center px-6">
-        <div class="text-4xl font-extrabold text-cyan-400 mb-1">92%</div>
+        <div class="text-4xl font-extrabold text-cyan-400 mb-1" data-target="92" data-suffix="%">0%</div>
         <div class="text-sm text-slate-500">Taux de recouvrement moyen</div>
       </div>
       <div class="text-center px-6">
-        <div class="text-4xl font-extrabold text-white mb-1">3</div>
+        <div class="text-4xl font-extrabold text-white mb-1" data-target="3" data-suffix="">0</div>
         <div class="text-sm text-slate-500">Villes · Tanger, Casa, Rabat</div>
       </div>
       <div class="text-center px-6">
-        <div class="text-4xl font-extrabold text-white mb-1">&lt;5min</div>
+        <div class="text-4xl font-extrabold text-white mb-1 stat-pop">&lt;5min</div>
         <div class="text-sm text-slate-500">Temps de déploiement</div>
       </div>
       <div class="text-center px-6">
-        <div class="text-4xl font-extrabold text-cyan-400 mb-1">0 MAD</div>
+        <div class="text-4xl font-extrabold text-cyan-400 mb-1 stat-pop">0 MAD</div>
         <div class="text-sm text-slate-500">Pour commencer</div>
       </div>
     </div>
@@ -724,17 +745,47 @@
 </footer>
 
 
-<!-- Scroll reveal script -->
+<!-- Scroll reveal + stats animations -->
 <script>
-  const observer = new IntersectionObserver((entries) => {
+  // ── Scroll reveal ──────────────────────────────────────────────
+  const revealObs = new IntersectionObserver((entries) => {
     entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
-        observer.unobserve(e.target);
-      }
+      if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
     });
   }, { threshold: 0.12 });
-  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+  document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+
+  // ── Count-up helper ────────────────────────────────────────────
+  function countUp(el, target, suffix, duration) {
+    const t0 = performance.now();
+    (function tick(now) {
+      const p    = Math.min((now - t0) / duration, 1);
+      const ease = 1 - Math.pow(1 - p, 3);          // ease-out cubic
+      el.textContent = Math.round(ease * target) + suffix;
+      if (p < 1) requestAnimationFrame(tick);
+    })(t0);
+  }
+
+  // ── Stats band ─────────────────────────────────────────────────
+  const statsBand = document.querySelector('.stats-band');
+  if (statsBand) {
+    new IntersectionObserver(([e], obs) => {
+      if (!e.isIntersecting) return;
+      // Query in DOM order so stagger follows visual left→right order
+      e.target.querySelectorAll('[data-target], .stat-pop').forEach((el, i) => {
+        const delay = i * 190;
+        if (el.dataset.target !== undefined) {
+          // Numeric: count-up, duration scales with magnitude
+          const target = +el.dataset.target;
+          setTimeout(() => countUp(el, target, el.dataset.suffix || '', target > 10 ? 1500 : 900), delay);
+        } else {
+          // Text: spring pop-in
+          setTimeout(() => el.classList.add('popped'), delay);
+        }
+      });
+      obs.disconnect();
+    }, { threshold: 0.4 }).observe(statsBand);
+  }
 </script>
 
 </body>
