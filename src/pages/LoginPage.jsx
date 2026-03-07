@@ -588,6 +588,13 @@ export default function LoginPage({ onResidentLogin }) {
                                 </div>
                             ))}
                         </div>
+                        <a href="/landing.html"
+                            className="inline-flex items-center gap-1 mt-4 text-[10px] transition-colors"
+                            style={{ color: 'rgba(148,163,200,0.35)' }}
+                            onMouseEnter={e => e.currentTarget.style.color = 'rgba(6,182,212,0.7)'}
+                            onMouseLeave={e => e.currentTarget.style.color = 'rgba(148,163,200,0.35)'}>
+                            ← Retour au site
+                        </a>
                     </div>
                 </motion.div>
                 )}
