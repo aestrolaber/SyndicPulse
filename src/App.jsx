@@ -2214,7 +2214,7 @@ function TopBar({ activeTab, activeBuilding, themeMode, setThemeMode, showToast,
                     </button>
 
                     {showNotifs && (
-                        <div className="absolute right-0 top-12 w-80 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                        <div className="absolute right-0 top-12 w-80 bg-navy-800 border border-white/10 rounded-2xl shadow-2xl z-[200] overflow-hidden">
                             {/* Header */}
                             <div className="flex items-center justify-between px-4 py-3 border-b border-white/8">
                                 <div>
