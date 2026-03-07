@@ -8916,7 +8916,7 @@ function DeleteBuildingModal({ building, residents = [], expenses = [], supplier
                                     className="flex-1 py-2.5 text-sm font-semibold text-slate-400 hover:text-white bg-white/5 rounded-xl transition-colors">
                                     ← Retour
                                 </button>
-                                <button onClick={onConfirm} disabled={!canConfirm}
+                                <button onClick={() => { onConfirm(); onClose(); }} disabled={!canConfirm}
                                     className="flex-1 py-2.5 text-sm font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition-colors flex items-center justify-center gap-2">
                                     <Trash2 size={14} /> Supprimer définitivement
                                 </button>
