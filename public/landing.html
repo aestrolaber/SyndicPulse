@@ -167,8 +167,8 @@
           </select>
         </div>
 
-        <button type="submit"
-          class="w-full bg-cyan-500 hover:bg-cyan-400 text-[#0a0f1e] font-bold py-3.5 rounded-xl transition-all hover:shadow-[0_6px_24px_rgba(6,182,212,0.45)] text-sm mt-2">
+        <button type="submit" id="trial-submit-btn"
+          class="w-full bg-cyan-500 hover:bg-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed text-[#0a0f1e] font-bold py-3.5 rounded-xl transition-all hover:shadow-[0_6px_24px_rgba(6,182,212,0.45)] text-sm mt-2">
           Envoyer ma demande d'accès
         </button>
 
@@ -1060,12 +1060,16 @@
   document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
 
   // ── Request access modal ───────────────────────────────────────
-  const SUPPORT_WA = '212600000000'; // TODO: replace with real WhatsApp number
+  // Web3Forms: go to https://web3forms.com → enter ouchitachenabdelilah@gmail.com → paste key below
+  const W3F_KEY    = 'YOUR_ACCESS_KEY_HERE'; // ← replace with your Web3Forms key
+  const SUPPORT_WA = '212600000000';          // ← replace with your WhatsApp number (no + or spaces)
+
   function openTrial() {
     document.getElementById('trial-modal').classList.remove('hidden');
     document.getElementById('trial-form-state').classList.remove('hidden');
     document.getElementById('trial-success-state').classList.add('hidden');
     document.getElementById('trial-form').reset();
+    setSubmitBtn('idle');
     document.body.style.overflow = 'hidden';
   }
   function closeTrial() {
@@ -1074,7 +1078,19 @@
   }
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTrial(); });
 
-  function submitTrial(e) {
+  function setSubmitBtn(state) {
+    const btn = document.getElementById('trial-submit-btn');
+    if (!btn) return;
+    if (state === 'loading') {
+      btn.disabled = true;
+      btn.innerHTML = '<svg class="animate-spin inline w-4 h-4 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 3a9 9 0 019 9" /></svg>Envoi en cours…';
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = 'Envoyer ma demande d\'accès';
+    }
+  }
+
+  async function submitTrial(e) {
     e.preventDefault();
     const name    = document.getElementById('tf-name').value.trim();
     const city    = document.getElementById('tf-city').value.trim();
@@ -1083,23 +1099,69 @@
     const email   = document.getElementById('tf-email').value.trim();
     const count   = document.getElementById('tf-count').value;
 
-    // Build WhatsApp message for the admin (you receive this)
-    const msg = encodeURIComponent(
-      `🏢 Nouvelle demande d'accès SyndicPulse\n\n` +
-      `👤 Nom : ${name}\n` +
-      `🏙️ Ville : ${city}\n` +
-      (company ? `🏛️ Société : ${company}\n` : '') +
-      `📞 Téléphone : ${phone}\n` +
-      `📧 Email : ${email}\n` +
-      (count ? `🏠 Résidences : ${count}\n` : '') +
-      `\n— Envoyé depuis syndicpulse.com`
+    const subject = `🏢 [SyndicPulse] Nouvelle demande — ${name} · ${city}${count ? ' · ' + count + ' rés.' : ''}`;
+
+    setSubmitBtn('loading');
+    let sent = false;
+
+    // ── 1. Web3Forms (primary — sends email to ouchitachenabdelilah@gmail.com) ──
+    if (W3F_KEY !== 'YOUR_ACCESS_KEY_HERE') {
+      try {
+        const res = await fetch('https://api.web3forms.com/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({
+            access_key: W3F_KEY,
+            subject:    subject,
+            from_name:  'SyndicPulse Landing',
+            replyto:    email,
+            '👤 Nom complet':  name,
+            '🏙️ Ville':        city,
+            '🏛️ Cabinet':      company || '—',
+            '📞 Téléphone':    phone,
+            '📧 Email':        email,
+            '🏠 Résidences':   count  || '—',
+            '🌐 Source':       window.location.href,
+          })
+        });
+        if (res.ok) sent = true;
+      } catch (_) {}
+    }
+
+    // ── 2. Fallback: mailto (opens email client if Web3Forms not configured) ──
+    if (!sent) {
+      const body = encodeURIComponent(
+        `Nouvelle demande d'accès SyndicPulse\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n` +
+        `👤 Nom complet   : ${name}\n` +
+        `🏙️ Ville          : ${city}\n` +
+        `🏛️ Cabinet        : ${company || '—'}\n` +
+        `📞 Téléphone      : ${phone}\n` +
+        `📧 Email          : ${email}\n` +
+        `🏠 Résidences     : ${count || '—'}\n\n` +
+        `🌐 Source : syndicpulse.com\n` +
+        `📅 Date   : ${new Date().toLocaleDateString('fr-MA', { day:'2-digit', month:'long', year:'numeric' })}`
+      );
+      const a = document.createElement('a');
+      a.href = `mailto:ouchitachenabdelilah@gmail.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    }
+
+    // ── 3. WhatsApp message (shown in success state as shortcut) ────
+    const waMsg = encodeURIComponent(
+      `🏢 Nouvelle demande SyndicPulse\n\n` +
+      `👤 ${name} · ${city}\n` +
+      (company ? `🏛️ ${company}\n` : '') +
+      `📞 ${phone}\n📧 ${email}\n` +
+      (count ? `🏠 ${count} résidence(s)\n` : '') +
+      `\n— syndicpulse.com`
     );
 
-    // Show success state
+    setSubmitBtn('idle');
     document.getElementById('trial-form-state').classList.add('hidden');
     document.getElementById('trial-success-state').classList.remove('hidden');
     document.getElementById('success-name').textContent = name.split(' ')[0];
-    document.getElementById('success-wa').href = `https://wa.me/${SUPPORT_WA}?text=${msg}`;
+    document.getElementById('success-wa').href = `https://wa.me/${SUPPORT_WA}?text=${waMsg}`;
   }
 
   // ── Billing toggle (monthly ↔ annual) ─────────────────────────
