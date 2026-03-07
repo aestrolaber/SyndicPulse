@@ -384,15 +384,36 @@ export async function fetchBuildingSettings(buildingId) {
         .single()
     // PGRST116 = no rows — not a real error
     if (error && error.code !== 'PGRST116') throw new Error(`[db.js] fetchBuildingSettings: ${error.message}`)
-    return data ?? null
+    if (!data) return null
+    // Map DB column names → app field names
+    const { name_override, city_override, manager_override, logo_b64, cachet_b64, ...rest } = data
+    return {
+        ...rest,
+        ...(name_override    != null && { name: name_override }),
+        ...(city_override    != null && { city: city_override }),
+        ...(manager_override != null && { manager: manager_override }),
+        ...(logo_b64         != null && { logo: logo_b64 }),
+        ...(cachet_b64       != null && { cachet: cachet_b64 }),
+    }
 }
 
 /**
  * Upsert building settings.
- * `overrides` is a plain object with any subset of building_settings columns.
+ * `overrides` uses app field names (logo, cachet, name, city, manager).
+ * Maps to DB column names before upserting.
  */
 export async function saveBuildingSettings(buildingId, overrides) {
-    const row = { building_id: buildingId, ...overrides, updated_at: new Date().toISOString() }
+    const { name, city, manager, logo, cachet, ...rest } = overrides
+    const row = {
+        building_id: buildingId,
+        ...rest,
+        ...(name    != null && { name_override: name }),
+        ...(city    != null && { city_override: city }),
+        ...(manager != null && { manager_override: manager }),
+        ...(logo    != null && { logo_b64: logo }),
+        ...(cachet  != null && { cachet_b64: cachet }),
+        updated_at: new Date().toISOString(),
+    }
     const { error } = await db.from('building_settings').upsert(row, { onConflict: 'building_id' })
     checkError(error, 'saveBuildingSettings')
 }

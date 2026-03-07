@@ -5,18 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion'
 const DEMO_SESSIONS = [
     {
         trigger: 'bghit n3ref l mizanya dyal l jarda...',
-        label: 'Budget inquiry (Darija)',
-        response: 'The Norwest garden budget for Q1 2026 is 45,000 MAD. 60% has been allocated to new irrigation systems. Remaining: 18,000 MAD.',
+        label: 'Budget (Darija)',
+        response: "Le budget jardins de Norwest pour le 1er trimestre 2026 est de 45 000 MAD. 60 % est alloué aux nouveaux systèmes d'irrigation. Solde restant : 18 000 MAD.",
     },
     {
         trigger: "3andi mochkil f l'ascenseur dyal bloc B",
-        label: 'Elevator issue (Darija)',
-        response: "Ticket created: Elevator issue in Block B. Otis Morocco has been notified and will inspect within 24h. Reference: TKT-2026-047.",
+        label: 'Ascenseur (Darija)',
+        response: "Ticket créé : Panne ascenseur — Bloc B. Otis Maroc a été notifié et interviendra sous 24h. Référence : TKT-2026-047.",
     },
     {
-        trigger: "Quel est le solde du fonds de réserve?",
-        label: 'Reserve fund (French)',
-        response: "Le fonds de réserve de la Résidence Norwest est actuellement de 84,500 MAD. Ce montant est conforme aux exigences de la Loi 18-00.",
+        trigger: "Quel est le solde du fonds de réserve ?",
+        label: 'Fonds de réserve (FR)',
+        response: "Le fonds de réserve de la Résidence Norwest est actuellement de 84 500 MAD. Ce montant est conforme aux exigences de la Loi 18-00.",
     },
 ]
 
@@ -86,7 +86,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-white">SyndicPulse AI</p>
-                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Voice Agent · Darija + French</p>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Agent Vocal · Darija + Français</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
