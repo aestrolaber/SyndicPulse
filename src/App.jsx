@@ -1719,7 +1719,7 @@ function UserGuideModal({ onClose }) {
                             >
                                 <s.icon size={13} className="flex-shrink-0" />
                                 <span className="flex-1">{s.label}</span>
-                                {!s.available && <span className="text-[9px] bg-navy-700 text-slate-600 px-1.5 py-0.5 rounded-full">bientôt</span>}
+                                {!s.available && <span className="text-[9px] bg-amber-500/15 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded-full">Pro</span>}
                             </button>
                         ))}
                     </nav>
@@ -2715,7 +2715,7 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
                 <div className="glass-card p-6">
                     <div className="flex items-center justify-between mb-5">
                         <h3 className="font-bold text-white">Paiements récents</h3>
-                        <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
+                        <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} className="text-xs text-sp hover:text-sp-light flex items-center gap-1 transition-colors">
                             Voir tout <ChevronRight size={13} />
                         </button>
                     </div>
@@ -3292,7 +3292,7 @@ function FinancialsPage({ building, data, residents, setResidents, expenseLog, s
                     <div className="glass-card p-6">
                         <div className="flex items-center justify-between mb-5">
                             <h3 className="font-bold text-white">Charges en retard</h3>
-                            <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition-colors flex items-center gap-1.5">
+                            <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-3 py-1.5 rounded-lg hover:bg-amber-500/20 transition-colors flex items-center gap-1.5">
                                 <Phone size={12} /> Envoyer rappels WhatsApp
                             </button>
                         </div>
@@ -3322,7 +3322,7 @@ function FinancialsPage({ building, data, residents, setResidents, expenseLog, s
                                                     <CheckCircle2 size={11} /> Marquer payé
                                                 </button>
                                                 <span className="text-slate-700">·</span>
-                                                <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
+                                                <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} className="text-[11px] text-sp hover:text-sp-light transition-colors flex items-center gap-1">
                                                     <Mic size={11} /> Appel IA
                                                 </button>
                                             </div>
@@ -5564,8 +5564,8 @@ function ResidentsPage({ building, data, residents, setResidents, onSaveResident
                                                 : 'Ouvrir une conversation WhatsApp'}
                                             onClick={() => openWhatsApp(r.phone, r.name, r.unit, building, computeStatus(r.paidThrough), r.paidThrough, r.monthly_fee)}
                                         />
-                                        <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
-                                        <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} />
+                                        <ActionBtn icon={<Phone size={12} />} title="Appeler le résident" onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} />
+                                        <ActionBtn icon={<Mail size={12} />} title="Envoyer un e-mail" onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} />
                                         <ActionBtn icon={<Pencil size={12} />} title="Modifier le résident" onClick={() => setEditingResident(r)} />
                                     </div>
                                 </td>
@@ -5747,7 +5747,7 @@ function DisputesPage({ building, data, disputes, setDisputes, onSaveDispute, on
                         SyndicPulse analyse les litiges selon la Loi 18-00 et génère des scripts de médiation en Darija et Français.
                     </p>
                 </div>
-                <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)} className="ml-auto text-xs bg-sp/10 text-sp border border-sp/20 px-4 py-2 rounded-lg hover:bg-sp/20 transition-colors flex-shrink-0">
+                <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)} className="ml-auto text-xs bg-sp/10 text-sp border border-sp/20 px-4 py-2 rounded-lg hover:bg-sp/20 transition-colors flex-shrink-0">
                     Voir les logs IA
                 </button>
             </div>
@@ -5828,7 +5828,7 @@ function DisputesPage({ building, data, disputes, setDisputes, onSaveDispute, on
                             {d.status !== 'closed' && (
                                 <div className="flex gap-2">
                                     {d.status !== 'resolved' && (
-                                        <button onClick={() => showToast('Fonctionnalité disponible prochainement', 'success', 1500)}
+                                        <button onClick={() => showToast('Disponible uniquement en version supérieure', 'warning', 2500)}
                                             className="text-xs bg-sp/10 text-sp border border-sp/20 px-3 py-1.5 rounded-lg hover:bg-sp/20 transition-colors flex items-center gap-1">
                                             <Mic size={11} /> Médiation IA
                                         </button>
