@@ -6456,12 +6456,29 @@ function EditTicketModal({ ticket, onSave, onClose }) {
         date: ticket.date ?? '',
         category: ticket.category,
         priority: ticket.priority,
+        status: ticket.status,
     })
     function set(field, val) { setForm(prev => ({ ...prev, [field]: val })) }
     const categories = Object.entries(CATEGORY_META).map(([k, v]) => ({ value: k, label: v.label }))
+    const statusOptions = [
+        { val: 'in_progress', label: 'En cours',  active: 'bg-sp/20 text-sp border-sp/40',              hover: 'hover:border-sp/30 hover:text-sp'           },
+        { val: 'scheduled',   label: 'Planifié',   active: 'bg-amber-500/20 text-amber-400 border-amber-500/40', hover: 'hover:border-amber-500/30 hover:text-amber-400' },
+        { val: 'done',        label: 'Terminé',    active: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40', hover: 'hover:border-emerald-500/30 hover:text-emerald-400' },
+    ]
     return (
         <Modal title="Modifier la tâche" subtitle={form.title} onClose={onClose}>
             <div className="p-6 space-y-4 overflow-y-auto">
+                <div>
+                    <label className="block text-xs text-slate-400 mb-2 font-medium">Statut</label>
+                    <div className="flex gap-2">
+                        {statusOptions.map(({ val, label, active, hover }) => (
+                            <button key={val} onClick={() => set('status', val)}
+                                className={`flex-1 py-2.5 rounded-xl text-xs font-semibold border transition-all ${form.status === val ? active : `bg-navy-700 text-slate-500 border-white/8 ${hover}`}`}>
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1.5 font-medium">Titre</label>
                     <input type="text" value={form.title} onChange={e => set('title', e.target.value)}
