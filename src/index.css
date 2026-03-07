@@ -90,8 +90,10 @@ body {
 [data-theme="gold"] .bg-navy-700\/40             { background-color: rgba(255,255,255,0.65) !important; }
 [data-theme="gold"] .bg-navy-700\/60             { background-color: rgba(255,255,255,0.8) !important; }
 [data-theme="gold"] .bg-navy-600                { background-color: #ede8df !important; }
-[data-theme="gold"] .hover\:bg-navy-700:hover   { background-color: #f0ebe3 !important; }
-[data-theme="gold"] .hover\:bg-navy-600:hover   { background-color: #e8e0d0 !important; }
+[data-theme="gold"] .hover\:bg-navy-700:hover      { background-color: #f0ebe3 !important; }
+[data-theme="gold"] .hover\:bg-navy-700\/60:hover { background-color: rgba(201,151,42,0.08) !important; }
+[data-theme="gold"] .hover\:bg-navy-700\/40:hover { background-color: rgba(201,151,42,0.06) !important; }
+[data-theme="gold"] .hover\:bg-navy-600:hover     { background-color: #e8e0d0 !important; }
 
 /* Scrollbar */
 [data-theme="gold"] ::-webkit-scrollbar-track   { background: #f5f0e8; }

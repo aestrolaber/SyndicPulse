@@ -2671,7 +2671,11 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
 
                     <div className="flex flex-col gap-5">
                         <div className="glass-card p-6 relative overflow-hidden border-sp/15"
-                            style={themeMode !== 'white' ? { background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(17,29,53,0.9))' } : undefined}>
+                            style={
+                                themeMode === 'navy' ? { background: 'linear-gradient(135deg, rgba(6,182,212,0.08), rgba(17,29,53,0.9))' } :
+                                themeMode === 'gold' ? { background: 'linear-gradient(135deg, rgba(201,151,42,0.10), rgba(255,252,245,0.98))' } :
+                                undefined
+                            }>
                             <div className="absolute -top-8 -right-8 w-32 h-32 rounded-full bg-sp/10 blur-2xl pointer-events-none" />
                             <div className="relative">
                                 <div className="flex items-center gap-2 mb-3">
