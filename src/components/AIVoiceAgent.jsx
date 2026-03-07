@@ -242,8 +242,8 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
 
                     {/* Footer */}
                     <div className="px-6 py-4 border-t border-white/5 bg-black/20 text-center">
-                        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                            SyndicPulse Automation Core · Prochainement en production
+                        <p className="text-[10px] uppercase tracking-widest font-semibold">
+                            <span className="text-slate-500">SyndicPulse Automation Core · </span><span className="text-amber-400">Version Supérieure seulement</span>
                         </p>
                     </div>
                 </motion.div>
