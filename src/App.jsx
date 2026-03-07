@@ -1107,36 +1107,52 @@ function Dashboard() {
     function deleteBuilding(bldId) {
         const isDemoBuilding = BUILDINGS.some(b => b.id === bldId)
         if (isDemoBuilding) { showToast('Les propriétés de démonstration ne peuvent pas être supprimées.', 'error'); return }
-        setExtraBuildings(prev => prev.filter(b => b.id !== bldId))
-        // Clean up all per-building state
-        setResidentsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setDisputesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setMeetingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setSuppliersByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setExpensesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setTicketsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setBuildingSettingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setCirculairesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        setCustomTplsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
-        // Clean up localStorage keys
-        ['sp_expenses_', 'sp_disputes_', 'sp_suppliers_', 'sp_meetings_', 'sp_bank_',
-         'sp_circ_', 'sp_ctpls_', 'sp_revoked_', 'sp_payments_'].forEach(prefix =>
-            localStorage.removeItem(prefix + bldId))
-        // Clean up any syndic_manager users assigned only to this building
         try {
-            const users = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
-            const cleaned = users.filter(u => !(u.accessible_building_ids?.length === 1 && u.accessible_building_ids[0] === bldId))
-            localStorage.setItem('sp_created_users', JSON.stringify(cleaned))
-        } catch {}
-        // If the deleted building was active, switch to first available
-        if (activeBuilding?.id === bldId) {
-            const remaining = [...accessibleBuildings, ...extraBuildings.filter(b => b.id !== bldId)]
-            if (remaining.length > 0) setActiveBuilding(remaining[0])
+            // Remove from extra buildings state + immediately write to localStorage
+            setExtraBuildings(prev => {
+                const next = prev.filter(b => b.id !== bldId)
+                try { localStorage.setItem('sp_extra_buildings', JSON.stringify(next)) } catch {}
+                return next
+            })
+            // Clean up all per-building state
+            setResidentsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setDisputesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setMeetingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setSuppliersByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setExpensesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setTicketsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setBuildingSettingsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setCirculairesByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            setCustomTplsByBldg(prev => { const n = { ...prev }; delete n[bldId]; return n })
+            // Remove from paused set
+            setPausedBuildingIds(prev => {
+                const next = new Set(prev); next.delete(bldId)
+                try { localStorage.setItem('sp_paused_buildings', JSON.stringify([...next])) } catch {}
+                return next
+            })
+            // Clean up localStorage keys
+            ['sp_expenses_', 'sp_disputes_', 'sp_suppliers_', 'sp_meetings_', 'sp_bank_',
+             'sp_circ_', 'sp_ctpls_', 'sp_revoked_', 'sp_payments_', 'sp_backup_log_'].forEach(prefix =>
+                localStorage.removeItem(prefix + bldId))
+            // Clean up syndic_manager users assigned only to this building
+            try {
+                const users = JSON.parse(localStorage.getItem('sp_created_users') ?? '[]')
+                const cleaned = users.filter(u => !(u.accessible_building_ids?.length === 1 && u.accessible_building_ids[0] === bldId))
+                localStorage.setItem('sp_created_users', JSON.stringify(cleaned))
+            } catch {}
+            // If deleted building was active, switch to first available
+            if (activeBuilding?.id === bldId) {
+                const remaining = [...accessibleBuildings, ...extraBuildings.filter(b => b.id !== bldId)]
+                if (remaining.length > 0) setActiveBuilding(remaining[0])
+            }
+            // Purge Supabase rows (fire-and-forget)
+            purgeBuilding(bldId).catch(() => {})
+            showToast('Propriété supprimée.', 'success')
+        } catch (err) {
+            showToast('Erreur lors de la suppression: ' + err.message, 'error')
+        } finally {
+            setPendingDeleteBuilding(null)
         }
-        // Purge all Supabase data for this building (fire-and-forget — non-blocking)
-        purgeBuilding(bldId).catch(() => {}) // silently ignore if offline
-        setPendingDeleteBuilding(null)
-        showToast('Propriété supprimée.', 'success')
     }
 
     return (
