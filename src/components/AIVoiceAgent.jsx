@@ -108,7 +108,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                             <span className="text-base leading-none">🎭</span>
                             <div>
                                 <p className="text-[11px] font-bold text-amber-300">Mode démonstration</p>
-                                <p className="text-[10px] text-slate-500">Scénarios pré-enregistrés · Prochainement en production</p>
+                                <p className="text-[10px] text-slate-500">Scénarios pré-enregistrés · <span className="text-amber-400">Version Supérieure uniquement</span></p>
                             </div>
                         </div>
 
