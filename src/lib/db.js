@@ -6,13 +6,16 @@
  * On error, functions throw so callers can catch and show toasts.
  *
  * Field mapping:
- *   residents: paidThrough ↔ paid_through, portalPin ↔ portal_pin,
- *              portalCode ↔ portal_code, monthlyFee ↔ monthly_fee,
- *              isActive ↔ is_active, contractRef ↔ contract_ref
- *   suppliers: contractRef ↔ contract_ref
- *   meetings:  convocationSent ↔ convocation_sent
- *   expenses:  hasInvoice ↔ has_invoice
- *   building_settings: all snake_case columns kept as-is
+ *   residents:         paidThrough ↔ paid_through, portalPin ↔ portal_pin,
+ *                      portalCode ↔ portal_code, monthlyFee ↔ monthly_fee,
+ *                      isActive ↔ is_active
+ *   suppliers:         contractRef ↔ contract_ref
+ *   meetings:          convocationSent ↔ convocation_sent
+ *   expenses:          hasInvoice ↔ has_invoice
+ *   tickets:           customCategory ↔ custom_category
+ *   building_settings: name ↔ name_override, city ↔ city_override,
+ *                      manager ↔ manager_override, logo ↔ logo_b64,
+ *                      cachet ↔ cachet_b64 (other fields pass through as-is)
  */
 
 import { createClient } from '@supabase/supabase-js'
@@ -106,30 +109,33 @@ function expenseToRow(e) {
 /** Convert DB row → app ticket object */
 function rowToTicket(r) {
     return {
-        id:          r.id,
-        building_id: r.building_id,
-        title:       r.title,
-        status:      r.status,
-        date:        r.date ?? null,
-        time:        r.time ?? null,
-        agent:       r.agent ?? '',
-        priority:    r.priority ?? 'normal',
-        category:    r.category ?? 'autre',
+        id:             r.id,
+        building_id:    r.building_id,
+        title:          r.title,
+        status:         r.status,
+        date:           r.date ?? null,
+        time:           r.time ?? null,
+        agent:          r.agent ?? '',
+        priority:       r.priority ?? 'normal',
+        category:       r.category ?? 'autre',
+        customCategory: r.custom_category ?? '',
+        custom_category:r.custom_category ?? '',
     }
 }
 
 /** Convert app ticket → DB row */
 function ticketToRow(t) {
     return {
-        id:          t.id,
-        building_id: t.building_id,
-        title:       t.title,
-        status:      t.status,
-        date:        t.date ?? null,
-        time:        t.time ?? null,
-        agent:       t.agent ?? null,
-        priority:    t.priority ?? 'normal',
-        category:    t.category ?? 'autre',
+        id:              t.id,
+        building_id:     t.building_id,
+        title:           t.title,
+        status:          t.status,
+        date:            t.date ?? null,
+        time:            t.time ?? null,
+        agent:           t.agent ?? null,
+        priority:        t.priority ?? 'normal',
+        category:        t.category ?? 'autre',
+        custom_category: t.customCategory ?? t.custom_category ?? null,
     }
 }
 
