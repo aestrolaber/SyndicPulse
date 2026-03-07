@@ -1607,7 +1607,7 @@ function Sidebar({ activeTab, setActiveTab, activeBuilding, buildings, canSwitch
                         <span className="ml-auto text-[9px] font-bold bg-amber-500/10 text-amber-500/70 border border-amber-500/20 px-1.5 py-0.5 rounded-full">Démo</span>
                     </div>
                     <p className="text-[11px] text-slate-400 mb-3 leading-relaxed">
-                        Darija + Français · {activeBuilding.name}
+                        Darija · Français · English · {activeBuilding.name}
                     </p>
                     <button
                         onClick={() => !isReadOnly && setIsVoiceOpen(true)}
@@ -2685,7 +2685,7 @@ function DashboardPage({ building, data, residents, setIsVoiceOpen, setActiveTab
                                     </div>
                                     <div>
                                         <p className="text-sm font-bold text-white">Agent Vocal IA</p>
-                                        <p className="text-[10px] text-slate-400">Darija · Français</p>
+                                        <p className="text-[10px] text-slate-400">Darija · Français · English</p>
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-400 mb-4 leading-relaxed italic">

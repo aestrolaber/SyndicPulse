@@ -86,7 +86,7 @@ export default function AIVoiceAgent({ isOpen, onClose }) {
                             </div>
                             <div>
                                 <p className="text-sm font-bold text-white">SyndicPulse AI</p>
-                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Agent Vocal · Darija + Français</p>
+                                <p className="text-[10px] text-slate-400 uppercase tracking-wider">Agent Vocal · Darija · Français · English</p>
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
