@@ -1233,7 +1233,7 @@ function Dashboard() {
                     {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} onSaveResident={saveResident} onDeleteResident={removeResident} showToast={showToast} />}
                     {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} onSaveDispute={saveDispute} onDeleteDispute={removeDispute} showToast={showToast} />}
-                    {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} tickets={tickets} setTickets={setTickets} onSaveTicket={saveTicket} showToast={showToast} />}
+                    {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} tickets={tickets} setTickets={setTickets} onSaveTicket={saveTicket} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'assemblees' && <AssembliesPage building={activeBuildingMerged} residents={residents} meetings={meetings} setMeetings={setMeetings} onSaveMeeting={saveMeeting} onDeleteMeeting={removeMeeting} showToast={showToast} />}
                     {activeTab === 'fournisseurs' && <FournisseursPage building={activeBuildingMerged} suppliers={suppliers} setSuppliers={setSuppliers} onSaveSupplier={saveSupplier} onDeleteSupplier={removeSupplier} showToast={showToast} />}
                     {activeTab === 'circulaires' && <CirculairesPage building={activeBuildingMerged} circulaires={circulaires} setCirculaires={setCirculaires} customTpls={customTpls} setCustomTpls={setCustomTpls} showToast={showToast} />}
@@ -6320,12 +6320,13 @@ function KanbanColumn({ status, label, dot, count, children }) {
 }
 
 /* Add ticket modal */
-function AddTicketModal({ onSave, onClose }) {
+function AddTicketModal({ onSave, onClose, suppliers = [] }) {
     const today = new Date().toISOString().split('T')[0]
     const [form, setForm] = useState({
         title: '', agent: '', date: today, time: '',
         category: 'nettoyage', priority: 'normal', status: 'scheduled',
     })
+    const [agentMode, setAgentMode] = useState(suppliers.length > 0 ? 'select' : 'free') // 'none'|'select'|'free'
     const [error, setError] = useState('')
     function set(field, val) { setForm(prev => ({ ...prev, [field]: val })) }
     const categories = Object.entries(CATEGORY_META).map(([k, v]) => ({ value: k, label: v.label }))
@@ -6347,9 +6348,34 @@ function AddTicketModal({ onSave, onClose }) {
                 </div>
                 <div>
                     <label className="block text-xs text-slate-400 mb-1.5 font-medium">Prestataire</label>
-                    <input type="text" value={form.agent} onChange={e => set('agent', e.target.value)}
-                        placeholder="ex: SafeGuard Maroc"
-                        className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    {/* Mode selector */}
+                    <div className="flex gap-2 mb-2">
+                        {[
+                            { id: 'none',   label: 'Aucun (syndic)' },
+                            ...(suppliers.length > 0 ? [{ id: 'select', label: 'Fournisseur' }] : []),
+                            { id: 'free',   label: 'Autre' },
+                        ].map(m => (
+                            <button key={m.id} type="button"
+                                onClick={() => { setAgentMode(m.id); set('agent', m.id === 'none' ? '' : m.id === 'select' ? (suppliers[0]?.name ?? '') : '') }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${agentMode === m.id ? 'bg-sp/15 text-sp border-sp/35' : 'bg-navy-700 text-slate-500 border-white/8 hover:border-white/20 hover:text-slate-300'}`}>
+                                {m.label}
+                            </button>
+                        ))}
+                    </div>
+                    {agentMode === 'none' && (
+                        <p className="text-xs text-slate-500 italic px-1">Tâche gérée en interne par le syndic — aucun prestataire externe.</p>
+                    )}
+                    {agentMode === 'select' && suppliers.length > 0 && (
+                        <select value={form.agent} onChange={e => set('agent', e.target.value)}
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors">
+                            {suppliers.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        </select>
+                    )}
+                    {agentMode === 'free' && (
+                        <input type="text" value={form.agent} onChange={e => set('agent', e.target.value)}
+                            placeholder="ex: SafeGuard Maroc"
+                            className="w-full bg-navy-700 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-sp/40 transition-colors" />
+                    )}
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -6486,7 +6512,7 @@ function EditTicketModal({ ticket, onSave, onClose }) {
     )
 }
 
-function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showToast }) {
+function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, suppliers = [], showToast }) {
     const [filter, setFilter] = useState('all')
     const [search, setSearch] = useState('')
     const [activeId, setActiveId] = useState(null)
@@ -6665,6 +6691,7 @@ function PlanningPage({ building, data, tickets, setTickets, onSaveTicket, showT
                     <AddTicketModal
                         onSave={handleSaveNew}
                         onClose={() => setShowAdd(false)}
+                        suppliers={suppliers}
                     />
                 )}
                 {editingTicket && (
