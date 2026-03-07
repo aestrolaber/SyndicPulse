@@ -760,8 +760,9 @@ function Dashboard() {
         if (!stored || stored === 'gold') return 'navy'
         return stored
     })
-    const [expensesByBldg, setExpensesByBldg] = useState({})   // individual expense log entries per building
-    const [ticketsByBldg, setTicketsByBldg] = useState({})     // maintenance tickets per building
+    const [expensesByBldg, setExpensesByBldg] = useState({})           // individual expense log entries per building
+    const [ticketsByBldg, setTicketsByBldg] = useState({})             // maintenance tickets per building
+    const [collectionHistoryByBldg, setCollectionHistoryByBldg] = useState({}) // override for non-demo buildings
     const [dbLoading, setDbLoading] = useState(false)
     const loadedBldgIds = useRef(new Set())                     // tracks which buildings have been fetched
     const autoBackupDone = useRef(new Set())                    // tracks which buildings had auto-backup this session
@@ -1245,7 +1246,7 @@ function Dashboard() {
                 <main className={`flex-1 overflow-auto p-8 relative ${activeBuildingMerged.paused && !isSuperAdmin ? 'pointer-events-none select-none' : ''}`}>
                     {activeTab === 'portfolio' && <PortfolioDashboard allBuildings={allBuildings} residentsByBldg={residentsByBldg} disputesByBldg={disputesByBldg} ticketsByBldg={ticketsByBldg} expensesByBldg={expensesByBldg} meetingsByBldg={meetingsByBldg} onSelectBuilding={(b) => { setActiveBuilding(extraBuildings.find(e => e.id === b.id) ?? accessibleBuildings.find(a => a.id === b.id) ?? b); setActiveTab('dashboard') }} themeMode={themeMode} />}
                     {activeTab === 'dashboard' && <DashboardPage building={activeBuildingMerged} data={buildingData} residents={residents} setIsVoiceOpen={setIsVoiceOpen} setActiveTab={setActiveTab} showToast={showToast} themeMode={themeMode} />}
-                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
+                    {activeTab === 'financials' && <FinancialsPage building={activeBuildingMerged} data={{ ...buildingData, collectionHistory: buildingData.collectionHistory.length > 0 ? buildingData.collectionHistory : (collectionHistoryByBldg[activeBuilding?.id] ?? []) }} residents={residents} setResidents={setResidents} expenseLog={expenseLog} setExpenseLog={setExpenseLog} onSaveExpense={saveExpense} onDeleteExpense={removeExpense} onSaveResident={saveResident} suppliers={suppliers} showToast={showToast} />}
                     {activeTab === 'residents' && <ResidentsPage building={activeBuildingMerged} data={buildingData} residents={residents} setResidents={setResidents} onSaveResident={saveResident} onDeleteResident={removeResident} showToast={showToast} />}
                     {activeTab === 'disputes' && <DisputesPage building={activeBuildingMerged} data={buildingData} disputes={disputes} setDisputes={setDisputes} onSaveDispute={saveDispute} onDeleteDispute={removeDispute} showToast={showToast} />}
                     {activeTab === 'planning' && <PlanningPage building={activeBuildingMerged} data={buildingData} tickets={tickets} setTickets={setTickets} onSaveTicket={saveTicket} suppliers={suppliers} showToast={showToast} />}
@@ -1311,14 +1312,20 @@ function Dashboard() {
                             const newDisputes  = srcData.disputes.map((d, i)  => ({ ...d, id: `${newId}-d${i}-${ts}`, building_id: newId, attachments: [] }))
                             const newSuppliers = srcData.suppliers.map((s, i) => ({ ...s, id: `${newId}-s${i}-${ts}`, building_id: newId }))
                             const newMeetings  = srcData.meetings.map((m, i)  => ({ ...m, id: `${newId}-m${i}-${ts}`, building_id: newId }))
-                            const srcExpenses  = expensesByBldg[newBld.copyFrom] ?? []
+                            // Expenses — prefer Supabase-loaded, fall back to mock transactions
+                            const srcExpenses = expensesByBldg[newBld.copyFrom]?.length > 0
+                                ? expensesByBldg[newBld.copyFrom]
+                                : (newBld.copyFrom === 'bld-1' ? INITIAL_EXPENSE_LOG : [])
                             const newExpenses  = srcExpenses.map((e, i) => ({ ...e, id: `${newId}-e${i}-${ts}`, building_id: newId }))
+                            // Collection history — copy static chart data so finance bar chart isn't empty
+                            const copiedHistory = srcData.collectionHistory ?? []
                             setResidentsByBldg(p => ({ ...p, [newId]: newResidents }))
                             setTicketsByBldg(p   => ({ ...p, [newId]: newTickets }))
                             setDisputesByBldg(p  => ({ ...p, [newId]: newDisputes }))
                             setSuppliersByBldg(p => ({ ...p, [newId]: newSuppliers }))
                             setMeetingsByBldg(p  => ({ ...p, [newId]: newMeetings }))
                             if (newExpenses.length > 0) setExpensesByBldg(p => ({ ...p, [newId]: newExpenses }))
+                            if (copiedHistory.length > 0) setCollectionHistoryByBldg(p => ({ ...p, [newId]: copiedHistory }))
                             loadedBldgIds.current.add(newId)
                             try {
                                 await Promise.all([
@@ -7600,7 +7607,7 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
     })
     const [saving, setSaving] = useState(false)
     const [errors, setErrors] = useState({})
-    const [sendWA, setSendWA] = useState(true)
+    const [sendWA, setSendWA] = useState(false)
 
     function set(k, v) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -7640,7 +7647,7 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
     return (
         <Modal
             title="Ajouter un résident"
-            subtitle="Renseignez les informations du nouveau résident"
+            subtitle="Renseignez les informations du nouveau résident — un code PIN portail sera généré automatiquement"
             onClose={onClose}
         >
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -7682,7 +7689,7 @@ function AddResidentModal({ onClose, onAdd, building, residents = [] }) {
                     <input
                         type="tel" placeholder="+212 6XX XXX XXX"
                         value={form.phone}
-                        onChange={e => set('phone', e.target.value)}
+                        onChange={e => { set('phone', e.target.value); setSendWA(e.target.value.trim().length > 0) }}
                         className="w-full bg-navy-700 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-sp/40 transition-colors"
                     />
                 </div>
@@ -9017,6 +9024,10 @@ function AddBuildingModal({ onClose, onSave }) {
         await new Promise(r => setTimeout(r, 700))
 
         const bldId = `bld-${Date.now()}`
+        // Auto-generate portal access code: first 6 alphanumeric chars of name + year
+        const codeSlug = form.name.trim().toUpperCase().normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9]+/g, '').slice(0, 6) || 'SYNDIC'
+        const accessCode = `${codeSlug}-${new Date().getFullYear()}`
         const newBuilding = {
             id: bldId,
             name: form.name.trim(),
@@ -9031,6 +9042,7 @@ function AddBuildingModal({ onClose, onSave }) {
             icon: 'Building2',
             logo: form.logo,
             collection_rate: 100,
+            accessCode,
             copyFrom: form.copyFrom || null,
         }
         onSave(newBuilding)
